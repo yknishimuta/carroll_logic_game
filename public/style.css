@@ -1,0 +1,850 @@
+:root {
+  color-scheme: light dark;
+  --background: #f5f3ee;
+  --foreground: #25231f;
+  --surface: #ffffff;
+  --surface-muted: #ebe7de;
+  --accent: #785b32;
+  --border: #c9c2b5;
+  --existence-counter-color: #b4232c;
+  --emptiness-counter-color: #686868;
+}
+
+.logic-game__interactive-diagram {
+  position: relative;
+  width: min(100%, 32rem);
+  margin-inline: auto;
+}
+
+.logic-game__interactive-diagram .logic-game__svg-container,
+.logic-game__interactive-diagram .carroll-diagram {
+  width: 100%;
+  margin: 0;
+}
+
+.logic-game__counter-target-overlay {
+  position: absolute;
+  inset: 0;
+}
+
+.logic-game__counter-target {
+  position: absolute;
+  width: 2.75rem;
+  height: 2.75rem;
+  padding: 0;
+  border: 1px dashed color-mix(in srgb, currentColor 45%, transparent);
+  border-radius: 50%;
+  background: color-mix(in srgb, Canvas 22%, transparent);
+  transform: translate(-50%, -50%);
+}
+
+.logic-game__counter-target:hover,
+.logic-game__counter-target:focus-visible {
+  border-style: solid;
+  outline: 3px solid Highlight;
+  outline-offset: 2px;
+  background: color-mix(in srgb, Highlight 22%, transparent);
+}
+
+.logic-game__counter-tools,
+.logic-game__counter-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  justify-content: center;
+  margin-block: 1rem;
+}
+
+.logic-game__counter-tools [aria-pressed="true"] {
+  border-width: 3px;
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+}
+
+.logic-game__counter-feedback {
+  padding: 0.75rem;
+  border: 2px solid currentColor;
+  border-radius: 0.5rem;
+}
+
+.logic-game__counter-feedback--correct::before {
+  content: "✓ ";
+}
+
+.logic-game__counter-feedback--incorrect::before {
+  content: "× ";
+}
+
+.logic-game__conclusion-quiz {
+  padding: 1rem;
+  border: 2px solid currentColor;
+  border-radius: 0.75rem;
+}
+
+.logic-game__conclusion-quiz label {
+  display: grid;
+  gap: 0.35rem;
+  margin-block: 1rem;
+}
+
+.logic-game__conclusion-quiz select {
+  width: min(100%, 38rem);
+  min-height: 2.75rem;
+}
+
+.logic-game__conclusion-quiz-feedback {
+  padding: 0.75rem;
+  border-inline-start: 0.35rem solid currentColor;
+}
+
+.logic-game__conclusion-quiz-feedback--correct::before {
+  content: "✓ ";
+}
+
+.logic-game__conclusion-quiz-feedback--incorrect::before,
+.logic-game__conclusion-quiz-feedback--incomplete::before {
+  content: "× ";
+}
+
+.logic-game__saved-custom-problems {
+  padding: 1rem;
+  border: 2px solid currentColor;
+  border-radius: 0.75rem;
+}
+
+.logic-game__saved-custom-problems fieldset {
+  margin-block: 1rem;
+  padding: 1rem;
+  border: 1px solid currentColor;
+}
+
+.logic-game__saved-custom-problems fieldset > label {
+  display: grid;
+  gap: 0.35rem;
+  margin-block: 1rem;
+}
+
+.logic-game__saved-custom-problems input {
+  min-height: 2.75rem;
+  width: min(100%, 36rem);
+}
+
+.logic-game__saved-custom-problem-list {
+  display: grid;
+  gap: 1rem;
+  padding: 0;
+  list-style: none;
+}
+
+.logic-game__saved-custom-problem-list > li {
+  padding: 1rem;
+  border: 1px solid currentColor;
+  border-radius: 0.5rem;
+}
+
+.logic-game__saved-custom-problem-list button,
+.logic-game__saved-custom-problems fieldset > button {
+  margin: 0.25rem;
+}
+
+.logic-game__saved-custom-problem-list
+  [data-action="delete-saved-custom-problem"]::before {
+  content: "⚠ ";
+}
+
+.logic-game__saved-custom-problem-feedback,
+.logic-game__saved-custom-problem-warning {
+  padding: 0.75rem;
+  border-inline-start: 0.35rem solid currentColor;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  min-height: 100vh;
+  margin: 0;
+  padding: clamp(1.5rem, 6vw, 4rem) 1rem;
+  color: var(--foreground);
+  background: var(--background);
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  line-height: 1.6;
+}
+
+#app,
+noscript {
+  display: block;
+  width: min(100%, 64rem);
+  margin-inline: auto;
+}
+
+.logic-game {
+  display: grid;
+  gap: 1.25rem;
+}
+
+.logic-game__main {
+  display: grid;
+  min-width: 0;
+  gap: 1.25rem;
+}
+
+.logic-game__header,
+.logic-game__settings,
+.logic-game__main > section,
+.logic-game__progress,
+.logic-game__controls {
+  padding: clamp(1rem, 4vw, 2rem);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 0.5rem;
+}
+
+.logic-game__settings {
+  display: block;
+  gap: 1rem;
+}
+
+.logic-game__settings > * {
+  margin-block-end: 1rem;
+}
+
+.logic-game__settings > h2 {
+  grid-column: 1 / -1;
+}
+
+@supports (display: grid) {
+  .logic-game__settings {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 12rem), 1fr));
+  }
+
+  .logic-game__settings > * {
+    margin-block-end: 0;
+  }
+}
+
+.logic-game__settings label {
+  display: grid;
+  gap: 0.35rem;
+  font-weight: 700;
+}
+
+.logic-game__settings select {
+  min-height: 2.75rem;
+  width: 100%;
+  padding: 0.5rem 2rem 0.5rem 0.75rem;
+  color: var(--foreground);
+  background: var(--surface);
+  border: 2px solid var(--border);
+  border-radius: 0.35rem;
+  font: inherit;
+}
+
+.logic-game__settings select:focus-visible {
+  outline: 0.2rem solid var(--accent);
+  outline-offset: 0.15rem;
+}
+
+.logic-game__header {
+  border-top: 0.3rem solid var(--accent);
+}
+
+.logic-game h1 {
+  margin: 0;
+  font-size: clamp(1.75rem, 5vw, 2.5rem);
+  line-height: 1.25;
+}
+
+.logic-game h2 {
+  margin-top: 0;
+}
+
+.logic-game__phase-heading {
+  margin: 0;
+}
+
+.skip-link {
+  position: fixed;
+  z-index: 1000;
+  inset-block-start: 0.5rem;
+  inset-inline-start: 0.5rem;
+  max-width: calc(100vw - 1rem);
+  padding: 0.75rem 1rem;
+  color: CanvasText;
+  background: Canvas;
+  border: 3px solid currentColor;
+  border-radius: 0.35rem;
+  transform: translateY(-200%);
+}
+
+.skip-link:focus {
+  transform: translateY(0);
+}
+
+button,
+select,
+input,
+.skip-link {
+  min-height: 2.75rem;
+  max-width: 100%;
+  font: inherit;
+}
+
+button:focus-visible,
+select:focus-visible,
+input:focus-visible,
+.skip-link:focus-visible,
+[tabindex="-1"]:focus-visible {
+  outline: 0.2rem solid Highlight;
+  outline-offset: 0.2rem;
+}
+
+.logic-game__progress ol {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.5rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.logic-game__progress li {
+  padding: 0.5rem;
+  border: 1px solid var(--border);
+  border-radius: 0.25rem;
+  text-align: center;
+}
+
+.logic-game__progress .is-current {
+  border-width: 2px;
+  border-color: var(--accent);
+  font-weight: 700;
+}
+
+.logic-game__progress .is-complete::before {
+  content: "✓ ";
+}
+
+.logic-game__assignment dl {
+  display: grid;
+  grid-template-columns: min-content 1fr;
+  gap: 0.35rem 1rem;
+  margin-bottom: 0;
+}
+
+.logic-game__assignment dt {
+  font-weight: 700;
+}
+
+.logic-game__assignment dd {
+  margin: 0;
+}
+
+.logic-game__assignment-quiz {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.75rem;
+  align-items: end;
+}
+
+.logic-game__assignment-quiz label {
+  display: grid;
+  gap: 0.35rem;
+}
+
+.logic-game__assignment-role {
+  font-weight: 700;
+}
+
+.logic-game__assignment-quiz select,
+.logic-game__assignment-quiz button {
+  min-height: 2.75rem;
+  padding: 0.5rem 0.75rem;
+  color: var(--foreground);
+  background: var(--surface);
+  border: 2px solid var(--border);
+  border-radius: 0.35rem;
+  font: inherit;
+}
+
+.logic-game__assignment-quiz button {
+  grid-column: 1 / -1;
+  border-color: var(--accent);
+  cursor: pointer;
+}
+
+.logic-game__assignment-quiz :focus-visible {
+  outline: 0.2rem solid var(--accent);
+  outline-offset: 0.15rem;
+}
+
+.logic-game__assignment-feedback {
+  padding: 0.75rem 1rem;
+  border-left: 0.25rem solid var(--accent);
+  background: var(--surface-muted);
+}
+
+.logic-game__assignment-feedback--correct::before {
+  content: "✓ ";
+  font-weight: 700;
+}
+
+.logic-game__assignment-feedback--incomplete::before,
+.logic-game__assignment-feedback--duplicate-term::before,
+.logic-game__assignment-feedback--incorrect::before {
+  content: "! ";
+  font-weight: 700;
+}
+
+.logic-game__custom-problem fieldset {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.75rem;
+  margin-block: 1rem;
+  padding: 1rem;
+  border: 1px solid var(--border);
+  border-radius: 0.35rem;
+}
+
+.logic-game__custom-problem legend {
+  padding-inline: 0.4rem;
+  font-weight: 700;
+}
+
+.logic-game__custom-problem fieldset label {
+  display: grid;
+  gap: 0.35rem;
+  font-weight: 700;
+}
+
+.logic-game__custom-problem select,
+.logic-game__custom-problem button {
+  min-height: 2.75rem;
+  padding: 0.5rem 0.75rem;
+  color: var(--foreground);
+  background: var(--surface);
+  border: 2px solid var(--border);
+  border-radius: 0.35rem;
+  font: inherit;
+}
+
+.logic-game__custom-problem :focus-visible {
+  outline: 0.2rem solid var(--accent);
+  outline-offset: 0.15rem;
+}
+
+.logic-game__custom-problem-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.logic-game__custom-problem-actions button:first-child {
+  border-color: var(--accent);
+  font-weight: 700;
+}
+
+.logic-game__custom-problem-feedback {
+  padding: 0.75rem 1rem;
+  background: var(--surface-muted);
+  border-left: 0.25rem solid var(--accent);
+}
+
+.logic-game__custom-problem-feedback--success::before {
+  content: "✓ ";
+  font-weight: 700;
+}
+
+.logic-game__custom-problem-feedback--error::before {
+  content: "! ";
+  font-weight: 700;
+}
+
+.logic-game__custom-terms {
+  border-left: 0.3rem solid var(--accent);
+}
+
+.logic-game__custom-terms fieldset {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.75rem;
+  margin-block: 1rem;
+  padding: 1rem;
+  border: 1px solid var(--border);
+  border-radius: 0.35rem;
+}
+
+.logic-game__custom-terms legend {
+  padding-inline: 0.4rem;
+  font-weight: 700;
+}
+
+.logic-game__custom-terms label {
+  display: grid;
+  gap: 0.35rem;
+  font-weight: 700;
+}
+
+.logic-game__custom-terms input,
+.logic-game__custom-terms button {
+  min-height: 2.75rem;
+  padding: 0.5rem 0.75rem;
+  color: var(--foreground);
+  background: var(--surface);
+  border: 2px solid var(--border);
+  border-radius: 0.35rem;
+  font: inherit;
+}
+
+.logic-game__custom-terms :focus-visible {
+  outline: 0.2rem solid var(--accent);
+  outline-offset: 0.15rem;
+}
+
+.logic-game__custom-term-list {
+  display: grid;
+  gap: 0.75rem;
+  padding: 0;
+  list-style: none;
+}
+
+.logic-game__custom-term-list li {
+  padding: 1rem;
+  border: 1px solid var(--border);
+  border-radius: 0.35rem;
+}
+
+.logic-game__custom-term-list dl {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 0.25rem 0.75rem;
+}
+
+.logic-game__custom-term-list dd {
+  margin: 0;
+}
+
+.logic-game__custom-term-list [data-action="delete-custom-term"] {
+  border-style: dashed;
+}
+
+.logic-game__custom-term-feedback,
+.logic-game__custom-term-warning {
+  padding: 0.75rem 1rem;
+  background: var(--surface-muted);
+  border-left: 0.25rem solid var(--accent);
+}
+
+.logic-game__custom-term-feedback--success::before {
+  content: "✓ ";
+  font-weight: 700;
+}
+
+.logic-game__custom-term-feedback--error::before,
+.logic-game__custom-term-warning::before {
+  content: "! ";
+  font-weight: 700;
+}
+
+.logic-game__instruction {
+  padding: 0.75rem 1rem;
+  background: var(--surface-muted);
+  border-left: 0.25rem solid var(--accent);
+}
+
+.logic-game figure {
+  margin: 0;
+}
+
+.logic-game figcaption {
+  margin-top: 0.75rem;
+  text-align: center;
+}
+
+.logic-game__svg-container {
+  color: var(--foreground);
+}
+
+.carroll-diagram {
+  display: block;
+  width: min(100%, 32rem);
+  height: auto;
+  margin-inline: auto;
+}
+
+.carroll-counter--existence {
+  color: var(--existence-counter-color);
+}
+
+.carroll-counter--emptiness {
+  color: var(--emptiness-counter-color);
+}
+
+.logic-game__conclusion {
+  border-width: 2px;
+  border-color: var(--accent);
+}
+
+.logic-game__abstract-conclusion {
+  font-weight: 700;
+}
+
+.logic-game__controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  justify-content: center;
+}
+
+.logic-game__controls button {
+  min-height: 2.75rem;
+  padding: 0.6rem 1rem;
+  color: var(--foreground);
+  background: var(--surface);
+  border: 2px solid var(--accent);
+  border-radius: 0.35rem;
+  font: inherit;
+  cursor: pointer;
+}
+
+.logic-game__controls button:focus-visible {
+  outline: 0.2rem solid var(--foreground);
+  outline-offset: 0.2rem;
+}
+
+.logic-game__controls button:disabled {
+  border-style: dashed;
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+@media (max-width: 38rem) {
+  .logic-game__settings {
+    grid-template-columns: 1fr;
+  }
+
+  .logic-game__assignment-quiz {
+    grid-template-columns: 1fr;
+  }
+
+  .logic-game__custom-problem fieldset {
+    grid-template-columns: 1fr;
+  }
+
+  .logic-game__custom-terms fieldset {
+    grid-template-columns: 1fr;
+  }
+
+  .logic-game__progress ol {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+@media (forced-colors: active) {
+  .logic-game__progress .is-current,
+  [aria-pressed="true"],
+  .logic-game__counter-feedback,
+  .logic-game__conclusion-quiz-feedback,
+  .logic-game__warning {
+    border: 3px solid CanvasText;
+  }
+
+  .logic-game__counter-target:focus-visible {
+    outline: 4px solid Highlight;
+  }
+
+  .carroll-counter--existence,
+  .carroll-counter--emptiness {
+    forced-color-adjust: auto;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .skip-link {
+    transition: none;
+  }
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #191816;
+    --foreground: #eeece7;
+    --surface: #26231f;
+    --surface-muted: #34302a;
+    --accent: #d4b27d;
+    --border: #5a544b;
+    --existence-counter-color: #ff7b82;
+    --emptiness-counter-color: #b7b7b7;
+  }
+}
+.logic-game__data-backup {
+  margin-block: 1.25rem;
+  padding: 1rem;
+  border: 2px solid color-mix(in srgb, currentColor 35%, transparent);
+  border-radius: 0.75rem;
+  background: color-mix(in srgb, Canvas 94%, #4b7bec 6%);
+}
+
+.logic-game__data-backup-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+  margin-block-start: 1.25rem;
+}
+
+.logic-game__data-backup-action {
+  padding: 1rem;
+  border: 1px solid var(--border);
+  border-block-start-width: 0.4rem;
+  border-radius: 0.6rem;
+  background: var(--surface);
+}
+
+.logic-game__data-backup-action--export {
+  border-block-start-color: #287a3d;
+}
+
+.logic-game__data-backup-action--import {
+  border-block-start-color: #3169a8;
+}
+
+.logic-game__data-backup-action h3 {
+  margin-block-start: 0;
+}
+
+.logic-game__data-backup-action--export h3::before {
+  content: "↓ ";
+  color: #287a3d;
+  font-size: 1.25em;
+}
+
+.logic-game__data-backup-action--import h3::before {
+  content: "↑ ";
+  color: #3169a8;
+  font-size: 1.25em;
+}
+
+.logic-game__data-backup-primary-action {
+  min-height: 2.75rem;
+  padding: 0.55rem 1rem;
+  border: 2px solid #287a3d;
+  border-radius: 0.4rem;
+  font-weight: 700;
+}
+
+.logic-game__data-backup-file-label {
+  display: block;
+  font-weight: 700;
+}
+
+.logic-game__data-backup input[type="file"] {
+  display: block;
+  width: 100%;
+  margin-block: 0.4rem;
+  padding: 0.55rem;
+  border: 1px solid currentColor;
+  border-radius: 0.4rem;
+}
+
+.logic-game__data-backup input[type="file"]::file-selector-button {
+  min-height: 2.75rem;
+  margin-inline-end: 0.75rem;
+  padding: 0.5rem 0.8rem;
+  border: 2px solid #3169a8;
+  border-radius: 0.35rem;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.logic-game__data-backup-file-help {
+  margin-block-end: 0;
+  font-size: 0.9rem;
+}
+
+.logic-game__data-import-preview {
+  margin-block-start: 1rem;
+  padding: 0.9rem;
+  border: 1px solid currentColor;
+  border-radius: 0.5rem;
+}
+
+.logic-game__data-import-preview dl {
+  display: grid;
+  grid-template-columns: minmax(9rem, auto) 1fr;
+  gap: 0.35rem 0.8rem;
+}
+
+.logic-game__data-import-preview dd {
+  margin: 0;
+  font-weight: 700;
+}
+
+.logic-game__warning,
+.logic-game__data-import-status--error {
+  border-inline-start: 0.35rem solid #a33;
+  padding-inline-start: 0.7rem;
+  font-weight: 700;
+}
+
+.logic-game__data-import-status--success {
+  border-inline-start: 0.35rem solid #287a3d;
+  padding-inline-start: 0.7rem;
+  font-weight: 700;
+}
+
+.logic-game__danger-action::before {
+  content: "⚠ ";
+}
+
+@media (max-width: 38rem) {
+  .logic-game__data-backup-actions {
+    grid-template-columns: 1fr;
+  }
+
+  .logic-game__data-backup-primary-action {
+    width: 100%;
+  }
+
+  .logic-game__data-import-preview button {
+    display: block;
+    width: 100%;
+    margin-block: 0.5rem;
+  }
+}
+.logic-game__custom-term-form,
+.logic-game__custom-term-group {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.logic-game__custom-term-group--current {
+  border-width: 2px;
+}
+
+.logic-game__custom-term-group--optional {
+  border-style: dashed;
+}
+
+.logic-game__custom-term-help,
+.logic-game__fallback-badge {
+  overflow-wrap: anywhere;
+}
+
+.logic-game__fallback-badge {
+  display: block;
+  margin-block: 0.25rem;
+  font-size: 0.875em;
+}
+
+@media (forced-colors: active) {
+  .logic-game__custom-term-group--optional {
+    border-color: CanvasText;
+  }
+  .logic-game__fallback-badge {
+    border: 1px solid CanvasText;
+    padding: 0.125rem 0.25rem;
+  }
+}
