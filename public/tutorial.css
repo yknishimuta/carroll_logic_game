@@ -1,0 +1,150 @@
+:root {
+  color-scheme: light dark;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  line-height: 1.65;
+  --page: #f5f1e8;
+  --panel: #fffdf8;
+  --ink: #28231d;
+  --accent: #70451f;
+  --border: #9a8066;
+  --notice: #fff2c7;
+}
+
+* { box-sizing: border-box; }
+html { background: var(--page); color: var(--ink); }
+body { margin: 0; overflow-wrap: anywhere; }
+a { color: #70451f; }
+.skip-link {
+  position: fixed;
+  z-index: 10;
+  inset-block-start: .5rem;
+  inset-inline-start: .5rem;
+  padding: .75rem 1rem;
+  background: var(--panel);
+  color: var(--ink);
+  transform: translateY(-200%);
+}
+.skip-link:focus { transform: none; }
+:focus-visible { outline: 3px solid Highlight; outline-offset: 3px; }
+
+.tutorial__header,
+.tutorial__contents,
+main {
+  width: min(100% - 2rem, 70rem);
+  margin-inline: auto;
+}
+.tutorial__header {
+  padding-block: 2rem 1rem;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 1rem 2rem;
+}
+.tutorial__header h1 { flex: 1 1 22rem; margin: 0; }
+.tutorial__header label { display: grid; gap: .25rem; }
+select, a { min-height: 2.75rem; }
+select { min-width: 8rem; padding: .5rem; font: inherit; }
+.tutorial__contents,
+.tutorial__section {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: .5rem;
+  padding: clamp(1rem, 3vw, 2rem);
+  margin-block: 1rem;
+}
+.tutorial__contents ol { columns: 2 18rem; }
+.tutorial__contents a { display: inline-block; padding-block: .25rem; }
+main { padding-block-end: 3rem; }
+.tutorial__notice {
+  padding: 1rem;
+  border: 2px solid var(--border);
+  background: var(--notice);
+  font-weight: 700;
+}
+.tutorial__table-scroll {
+  max-width: 100%;
+  overflow-x: auto;
+  margin-block: 1rem;
+}
+table { width: 100%; border-collapse: collapse; min-width: 36rem; }
+caption { text-align: start; font-weight: 700; padding-block: .5rem; }
+th, td { border: 1px solid var(--border); padding: .55rem; text-align: start; }
+.tutorial__diagram {
+  width: min(100%, 32rem);
+  margin: 1.5rem auto;
+  padding: 1rem;
+  border: 1px solid var(--border);
+}
+.tutorial__diagram svg { display: block; width: 100%; height: auto; aspect-ratio: 1; }
+.tutorial__diagram figcaption { margin-block-start: .5rem; }
+.tutorial__rule-sources {
+  margin-block-start: 1.5rem;
+  padding-block-start: 1rem;
+  border-block-start: 1px solid var(--border);
+}
+.tutorial__rule-sources dl { margin: 0; }
+.tutorial__rule-sources dt { font-weight: 700; }
+.tutorial__rule-sources dd { margin: .25rem 0 .75rem 1rem; }
+.tutorial__citation {
+  font-size: .9375rem;
+  text-decoration: underline;
+  text-underline-offset: .18em;
+}
+.tutorial__citation--derived::before { content: "↳ "; }
+.tutorial__citation--application {
+  text-decoration-style: dotted;
+  font-style: italic;
+}
+.tutorial__source-references {
+  background: var(--panel);
+  border: 2px solid var(--border);
+  border-radius: .5rem;
+  padding: clamp(1rem, 3vw, 2rem);
+  margin-block: 2rem;
+}
+.tutorial__source-references li {
+  padding: .75rem;
+  margin-block: .5rem;
+}
+.tutorial__source-references li:target {
+  outline: 3px solid Highlight;
+  outline-offset: 2px;
+}
+.tutorial__source-references h3,
+.tutorial__source-references p { margin-block: .35rem; }
+.carroll-diagram__outer,
+.carroll-diagram__inner,
+.carroll-diagram__divider { fill: none; stroke: currentColor; stroke-width: 2; }
+.carroll-diagram__label { fill: currentColor; font: 20px system-ui, sans-serif; }
+.carroll-diagram__counter--emptiness { fill: var(--panel); stroke: currentColor; stroke-width: 3; }
+.carroll-diagram__counter--existence { fill: currentColor; }
+.carroll-diagram__counter-label { fill: var(--panel); font: 700 18px system-ui, sans-serif; }
+
+@media (max-width: 30rem) {
+  .tutorial__header { display: block; }
+  .tutorial__header > * { margin-block: .75rem; }
+  .tutorial__contents ol { columns: 1; }
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --page: #181512;
+    --panel: #25211d;
+    --ink: #f5eadc;
+    --accent: #f2bd84;
+    --border: #b79a7d;
+    --notice: #463b20;
+  }
+  a { color: var(--accent); }
+}
+@media (forced-colors: active) {
+  .tutorial__notice,
+  .tutorial__diagram,
+  .tutorial__section,
+  .tutorial__source-references { border: 2px solid CanvasText; }
+  .tutorial__citation { color: LinkText; }
+  .carroll-diagram__counter--emptiness { fill: Canvas; stroke: CanvasText; }
+  .carroll-diagram__counter--existence { fill: CanvasText; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .skip-link { transition: none; }
+}

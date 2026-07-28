@@ -1,0 +1,21 @@
+{
+  "name": "carroll-logic-game",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "node scripts/dev.mjs",
+    "build": "node scripts/build.mjs",
+    "verify-dist": "node scripts/verify-dist.mjs",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "check": "npm run typecheck && npm test && npm run build && npm run verify-dist"
+  },
+  "devDependencies": {
+    "@types/node": "^24.1.0",
+    "esbuild": "^0.25.8",
+    "happy-dom": "20.11.1",
+    "typescript": "^5.9.2",
+    "vitest": "^3.2.4"
+  }
+}
