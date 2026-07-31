@@ -72,14 +72,14 @@ describe("custom term identity and drafts", () => {
     expect(isCustomTermDraftField("other")).toBe(false);
   });
 
-  it.each([
-    { ...draft, jaNounPhrase: " " },
-    { ...draft, enSubjectPlural: "" },
-    { ...draft, enPredicatePhrase: "\t" },
-  ])("rejects incomplete labels", (candidate) => {
-    expect(validateCustomTermDraft(candidate, [])).toEqual({
-      ok: false,
-      reason: "incomplete",
+  it("requires the current locale and keeps English all-or-none", () => {
+    expect(validateCustomTermDraft({ ...draft, jaNounPhrase: " " }, []))
+      .toEqual({ ok: false, reason: "japanese-required" });
+    for (const candidate of [
+      { ...draft, enSubjectPlural: "" },
+      { ...draft, enPredicatePhrase: "\t" },
+    ]) expect(validateCustomTermDraft(candidate, [])).toEqual({
+      ok: false, reason: "incomplete-english",
     });
   });
 
@@ -95,11 +95,76 @@ describe("custom term identity and drafts", () => {
     expect(validateCustomTermDraft(
       { ...draft, [field]: "x".repeat(81) },
       [],
-    )).toEqual({ ok: false, reason: "label-too-long" });
+    )).toEqual({ ok: false, reason: "term-text-too-long" });
   });
 });
 
 describe("custom term validation and CRUD", () => {
+  it.each([
+    ["ja", "create", { jaNounPhrase: "", enSubjectPlural: "", enPredicatePhrase: "" }, "japanese-required"],
+    ["ja", "create", { jaNounPhrase: "哲学者", enSubjectPlural: "philosophers", enPredicatePhrase: "" }, "incomplete-english"],
+    ["ja", "create", { jaNounPhrase: "哲学者", enSubjectPlural: "", enPredicatePhrase: "philosophers" }, "incomplete-english"],
+    ["en", "create", { jaNounPhrase: "", enSubjectPlural: "", enPredicatePhrase: "" }, "english-required"],
+    ["en", "create", { jaNounPhrase: "", enSubjectPlural: "philosophers", enPredicatePhrase: "" }, "incomplete-english"],
+    ["ja", "update", { jaNounPhrase: "", enSubjectPlural: "", enPredicatePhrase: "" }, "at-least-one-language-required"],
+  ] as const)("returns specific %s %s validation", (currentLocale, operation,
+    candidate, reason) => {
+    expect(validateCustomTermDraft(candidate, [], {
+      operation, currentLocale,
+      ...(operation === "update" ? { editingTermId: "custom-term-1" as const } : {}),
+    })).toEqual({ ok: false, reason });
+  });
+
+  it.each([
+    ["ja", { jaNounPhrase: "哲学者", enSubjectPlural: "", enPredicatePhrase: "" }],
+    ["ja", { jaNounPhrase: "哲学者", enSubjectPlural: "philosophers", enPredicatePhrase: "philosophers" }],
+    ["en", { jaNounPhrase: "", enSubjectPlural: "philosophers", enPredicatePhrase: "philosophers" }],
+  ] as const)("accepts complete create input for %s", (currentLocale, candidate) => {
+    expect(validateCustomTermDraft(candidate, [], {
+      operation: "create", currentLocale,
+    }).ok).toBe(true);
+  });
+
+  it.each([
+    { jaNounPhrase: "哲学者", enSubjectPlural: "", enPredicatePhrase: "" },
+    { jaNounPhrase: "", enSubjectPlural: "philosophers", enPredicatePhrase: "philosophers" },
+  ])("accepts a complete single language during update", (candidate) => {
+    expect(validateCustomTermDraft(candidate, [], {
+      operation: "update", currentLocale: "ja", editingTermId: "custom-term-1",
+    }).ok).toBe(true);
+  });
+  it("creates Japanese-only, English-only, and bilingual terms by locale", () => {
+    const jaOnly = createCustomTerm({ jaNounPhrase: "哲学者",
+      enSubjectPlural: "", enPredicatePhrase: "" }, BUILT_IN_TERMS, [], "ja");
+    expect(jaOnly.ok && jaOnly.term.labels).toEqual({
+      ja: { nounPhrase: "哲学者" }, en: null,
+    });
+    const enOnly = createCustomTerm({ jaNounPhrase: "",
+      enSubjectPlural: "logicians", enPredicatePhrase: "logical" },
+    BUILT_IN_TERMS, [], "en");
+    expect(enOnly.ok && enOnly.term.labels).toEqual({ ja: null, en: {
+      subjectPlural: "logicians", predicatePhrase: "logical",
+    } });
+    expect(createCustomTerm({ jaNounPhrase: "", enSubjectPlural: "",
+      enPredicatePhrase: "" }, BUILT_IN_TERMS, [], "en")).toEqual({
+      ok: false, reason: "english-required",
+    });
+  });
+
+  it("allows translation addition and removal on update", () => {
+    const original: CustomTermDefinition = { id: "custom-term-1", labels: {
+      ja: { nounPhrase: "哲学者" }, en: null,
+    } };
+    const added = updateCustomTerm(original.id, { jaNounPhrase: "哲学者",
+      enSubjectPlural: "philosophers", enPredicatePhrase: "philosophers" },
+    BUILT_IN_TERMS, [original], "en");
+    expect(added.ok && added.term.id).toBe(original.id);
+    if (!added.ok) return;
+    const removed = updateCustomTerm(original.id, { jaNounPhrase: "哲学者",
+      enSubjectPlural: "", enPredicatePhrase: "" }, BUILT_IN_TERMS,
+    added.terms, "en");
+    expect(removed.ok && removed.term.labels.en).toBeNull();
+  });
   it("trims labels and rejects built-in and case-insensitive duplicates", () => {
     expect(validateCustomTermDraft(
       {
@@ -124,7 +189,10 @@ describe("custom term validation and CRUD", () => {
         enPredicatePhrase: " philosophers ",
       },
       [],
-    )).toEqual({ ok: true, labels: draft });
+    )).toEqual({ ok: true, labels: {
+      ja: { nounPhrase: "哲学者" },
+      en: { subjectPlural: "philosophers", predicatePhrase: "philosophers" },
+    } });
   });
 
   it("excludes the edited term from duplicate and count checks", () => {
@@ -190,7 +258,7 @@ describe("custom term validation and CRUD", () => {
       "custom-term-1",
       "custom-term-2",
     ]);
-    expect(updated.terms[0]?.labels.ja.nounPhrase).toBe("哲人");
+    expect(updated.terms[0]?.labels.ja?.nounPhrase).toBe("哲人");
     expect(deleteCustomTerm("custom-term-1", updated.terms)).toEqual([
       created.term,
     ]);

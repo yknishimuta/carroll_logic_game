@@ -29,6 +29,35 @@ const philosopher: CustomTermDefinition = {
 };
 
 describe("custom term storage", () => {
+  it("loads v1 bilingual data and v2 monolingual data", () => {
+    const storage = new MemoryStorage();
+    storage.values.set(CUSTOM_TERM_STORAGE_KEY, JSON.stringify({
+      version: 1, terms: [philosopher],
+    }));
+    expect(loadCustomTerms(storage)).toEqual({ ok: true, terms: [philosopher] });
+    const monolingual: CustomTermDefinition[] = [
+      { id: "custom-term-1", labels: { ja: { nounPhrase: "哲学者" }, en: null } },
+      { id: "custom-term-2", labels: { ja: null, en: {
+        subjectPlural: "mortal beings", predicatePhrase: "mortal",
+      } } },
+    ];
+    storage.values.set(CUSTOM_TERM_STORAGE_KEY, JSON.stringify({
+      version: 2, terms: monolingual,
+    }));
+    expect(loadCustomTerms(storage)).toEqual({ ok: true, terms: monolingual });
+  });
+
+  it.each([
+    { id: "custom-term-1", labels: { ja: null, en: null } },
+    { id: "custom-term-1", labels: { ja: null, en: { subjectPlural: "x" } } },
+    { id: "custom-term-1", labels: { ja: { nounPhrase: "" }, en: null } },
+  ])("rejects invalid v2 nullable labels", (term) => {
+    const storage = new MemoryStorage();
+    storage.values.set(CUSTOM_TERM_STORAGE_KEY, JSON.stringify({
+      version: 2, terms: [term],
+    }));
+    expect(loadCustomTerms(storage)).toEqual({ ok: false, reason: "invalid-data" });
+  });
   it("loads an empty catalog when no value exists", () => {
     expect(loadCustomTerms(new MemoryStorage())).toEqual({
       ok: true,
@@ -50,7 +79,7 @@ describe("custom term storage", () => {
     expect(saveCustomTerms(storage, frozen)).toEqual({ ok: true });
     expect([...storage.values.keys()]).toEqual([CUSTOM_TERM_STORAGE_KEY]);
     expect(JSON.parse(storage.values.get(CUSTOM_TERM_STORAGE_KEY)!))
-      .toEqual({ version: 1, terms: [philosopher, second] });
+      .toEqual({ version: 2, terms: [philosopher, second] });
     expect(loadCustomTerms(storage)).toEqual({
       ok: true,
       terms: [philosopher, second],
@@ -63,7 +92,7 @@ describe("custom term storage", () => {
   it.each([
     ["{", "invalid-json"],
     [JSON.stringify({ terms: [] }), "unsupported-version"],
-    [JSON.stringify({ version: 2, terms: [] }), "unsupported-version"],
+    [JSON.stringify({ version: 3, terms: [] }), "unsupported-version"],
     [JSON.stringify({ version: 1, terms: {} }), "invalid-data"],
     [JSON.stringify({ version: 1, terms: [{ ...philosopher, id: "bad" }] }), "invalid-data"],
     [JSON.stringify({ version: 1, terms: [philosopher, philosopher] }), "invalid-data"],

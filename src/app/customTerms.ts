@@ -6,6 +6,7 @@ import {
   type CustomTermId,
 } from "../domain/customTerm";
 import type { TermDefinition } from "../domain/term";
+import type { Locale } from "../domain/locale";
 
 export interface CustomTermDraft {
   readonly jaNounPhrase: string;
@@ -43,64 +44,98 @@ export function updateCustomTermDraft(
 }
 
 export type CustomTermValidationFailureReason =
-  | "incomplete"
-  | "label-too-long"
+  | "japanese-required"
+  | "english-required"
+  | "incomplete-english"
+  | "at-least-one-language-required"
+  | "term-text-too-long"
   | "duplicate-term"
   | "term-limit-reached";
 
 export interface NormalizedCustomTermLabels {
-  readonly jaNounPhrase: string;
-  readonly enSubjectPlural: string;
-  readonly enPredicatePhrase: string;
+  readonly ja: { readonly nounPhrase: string } | null;
+  readonly en: {
+    readonly subjectPlural: string;
+    readonly predicatePhrase: string;
+  } | null;
 }
 
 export type CustomTermValidationResult =
   | { readonly ok: true; readonly labels: NormalizedCustomTermLabels }
   | { readonly ok: false; readonly reason: CustomTermValidationFailureReason };
 
-function labelsForComparison(term: TermDefinition): NormalizedCustomTermLabels {
+export function normalizeCustomTermDraft(
+  draft: CustomTermDraft,
+): NormalizedCustomTermLabels {
+  const jaNounPhrase = draft.jaNounPhrase.trim();
+  const enSubjectPlural = draft.enSubjectPlural.trim();
+  const enPredicatePhrase = draft.enPredicatePhrase.trim();
   return {
-    jaNounPhrase: term.labels.ja.nounPhrase.trim(),
-    enSubjectPlural: term.labels.en.subjectPlural.trim().toLowerCase(),
-    enPredicatePhrase: term.labels.en.predicatePhrase.trim().toLowerCase(),
+    ja: jaNounPhrase === "" ? null : { nounPhrase: jaNounPhrase },
+    en: enSubjectPlural === "" && enPredicatePhrase === "" ? null : {
+      subjectPlural: enSubjectPlural,
+      predicatePhrase: enPredicatePhrase,
+    },
   };
 }
 
+export type AvailableTermDefinition = TermDefinition | CustomTermDefinition;
+
 export function validateCustomTermDraft(
   draft: CustomTermDraft,
-  existingTerms: readonly TermDefinition[],
-  editingTermId?: CustomTermId,
+  existingTerms: readonly AvailableTermDefinition[],
+  context: {
+    readonly operation: "create" | "update";
+    readonly currentLocale: Locale;
+    readonly editingTermId?: CustomTermId;
+  } | CustomTermId = { operation: "create", currentLocale: "ja" },
 ): CustomTermValidationResult {
-  const labels = {
-    jaNounPhrase: draft.jaNounPhrase.trim(),
-    enSubjectPlural: draft.enSubjectPlural.trim(),
-    enPredicatePhrase: draft.enPredicatePhrase.trim(),
-  };
-  if (Object.values(labels).some((label) => label.length === 0)) {
-    return { ok: false, reason: "incomplete" };
+  const validationContext = typeof context === "string"
+    ? { operation: "update" as const, currentLocale: "ja" as const,
+      editingTermId: context }
+    : context;
+  const labels = normalizeCustomTermDraft(draft);
+  const subjectPresent = draft.enSubjectPlural.trim() !== "";
+  const predicatePresent = draft.enPredicatePhrase.trim() !== "";
+  if (subjectPresent !== predicatePresent) {
+    return { ok: false, reason: "incomplete-english" };
+  }
+  if (labels.ja === null && labels.en === null) {
+    return { ok: false, reason: validationContext.operation === "update"
+      ? "at-least-one-language-required"
+      : validationContext.currentLocale === "ja"
+        ? "japanese-required"
+        : "english-required" };
+  }
+  if (validationContext.operation === "create" &&
+    ((validationContext.currentLocale === "ja" && labels.ja === null) ||
+      (validationContext.currentLocale === "en" && labels.en === null))) {
+    return { ok: false, reason: validationContext.currentLocale === "ja"
+      ? "japanese-required" : "english-required" };
   }
   if (
-    Object.values(labels).some(
+    [labels.ja?.nounPhrase, labels.en?.subjectPlural, labels.en?.predicatePhrase]
+      .filter((label): label is string => label !== undefined).some(
       (label) => label.length > CUSTOM_TERM_LABEL_MAX_LENGTH,
     )
   ) {
-    return { ok: false, reason: "label-too-long" };
+    return { ok: false, reason: "term-text-too-long" };
   }
-  const comparable = {
-    ...labels,
-    enSubjectPlural: labels.enSubjectPlural.toLowerCase(),
-    enPredicatePhrase: labels.enPredicatePhrase.toLowerCase(),
-  };
   if (
-    existingTerms.some((term) =>
-      term.id !== editingTermId &&
-      JSON.stringify(labelsForComparison(term)) === JSON.stringify(comparable)
-    )
+    existingTerms.some((term) => {
+      if (term.id === validationContext.editingTermId) return false;
+      const duplicateJa = labels.ja !== null && term.labels.ja !== null &&
+        term.labels.ja.nounPhrase.trim() === labels.ja.nounPhrase;
+      const duplicateEn = labels.en !== null && term.labels.en !== null &&
+        term.labels.en.subjectPlural.trim().toLowerCase() === labels.en.subjectPlural.toLowerCase() &&
+        term.labels.en.predicatePhrase.trim().toLowerCase() === labels.en.predicatePhrase.toLowerCase();
+      return duplicateJa || duplicateEn;
+    })
   ) {
     return { ok: false, reason: "duplicate-term" };
   }
   if (
-    editingTermId === undefined &&
+    validationContext.operation === "create" &&
     existingTerms.filter(({ id }) => isCustomTermId(id)).length >=
       CUSTOM_TERM_LIMIT
   ) {
@@ -129,11 +164,8 @@ function definition(
   return {
     id,
     labels: {
-      ja: { nounPhrase: labels.jaNounPhrase },
-      en: {
-        subjectPlural: labels.enSubjectPlural,
-        predicatePhrase: labels.enPredicatePhrase,
-      },
+      ja: labels.ja,
+      en: labels.en,
     },
   };
 }
@@ -151,10 +183,12 @@ export function createCustomTerm(
   draft: CustomTermDraft,
   builtInTerms: readonly TermDefinition[],
   customTerms: readonly CustomTermDefinition[],
+  currentLocale: Locale = "ja",
 ): CreateCustomTermResult {
   const validation = validateCustomTermDraft(
     draft,
     [...builtInTerms, ...customTerms],
+    { operation: "create", currentLocale },
   );
   if (!validation.ok) return validation;
   const term = definition(
@@ -188,13 +222,14 @@ export function updateCustomTerm(
   draft: CustomTermDraft,
   builtInTerms: readonly TermDefinition[],
   customTerms: readonly CustomTermDefinition[],
+  currentLocale: Locale = "ja",
 ): UpdateCustomTermResult {
   const index = customTerms.findIndex(({ id }) => id === termId);
   if (index < 0) return { ok: false, reason: "unknown-custom-term" };
   const validation = validateCustomTermDraft(
     draft,
     [...builtInTerms, ...customTerms],
-    termId,
+    { operation: "update", currentLocale, editingTermId: termId },
   );
   if (!validation.ok) return validation;
   const term = definition(termId, validation.labels);

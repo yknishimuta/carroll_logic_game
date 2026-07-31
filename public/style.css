@@ -814,3 +814,37 @@ input:focus-visible,
     margin-block: 0.5rem;
   }
 }
+.logic-game__custom-term-form,
+.logic-game__custom-term-group {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.logic-game__custom-term-group--current {
+  border-width: 2px;
+}
+
+.logic-game__custom-term-group--optional {
+  border-style: dashed;
+}
+
+.logic-game__custom-term-help,
+.logic-game__fallback-badge {
+  overflow-wrap: anywhere;
+}
+
+.logic-game__fallback-badge {
+  display: block;
+  margin-block: 0.25rem;
+  font-size: 0.875em;
+}
+
+@media (forced-colors: active) {
+  .logic-game__custom-term-group--optional {
+    border-color: CanvasText;
+  }
+  .logic-game__fallback-badge {
+    border: 1px solid CanvasText;
+    padding: 0.125rem 0.25rem;
+  }
+}

@@ -558,6 +558,12 @@ function createProblemSection(model: GameViewModel): HTMLElement | null {
   if (model.concretePremises === null) return null;
   const section = element("section", "logic-game__problem");
   section.append(heading("h2", model.premiseHeading));
+  if (model.termFallbackNotice !== null) {
+    const notice = element("p", "logic-game__term-fallback-notice");
+    notice.setAttribute("role", "status");
+    notice.textContent = model.termFallbackNotice;
+    section.append(notice);
+  }
   const list = element("ol");
   model.concretePremises.forEach((premise, index) => {
     const item = element("li");
@@ -726,16 +732,31 @@ function createCustomTermManagerSection(
   section.append(heading("h2", manager.heading));
   const description = element("p");
   description.textContent = manager.description;
-  const fieldset = element("fieldset");
-  const legend = element("legend");
-  legend.textContent = manager.heading;
-  fieldset.append(legend);
-  const fields = [
-    ["jaNounPhrase", manager.fields.jaNounPhrase],
-    ["enSubjectPlural", manager.fields.enSubjectPlural],
-    ["enPredicatePhrase", manager.fields.enPredicatePhrase],
-  ] as const;
-  fields.forEach(([field, labelText]) => {
+  const form = element("div", "logic-game__custom-term-form");
+  if (manager.validation !== null &&
+    manager.validation.invalidFields.length === 0) {
+    form.setAttribute("aria-describedby", "custom-term-feedback");
+  }
+  const fieldsByLocale = {
+    ja: [["jaNounPhrase", manager.fields.jaNounPhrase]],
+    en: [["enSubjectPlural", manager.fields.enSubjectPlural],
+      ["enPredicatePhrase", manager.fields.enPredicatePhrase]],
+  } as const;
+  manager.groups.forEach((group, groupIndex) => {
+    const fieldset = element("fieldset", group.optional
+      ? "logic-game__custom-term-group logic-game__custom-term-group--optional"
+      : "logic-game__custom-term-group logic-game__custom-term-group--current");
+    const legend = element("legend");
+    legend.textContent = `${group.heading} — ${group.locale === "ja" ? "日本語" : "English"} · ${group.optional ? manager.optionalLabel : manager.requiredLabel}`;
+    fieldset.append(legend);
+    const helpId = `custom-term-group-help-${group.locale}`;
+    if (group.helpText !== null) {
+      const help = element("p", "logic-game__custom-term-help");
+      help.id = helpId;
+      help.textContent = group.helpText;
+      fieldset.append(help);
+    }
+    fieldsByLocale[group.locale].forEach(([field, labelText]) => {
     const label = element("label");
     const span = element("span");
     span.textContent = labelText;
@@ -745,35 +766,54 @@ function createCustomTermManagerSection(
     input.dataset.action = "custom-term-input";
     input.dataset.field = field;
     input.value = manager.draft[field];
-    if (manager.feedback?.kind === "error") {
+    const describedBy = group.helpText === null ? [] : [helpId];
+    if (manager.validation?.invalidFields.includes(field) === true) {
       input.setAttribute("aria-invalid", "true");
-      input.setAttribute("aria-describedby", "custom-term-feedback");
+      describedBy.push("custom-term-feedback");
     }
-    input.addEventListener("input", () => {
+    if (describedBy.length > 0) {
+      input.setAttribute("aria-describedby", describedBy.join(" "));
+    }
+    const updateDraft = (): void => {
       const value = input.dataset.field;
       if (value === undefined || !isCustomTermDraftField(value)) {
         throw new Error(`Unknown custom term draft field: "${value ?? ""}".`);
       }
       handlers.onCustomTermDraftChange(value, input.value);
+    };
+    let composing = false;
+    input.addEventListener("compositionstart", () => {
+      composing = true;
+    });
+    input.addEventListener("input", () => {
+      if (!composing) updateDraft();
+    });
+    input.addEventListener("compositionend", () => {
+      if (!composing) return;
+      composing = false;
+      updateDraft();
     });
     label.append(span, input);
     fieldset.append(label);
+    });
+    form.append(fieldset);
+    if (groupIndex === manager.groups.length - 1) return;
   });
   const submit = element("button");
   submit.type = "button";
   submit.dataset.action = "submit-custom-term";
   submit.textContent = manager.submitLabel;
   submit.addEventListener("click", handlers.onCustomTermSubmit);
-  fieldset.append(submit);
+  form.append(submit);
   if (manager.cancelLabel !== null) {
     const cancel = element("button");
     cancel.type = "button";
     cancel.dataset.action = "cancel-custom-term-edit";
     cancel.textContent = manager.cancelLabel;
     cancel.addEventListener("click", handlers.onCustomTermEditCancel);
-    fieldset.append(cancel);
+    form.append(cancel);
   }
-  section.append(description, fieldset);
+  section.append(description, form);
 
   if (manager.emptyListMessage !== null) {
     const empty = element("p", "logic-game__custom-term-empty");
@@ -786,6 +826,14 @@ function createCustomTermManagerSection(
       listItem.dataset.customTermId = item.id;
       const title = element("strong");
       title.textContent = item.displayName;
+      title.lang = item.sourceLocale;
+      if (item.fallbackLabel !== null) {
+        const fallback = element("span", "logic-game__fallback-badge");
+        fallback.textContent = item.fallbackLabel;
+        listItem.append(title, fallback);
+      } else {
+        listItem.append(title);
+      }
       const details = element("dl");
       for (const [label, value] of [
         [manager.fields.jaNounPhrase, item.jaNounPhrase],
@@ -799,7 +847,6 @@ function createCustomTermManagerSection(
         details.append(term, descriptionValue);
       }
       listItem.append(
-        title,
         details,
         customTermButton(
           "edit-custom-term",

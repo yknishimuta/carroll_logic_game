@@ -61,7 +61,7 @@ describe("data backup format", () => {
     [JSON.stringify({ format: "other", version: 1 }), "unsupported-format"],
     [JSON.stringify({ format: DATA_BACKUP_FORMAT }), "unsupported-version"],
     [JSON.stringify({ format: DATA_BACKUP_FORMAT, version: "1" }), "unsupported-version"],
-    [JSON.stringify({ format: DATA_BACKUP_FORMAT, version: 2 }), "unsupported-version"],
+    [JSON.stringify({ format: DATA_BACKUP_FORMAT, version: 3 }), "unsupported-version"],
   ] as const)("rejects %s as %s", (json, reason) => {
     expect(parseDataBackupJson(json)).toEqual({ ok: false, reason });
   });

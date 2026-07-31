@@ -100,8 +100,11 @@ describe("UI messages", () => {
     expectNonEmptyStrings(JA_MESSAGES.customTerms);
     expectNonEmptyStrings(EN_MESSAGES.customTerms);
     expect(Object.keys(JA_MESSAGES.customTerms.feedback)).toEqual([
-      "incomplete",
-      "labelTooLong",
+      "japaneseRequired",
+      "englishRequired",
+      "incompleteEnglish",
+      "atLeastOneLanguageRequired",
+      "termTextTooLong",
       "duplicateTerm",
       "termLimitReached",
       "unknownCustomTerm",
@@ -115,6 +118,19 @@ describe("UI messages", () => {
     expect(JA_MESSAGES.customTerms.persistence.saveError).not.toBe(
       EN_MESSAGES.customTerms.persistence.saveError,
     );
+    expect(JSON.stringify(JA_MESSAGES.customTerms.feedback))
+      .not.toContain("すべてのラベル");
+    expect(JSON.stringify(JA_MESSAGES.customTerms.feedback))
+      .not.toContain("ラベル");
+    expect(JSON.stringify(EN_MESSAGES.customTerms.feedback).toLowerCase())
+      .not.toContain("label");
+    expect(JA_MESSAGES.customTerms.feedback).toMatchObject({
+      japaneseRequired: "日本語名詞句を入力してください。",
+      englishRequired: "英語の主語複数形と述語句を入力してください。",
+      incompleteEnglish: "英語の主語複数形と述語句は、両方入力するか、両方空欄にしてください。",
+      atLeastOneLanguageRequired: "日本語名詞句、または英語の主語複数形と述語句を入力してください。",
+      termTextTooLong: "各入力は80文字以内にしてください。",
+    });
   });
 
   it("guards locale codes", () => {

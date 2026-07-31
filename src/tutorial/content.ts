@@ -77,7 +77,7 @@ export const JA_TUTORIAL_CONTENT: TutorialContent = {
   backToGame: "ゲームへ戻る",
   languageLabel: "言語",
   contentsLabel: "チュートリアルの目次",
-  notice: "このチュートリアルは、現在のゲームで採用しているルイス・キャロル方式を説明しています。",
+  notice: "このチュートリアルでは、ルイス・キャロルの論理ゲームを説明します。",
   sections: [
     {
       id: ids[0], heading: "1. 三段論法とS・M・P",

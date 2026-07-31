@@ -86,6 +86,20 @@ export interface UiMessages {
       readonly enSubjectPlural: string;
       readonly enPredicatePhrase: string;
     };
+    readonly currentLanguage: string;
+    readonly otherLanguage: string;
+    readonly optional: string;
+    readonly required: string;
+    readonly englishOptional: string;
+    readonly japaneseOptional: string;
+    readonly fallbackExplanation: string;
+    readonly noAutomationExplanation: string;
+    readonly englishMissing: string;
+    readonly japaneseMissing: string;
+    readonly showingJapanese: string;
+    readonly showingEnglish: string;
+    readonly untranslatedOption: string;
+    readonly problemFallbackNotice: string;
     readonly actions: {
       readonly create: string;
       readonly update: string;
@@ -95,8 +109,11 @@ export interface UiMessages {
     };
     readonly emptyList: string;
     readonly feedback: {
-      readonly incomplete: string;
-      readonly labelTooLong: string;
+      readonly japaneseRequired: string;
+      readonly englishRequired: string;
+      readonly incompleteEnglish: string;
+      readonly atLeastOneLanguageRequired: string;
+      readonly termTextTooLong: string;
       readonly duplicateTerm: string;
       readonly termLimitReached: string;
       readonly unknownCustomTerm: string;

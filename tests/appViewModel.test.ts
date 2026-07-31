@@ -501,7 +501,7 @@ describe("custom term view models", () => {
   it("shows the manager only on the custom problem phase", () => {
     const model = createGameViewModel(customState);
     expect(model.customTermManager).not.toBeNull();
-    expect(model.customTermManager?.items).toEqual([
+    expect(model.customTermManager?.items).toMatchObject([
       {
         id: "custom-term-1",
         displayName: "哲学者",
@@ -539,9 +539,9 @@ describe("custom term view models", () => {
   });
 
   it.each([
-    ["incomplete", "すべてのラベルを入力してください。"],
-    ["label-too-long", "各ラベルは80文字以内で入力してください。"],
-    ["duplicate-term", "同じ表示内容の名詞が既にあります。"],
+    ["japanese-required", "日本語名詞句を入力してください。"],
+    ["term-text-too-long", "各入力は80文字以内にしてください。"],
+    ["duplicate-term", "同じ名詞が既に登録されています。"],
     ["term-limit-reached", "ユーザー名詞は100件まで追加できます。"],
     ["created", "ユーザー名詞を追加しました。"],
     ["updated", "ユーザー名詞を更新しました。"],
@@ -555,6 +555,25 @@ describe("custom term view models", () => {
       },
     });
     expect(model.customTermManager?.feedback?.message).toBe(message);
+  });
+
+  it.each([
+    ["ja", "japanese-required", { jaNounPhrase: "", enSubjectPlural: "", enPredicatePhrase: "" }, ["jaNounPhrase"], "jaNounPhrase"],
+    ["en", "english-required", { jaNounPhrase: "", enSubjectPlural: "", enPredicatePhrase: "" }, ["enSubjectPlural", "enPredicatePhrase"], "enSubjectPlural"],
+    ["ja", "incomplete-english", { jaNounPhrase: "哲学者", enSubjectPlural: "philosophers", enPredicatePhrase: "" }, ["enPredicatePhrase"], "enPredicatePhrase"],
+    ["en", "at-least-one-language-required", { jaNounPhrase: "", enSubjectPlural: "", enPredicatePhrase: "" }, [], "enSubjectPlural"],
+  ] as const)("resolves custom-term validation fields for %s", (
+    locale, status, draft, invalidFields, focusField,
+  ) => {
+    const manager = createGameViewModel({
+      ...customState,
+      locale,
+      customTermEditor: { mode: status === "at-least-one-language-required"
+        ? "edit" : "create", editingTermId: status === "at-least-one-language-required"
+          ? "custom-term-1" : null, draft, status },
+    }).customTermManager;
+    expect(manager?.validation).toMatchObject({ invalidFields, focusField });
+    expect(manager?.feedback?.message).toBe(manager?.validation?.message);
   });
 
   it("shows edit state and persistence warnings in both languages", () => {

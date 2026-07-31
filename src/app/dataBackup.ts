@@ -39,10 +39,12 @@ export function validateImportedData(
   }
   for (const term of content.customTerms) {
     const result = validateCustomTermDraft({
-      jaNounPhrase: term.labels.ja.nounPhrase,
-      enSubjectPlural: term.labels.en.subjectPlural,
-      enPredicatePhrase: term.labels.en.predicatePhrase,
-    }, [...BUILT_IN_TERMS, ...content.customTerms], term.id);
+      jaNounPhrase: term.labels.ja?.nounPhrase ?? "",
+      enSubjectPlural: term.labels.en?.subjectPlural ?? "",
+      enPredicatePhrase: term.labels.en?.predicatePhrase ?? "",
+    }, [...BUILT_IN_TERMS, ...content.customTerms], {
+      operation: "update", currentLocale: "ja", editingTermId: term.id,
+    });
     if (!result.ok) {
       return { ok: false, reason: "invalid-term-catalog" };
     }

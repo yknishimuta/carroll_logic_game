@@ -93,7 +93,7 @@ describe("available term catalog", () => {
   it("resolves built-in and custom IDs and guards availability", () => {
     expect(resolveAvailableTerm("animal", customTerms).id).toBe("animal");
     expect(resolveAvailableTerm("custom-term-1", customTerms))
-      .toEqual(customTerms[0]);
+      .toMatchObject(customTerms[0]!);
     expect(isAvailableTermId("animal", customTerms)).toBe(true);
     expect(isAvailableTermId("custom-term-1", customTerms)).toBe(true);
     expect(isAvailableTermId("unknown", customTerms)).toBe(false);

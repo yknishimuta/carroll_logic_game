@@ -234,7 +234,7 @@ beforeEach(() => {
     expect(downloads[0]?.mimeType).toBe(DATA_BACKUP_MIME_TYPE);
     expect(JSON.parse(downloads[0]!.content)).toEqual({
       format: DATA_BACKUP_FORMAT,
-      version: 1,
+      version: 2,
       customTerms: [],
       savedCustomProblems: [],
     });
@@ -643,7 +643,7 @@ describe("mounted application interaction", () => {
     )?.textContent).toBe("哲学者");
     expect(JSON.parse(storage.values.get(CUSTOM_TERM_STORAGE_KEY)!))
       .toMatchObject({
-        version: 1,
+        version: 2,
         terms: [{ id: "custom-term-1" }],
       });
 
@@ -661,6 +661,50 @@ describe("mounted application interaction", () => {
     select(restored, "problem-source", "custom");
     expect(restored.querySelectorAll(".logic-game__custom-term-list li"))
       .toHaveLength(2);
+  });
+
+  it("shows one locale-specific custom-term error and focuses its field", () => {
+    const container = mount();
+    select(container, "problem-source", "custom");
+    const submit = () => container.querySelector<HTMLButtonElement>(
+      '[data-action="submit-custom-term"]',
+    )!.click();
+    const field = (name: string) => container.querySelector<HTMLInputElement>(
+      `[data-action="custom-term-input"][data-field="${name}"]`,
+    )!;
+
+    submit();
+    expect(container.querySelectorAll(".logic-game__custom-term-feedback"))
+      .toHaveLength(1);
+    expect(container.textContent).toContain("日本語名詞句を入力してください。");
+    expect(container.textContent).not.toContain("すべてのラベルを入力してください。");
+    expect(field("jaNounPhrase").getAttribute("aria-invalid")).toBe("true");
+    expect(field("enSubjectPlural").hasAttribute("aria-invalid")).toBe(false);
+    expect(field("enPredicatePhrase").hasAttribute("aria-invalid")).toBe(false);
+    expect(document.activeElement).toBe(field("jaNounPhrase"));
+
+    select(container, "locale", "en");
+    submit();
+    expect(container.textContent).toContain(
+      "Enter both the English subject plural and predicate phrase.",
+    );
+    expect(field("jaNounPhrase").hasAttribute("aria-invalid")).toBe(false);
+    expect(field("enSubjectPlural").getAttribute("aria-invalid")).toBe("true");
+    expect(field("enPredicatePhrase").getAttribute("aria-invalid")).toBe("true");
+    expect(document.activeElement).toBe(field("enSubjectPlural"));
+
+    inputCustomTerm(container, "enSubjectPlural", "philosophers");
+    submit();
+    expect(container.querySelectorAll(".logic-game__custom-term-feedback"))
+      .toHaveLength(1);
+    expect(container.textContent).toContain(
+      "Enter both English fields or leave both blank.",
+    );
+    expect(field("enSubjectPlural").hasAttribute("aria-invalid")).toBe(false);
+    expect(field("enPredicatePhrase").getAttribute("aria-invalid")).toBe("true");
+    expect(document.activeElement).toBe(field("enPredicatePhrase"));
+    expect(field("enPredicatePhrase").getAttribute("aria-describedby"))
+      .toContain("custom-term-feedback");
   });
 
   it("edits, cancels, localizes, and deletes a custom term", () => {
@@ -1169,5 +1213,27 @@ describe("mounted application interaction", () => {
       3,
       7,
     ]);
+  });
+
+  it("keeps the Japanese input node during IME composition", () => {
+    const container = mount();
+    select(container, "problem-source", "custom");
+    const input = container.querySelector<HTMLInputElement>(
+      '[data-action="custom-term-input"][data-field="jaNounPhrase"]',
+    )!;
+    input.focus();
+    input.dispatchEvent(new CompositionEvent("compositionstart"));
+    input.value = "田中";
+    input.dispatchEvent(new InputEvent("input", { data: "田中", isComposing: true }));
+    expect(container.querySelector(
+      '[data-action="custom-term-input"][data-field="jaNounPhrase"]',
+    )).toBe(input);
+    expect(document.activeElement).toBe(input);
+    input.dispatchEvent(new CompositionEvent("compositionend", { data: "田中" }));
+    const replacement = container.querySelector<HTMLInputElement>(
+      '[data-action="custom-term-input"][data-field="jaNounPhrase"]',
+    )!;
+    expect(replacement.value).toBe("田中");
+    expect(document.activeElement).toBe(replacement);
   });
 });

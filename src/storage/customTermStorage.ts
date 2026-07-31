@@ -35,23 +35,24 @@ function record(value: unknown): Record<string, unknown> | null {
     : null;
 }
 
-function parseTerm(value: unknown): CustomTermDefinition | null {
+function parseTerm(value: unknown, version: 1 | 2): CustomTermDefinition | null {
   const term = record(value);
   const labels = record(term?.labels);
-  const ja = record(labels?.ja);
-  const en = record(labels?.en);
+  if (labels === null || !("ja" in labels) || !("en" in labels)) return null;
+  const ja = labels?.ja === null && version === 2 ? null : record(labels?.ja);
+  const en = labels?.en === null && version === 2 ? null : record(labels?.en);
   if (
     typeof term?.id !== "string" ||
     !isCustomTermId(term.id) ||
-    typeof ja?.nounPhrase !== "string" ||
-    typeof en?.subjectPlural !== "string" ||
-    typeof en?.predicatePhrase !== "string"
+    (version === 1 && (ja === null || en === null)) ||
+    (ja !== null && typeof ja.nounPhrase !== "string") ||
+    (en !== null && (typeof en.subjectPlural !== "string" ||
+      typeof en.predicatePhrase !== "string")) ||
+    (ja === null && en === null)
   ) return null;
-  const values = [
-    ja.nounPhrase.trim(),
-    en.subjectPlural.trim(),
-    en.predicatePhrase.trim(),
-  ];
+  const values = [ja?.nounPhrase, en?.subjectPlural, en?.predicatePhrase]
+    .filter((label): label is string => label !== undefined)
+    .map((label) => label.trim());
   if (
     values.some(
       (label) =>
@@ -62,10 +63,10 @@ function parseTerm(value: unknown): CustomTermDefinition | null {
   return {
     id: term.id,
     labels: {
-      ja: { nounPhrase: values[0]! },
-      en: {
-        subjectPlural: values[1]!,
-        predicatePhrase: values[2]!,
+      ja: ja === null ? null : { nounPhrase: (ja.nounPhrase as string).trim() },
+      en: en === null ? null : {
+        subjectPlural: (en.subjectPlural as string).trim(),
+        predicatePhrase: (en.predicatePhrase as string).trim(),
       },
     },
   };
@@ -77,26 +78,30 @@ export type DecodeCustomTermArrayResult =
 
 export function decodeCustomTermArray(
   value: unknown,
+  version: 1 | 2 = 2,
 ): DecodeCustomTermArrayResult {
   if (!Array.isArray(value) || value.length > CUSTOM_TERM_LIMIT) {
     return { ok: false };
   }
   const terms: CustomTermDefinition[] = [];
   for (const candidate of value) {
-    const term = parseTerm(candidate);
+    const term = parseTerm(candidate, version);
     if (term === null) return { ok: false };
     terms.push(term);
   }
   const ids = terms.map(({ id }) => id);
-  const labels = terms.map((term) => JSON.stringify({
-    ja: term.labels.ja.nounPhrase,
-    subject: term.labels.en.subjectPlural.toLowerCase(),
-    predicate: term.labels.en.predicatePhrase.toLowerCase(),
-  }));
-  return new Set(ids).size === ids.length &&
-      new Set(labels).size === labels.length
-    ? { ok: true, terms }
-    : { ok: false };
+  if (new Set(ids).size !== ids.length) return { ok: false };
+  for (let index = 0; index < terms.length; index += 1) {
+    const term = terms[index]!;
+    if (terms.slice(0, index).some((other) =>
+      (term.labels.ja !== null && other.labels.ja !== null &&
+        term.labels.ja.nounPhrase === other.labels.ja.nounPhrase) ||
+      (term.labels.en !== null && other.labels.en !== null &&
+        term.labels.en.subjectPlural.toLowerCase() === other.labels.en.subjectPlural.toLowerCase() &&
+        term.labels.en.predicatePhrase.toLowerCase() === other.labels.en.predicatePhrase.toLowerCase())
+    )) return { ok: false };
+  }
+  return { ok: true, terms };
 }
 
 export function loadCustomTerms(
@@ -116,7 +121,7 @@ export function loadCustomTerms(
     return { ok: false, reason: "invalid-json" };
   }
   const root = record(parsed);
-  if (root === null || root.version !== 1) {
+  if (root === null || (root.version !== 1 && root.version !== 2)) {
     return {
       ok: false,
       reason: root !== null && "version" in root
@@ -124,7 +129,7 @@ export function loadCustomTerms(
         : "unsupported-version",
     };
   }
-  const decoded = decodeCustomTermArray(root.terms);
+  const decoded = decodeCustomTermArray(root.terms, root.version);
   return decoded.ok
     ? { ok: true, terms: decoded.terms }
     : { ok: false, reason: "invalid-data" };
@@ -137,7 +142,7 @@ export function saveCustomTerms(
   try {
     storage.setItem(
       CUSTOM_TERM_STORAGE_KEY,
-      JSON.stringify({ version: 1, terms }),
+      JSON.stringify({ version: 2, terms }),
     );
     return { ok: true };
   } catch {

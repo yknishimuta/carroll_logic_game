@@ -42,7 +42,12 @@ import {
   createAvailableTermCatalog,
   resolveAvailableTerm,
 } from "./termCatalog";
-import type { CustomTermDraft } from "./customTerms";
+import type {
+  CustomTermDraft,
+  CustomTermDraftField,
+  CustomTermValidationFailureReason,
+} from "./customTerms";
+import { resolveCustomTermText } from "./termDisplay";
 import {
   createBiliteralAttemptPlacements,
   createBiliteralCounterTargets,
@@ -133,6 +138,9 @@ export interface CustomTermListItemViewModel {
   readonly jaNounPhrase: string;
   readonly enSubjectPlural: string;
   readonly enPredicatePhrase: string;
+  readonly sourceLocale: Locale;
+  readonly isFallback: boolean;
+  readonly fallbackLabel: string | null;
   readonly editLabel: string;
   readonly deleteLabel: string;
 }
@@ -147,6 +155,19 @@ export interface CustomTermManagerViewModel {
     readonly enPredicatePhrase: string;
   };
   readonly draft: CustomTermDraft;
+  readonly groups: readonly [{
+    readonly locale: Locale;
+    readonly heading: string;
+    readonly optional: boolean;
+    readonly helpText: string | null;
+  }, {
+    readonly locale: Locale;
+    readonly heading: string;
+    readonly optional: boolean;
+    readonly helpText: string | null;
+  }];
+  readonly requiredLabel: string;
+  readonly optionalLabel: string;
   readonly submitLabel: string;
   readonly cancelLabel: string | null;
   readonly items: readonly CustomTermListItemViewModel[];
@@ -155,7 +176,14 @@ export interface CustomTermManagerViewModel {
     readonly kind: "success" | "error";
     readonly message: string;
   } | null;
+  readonly validation: CustomTermValidationViewModel | null;
   readonly persistenceWarning: string | null;
+}
+
+export interface CustomTermValidationViewModel {
+  readonly message: string;
+  readonly invalidFields: readonly CustomTermDraftField[];
+  readonly focusField: CustomTermDraftField | null;
 }
 
 export interface SavedCustomProblemListItemViewModel {
@@ -320,6 +348,7 @@ export interface GameViewModel {
   readonly progressAriaLabel: string;
   readonly progressSteps: readonly ProgressStepViewModel[];
   readonly concretePremises: readonly [string, string] | null;
+  readonly termFallbackNotice: string | null;
   readonly termAssignment: readonly TermAssignmentItemViewModel[];
   readonly abstractPremises: readonly [string, string] | null;
   readonly assignmentPanel: TermAssignmentPanelViewModel;
@@ -368,10 +397,18 @@ function createCustomEditor(
   messages: UiMessages,
   catalog: ReturnType<typeof createAvailableTermCatalog>,
 ): CustomProblemEditorViewModel {
-  const termOptions = catalog.map((term) => ({
-    value: term.id,
-    label: getTermDisplayName(term, state.locale),
-  }));
+  const termOptions = catalog.map((term) => {
+    const custom = state.customTerms.find(({ id }) => id === term.id);
+    const resolved = custom === undefined
+      ? null
+      : resolveCustomTermText(custom, state.locale);
+    return {
+      value: term.id,
+      label: resolved?.isFallback
+        ? `${resolved.displayName}${state.locale === "ja" ? "［" : " ["}${messages.customTerms.untranslatedOption}${state.locale === "ja" ? "］" : "]"}`
+        : getTermDisplayName(term, state.locale),
+    };
+  });
   const formOptions = (["A", "E", "I", "O"] as const).map((form) => ({
     value: form,
     label: messages.customProblem.formOptions[form],
@@ -428,6 +465,55 @@ function createCustomTermManager(
   messages: UiMessages,
 ): CustomTermManagerViewModel {
   const status = state.customTermEditor.status;
+  const validationReason: CustomTermValidationFailureReason | null =
+    status === "japanese-required" || status === "english-required" ||
+      status === "incomplete-english" ||
+      status === "at-least-one-language-required" ||
+      status === "term-text-too-long" || status === "duplicate-term" ||
+      status === "term-limit-reached"
+      ? status : null;
+  const validationMessage = validationReason === null ? null
+    : validationReason === "japanese-required"
+      ? messages.customTerms.feedback.japaneseRequired
+      : validationReason === "english-required"
+        ? messages.customTerms.feedback.englishRequired
+        : validationReason === "incomplete-english"
+          ? messages.customTerms.feedback.incompleteEnglish
+          : validationReason === "at-least-one-language-required"
+            ? messages.customTerms.feedback.atLeastOneLanguageRequired
+            : validationReason === "term-text-too-long"
+              ? messages.customTerms.feedback.termTextTooLong
+              : validationReason === "duplicate-term"
+                ? messages.customTerms.feedback.duplicateTerm
+                : messages.customTerms.feedback.termLimitReached;
+  const invalidFields: readonly CustomTermDraftField[] =
+    validationReason === "japanese-required" ? ["jaNounPhrase"]
+      : validationReason === "english-required"
+        ? ["enSubjectPlural", "enPredicatePhrase"]
+        : validationReason === "incomplete-english"
+          ? [
+              state.customTermEditor.draft.enSubjectPlural.trim() === ""
+                ? "enSubjectPlural" as const : null,
+              state.customTermEditor.draft.enPredicatePhrase.trim() === ""
+                ? "enPredicatePhrase" as const : null,
+            ].filter((field): field is "enSubjectPlural" | "enPredicatePhrase" =>
+              field !== null)
+          : validationReason === "term-text-too-long"
+            ? (["jaNounPhrase", "enSubjectPlural", "enPredicatePhrase"] as const)
+              .filter((field) => state.customTermEditor.draft[field].trim().length > 80)
+            : [];
+  const currentFirstField: CustomTermDraftField = state.locale === "ja"
+    ? "jaNounPhrase" : "enSubjectPlural";
+  const validation: CustomTermValidationViewModel | null =
+    validationMessage === null ? null : {
+      message: validationMessage,
+      invalidFields,
+      focusField: invalidFields[0] ?? (
+        validationReason === "at-least-one-language-required" ||
+          validationReason === "duplicate-term"
+          ? currentFirstField : null
+      ),
+    };
   const feedback = status === "editing"
     ? null
     : {
@@ -436,17 +522,17 @@ function createCustomTermManager(
           status === "updated" ||
           status === "deleted"
         ) ? "success" as const : "error" as const,
-        message: status === "label-too-long"
-          ? messages.customTerms.feedback.labelTooLong
-          : status === "duplicate-term"
-            ? messages.customTerms.feedback.duplicateTerm
-            : status === "term-limit-reached"
-              ? messages.customTerms.feedback.termLimitReached
-              : status === "unknown-custom-term"
-                ? messages.customTerms.feedback.unknownCustomTerm
-                : status === "term-in-use-by-saved-problem"
-                  ? messages.customTerms.feedback.termInUseBySavedProblem
-                : messages.customTerms.feedback[status],
+        message: validationMessage ?? (
+          status === "unknown-custom-term"
+            ? messages.customTerms.feedback.unknownCustomTerm
+            : status === "term-in-use-by-saved-problem"
+              ? messages.customTerms.feedback.termInUseBySavedProblem
+              : status === "created"
+                ? messages.customTerms.feedback.created
+                : status === "updated"
+                  ? messages.customTerms.feedback.updated
+                  : messages.customTerms.feedback.deleted
+        ),
       };
   return {
     heading: messages.customTerms.heading,
@@ -454,25 +540,44 @@ function createCustomTermManager(
     mode: state.customTermEditor.mode,
     fields: messages.customTerms.fields,
     draft: state.customTermEditor.draft,
+    groups: state.locale === "ja"
+      ? [{ locale: "ja", heading: messages.customTerms.currentLanguage,
+          optional: false, helpText: null },
+        { locale: "en", heading: messages.customTerms.otherLanguage,
+          optional: true, helpText: `${messages.customTerms.englishOptional} ${messages.customTerms.fallbackExplanation} ${messages.customTerms.noAutomationExplanation}` }]
+      : [{ locale: "en", heading: messages.customTerms.currentLanguage,
+          optional: false, helpText: null },
+        { locale: "ja", heading: messages.customTerms.otherLanguage,
+          optional: true, helpText: `${messages.customTerms.japaneseOptional} ${messages.customTerms.fallbackExplanation} ${messages.customTerms.noAutomationExplanation}` }],
+    requiredLabel: messages.customTerms.required,
+    optionalLabel: messages.customTerms.optional,
     submitLabel: state.customTermEditor.mode === "create"
       ? messages.customTerms.actions.create
       : messages.customTerms.actions.update,
     cancelLabel: state.customTermEditor.mode === "edit"
       ? messages.customTerms.actions.cancelEdit
       : null,
-    items: state.customTerms.map((term) => ({
+    items: state.customTerms.map((term) => {
+      const resolved = resolveCustomTermText(term, state.locale);
+      return {
       id: term.id,
-      displayName: getTermDisplayName(term, state.locale),
-      jaNounPhrase: term.labels.ja.nounPhrase,
-      enSubjectPlural: term.labels.en.subjectPlural,
-      enPredicatePhrase: term.labels.en.predicatePhrase,
+      displayName: resolved.displayName,
+      jaNounPhrase: term.labels.ja?.nounPhrase ?? "",
+      enSubjectPlural: term.labels.en?.subjectPlural ?? "",
+      enPredicatePhrase: term.labels.en?.predicatePhrase ?? "",
+      sourceLocale: resolved.sourceLocale,
+      isFallback: resolved.isFallback,
+      fallbackLabel: resolved.isFallback
+        ? `${state.locale === "ja" ? messages.customTerms.japaneseMissing : messages.customTerms.englishMissing} — ${resolved.sourceLocale === "ja" ? messages.customTerms.showingJapanese : messages.customTerms.showingEnglish}`
+        : null,
       editLabel: messages.customTerms.actions.edit,
       deleteLabel: messages.customTerms.actions.delete,
-    })),
+    };}),
     emptyListMessage: state.customTerms.length === 0
       ? messages.customTerms.emptyList
       : null,
     feedback,
+    validation,
     persistenceWarning:
       state.customTermPersistenceStatus === "load-error"
         ? messages.customTerms.persistence.loadError
@@ -873,10 +978,16 @@ function assignmentPanel(
           ? messages.assignmentQuiz.feedback.duplicateTerm
           : messages.assignmentQuiz.feedback[state.quizStatus],
       };
-  const options = getProblemTermIds(premises).map((termId) => ({
-    value: termId,
-    label: getTermDisplayName(resolveTerm(termId), state.locale),
-  }));
+  const options = getProblemTermIds(premises).map((termId) => {
+    const custom = state.customTerms.find(({ id }) => id === termId);
+    const resolved = custom === undefined ? null : resolveCustomTermText(custom, state.locale);
+    return {
+      value: termId,
+      label: resolved?.isFallback
+        ? `${resolved.displayName}${state.locale === "ja" ? "［" : " ["}${messages.customTerms.untranslatedOption}${state.locale === "ja" ? "］" : "]"}`
+        : getTermDisplayName(resolveTerm(termId), state.locale),
+    };
+  });
   const correct = state.quizStatus === "correct";
   return {
     kind: "quiz",
@@ -1117,6 +1228,12 @@ export function createGameViewModel(state: AppState): GameViewModel {
       { phase: "conclusion", label: messages.phases.conclusion },
     ],
     concretePremises,
+    termFallbackNotice: premises !== null && getProblemTermIds(premises).some(
+      (id) => {
+        const custom = state.customTerms.find((term) => term.id === id);
+        return custom !== undefined && resolveCustomTermText(custom, state.locale).isFallback;
+      },
+    ) ? messages.customTerms.problemFallbackNotice : null,
     termAssignment,
     abstractPremises,
     assignmentPanel: panel,

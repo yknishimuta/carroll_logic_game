@@ -5,6 +5,7 @@ import {
   formatAbstractProposition,
   formatConcreteProposition,
 } from "../src/i18n/propositionFormatter";
+import { resolveCustomTermForDisplay } from "../src/app/termDisplay";
 
 it("guards proposition forms", () => {
   for (const value of ["A", "E", "I", "O"]) {
@@ -54,6 +55,20 @@ describe("formatConcreteProposition", () => {
         getBuiltInTerm,
       ),
     ).toBe("All humans are warm-blooded.");
+  });
+
+  it("keeps English subject and predicate forms in Japanese fallback", () => {
+    const fallback = resolveCustomTermForDisplay({ id: "custom-term-1", labels: {
+      ja: null,
+      en: { subjectPlural: "mortal beings", predicatePhrase: "mortal" },
+    } });
+    const resolver = (id: string) => id === fallback.id ? fallback : getBuiltInTerm(id);
+    expect(formatConcreteProposition({ form: "A", subject: fallback.id,
+      predicate: "animal" }, "ja", resolver))
+      .toBe("すべてのmortal beingsは動物である。");
+    expect(formatConcreteProposition({ form: "A", subject: "human",
+      predicate: fallback.id }, "ja", resolver))
+      .toBe("すべての人間はmortalである。");
   });
 
   it("formats mixed custom and built-in terms through the resolver", () => {

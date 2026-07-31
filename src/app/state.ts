@@ -598,9 +598,9 @@ export function reduceAppState(
           mode: "edit",
           editingTermId: term.id,
           draft: {
-            jaNounPhrase: term.labels.ja.nounPhrase,
-            enSubjectPlural: term.labels.en.subjectPlural,
-            enPredicatePhrase: term.labels.en.predicatePhrase,
+            jaNounPhrase: term.labels.ja?.nounPhrase ?? "",
+            enSubjectPlural: term.labels.en?.subjectPlural ?? "",
+            enPredicatePhrase: term.labels.en?.predicatePhrase ?? "",
           },
           status: "editing",
         },

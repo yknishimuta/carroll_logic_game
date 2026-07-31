@@ -1,11 +1,15 @@
 import { BUILT_IN_TERMS } from "../data/terms";
 import type { CustomTermDefinition } from "../domain/customTerm";
 import type { TermDefinition, TermId } from "../domain/term";
+import { resolveCustomTermForDisplay } from "./termDisplay";
 
 export function createAvailableTermCatalog(
   customTerms: readonly CustomTermDefinition[],
 ): readonly TermDefinition[] {
-  const catalog = [...BUILT_IN_TERMS, ...customTerms];
+  const catalog = [
+    ...BUILT_IN_TERMS,
+    ...customTerms.map(resolveCustomTermForDisplay),
+  ];
   const ids = catalog.map(({ id }) => id);
   if (new Set(ids).size !== ids.length) {
     throw new Error("Available term catalog contains duplicate IDs.");

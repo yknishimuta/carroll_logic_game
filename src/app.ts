@@ -154,6 +154,12 @@ export function mountApp(
       ].includes(action.type);
       if (changesContext) {
         focusPhaseHeading(container);
+      } else if (action.type === "submit-custom-term" && !action.result.ok) {
+        const field = createGameViewModel(state).customTermManager
+          ?.validation?.focusField;
+        if (field !== undefined && field !== null) {
+          restoreFocusByKey(container, `custom-term-input:${field}`);
+        }
       } else if (action.type === "cancel-data-import") {
         restoreFocusByKey(container, "import-data-backup-file");
       } else if (focus !== null && !restoreFocus(container, focus)) {
@@ -298,7 +304,8 @@ export function mountApp(
           ? createCustomTerm(
               editor.draft,
               BUILT_IN_TERMS,
-              state.customTerms,
+            state.customTerms,
+            state.locale,
             )
           : editor.editingTermId === null
             ? (() => {
@@ -308,7 +315,8 @@ export function mountApp(
                 editor.editingTermId,
                 editor.draft,
                 BUILT_IN_TERMS,
-                state.customTerms,
+              state.customTerms,
+              state.locale,
               );
         dispatch({ type: "submit-custom-term", result });
       },

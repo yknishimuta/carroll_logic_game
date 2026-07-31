@@ -7,6 +7,27 @@ import type { TermDefinition, TermId } from "../domain/term";
 
 export type TermResolver = (termId: TermId) => TermDefinition;
 
+function usageText(
+  term: TermDefinition,
+  locale: Locale,
+  usage: "subject" | "predicate",
+): string {
+  if ("resolvedText" in term) {
+    const resolved = term.resolvedText as Record<Locale, {
+      readonly subjectText: string;
+      readonly predicateText: string;
+    }>;
+    return usage === "subject"
+      ? resolved[locale].subjectText
+      : resolved[locale].predicateText;
+  }
+  return locale === "ja"
+    ? term.labels.ja.nounPhrase
+    : usage === "subject"
+      ? term.labels.en.subjectPlural
+      : term.labels.en.predicatePhrase;
+}
+
 export function formatConcreteProposition(
   proposition: ConcreteProposition,
   locale: Locale,
@@ -16,8 +37,8 @@ export function formatConcreteProposition(
   const predicate = resolveTerm(proposition.predicate);
 
   if (locale === "ja") {
-    const subjectText = subject.labels.ja.nounPhrase;
-    const predicateText = predicate.labels.ja.nounPhrase;
+    const subjectText = usageText(subject, locale, "subject");
+    const predicateText = usageText(predicate, locale, "predicate");
     switch (proposition.form) {
       case "A": return `すべての${subjectText}は${predicateText}である。`;
       case "E": return `いかなる${subjectText}も${predicateText}ではない。`;
@@ -26,8 +47,8 @@ export function formatConcreteProposition(
     }
   }
 
-  const subjectText = subject.labels.en.subjectPlural;
-  const predicateText = predicate.labels.en.predicatePhrase;
+  const subjectText = usageText(subject, locale, "subject");
+  const predicateText = usageText(predicate, locale, "predicate");
   switch (proposition.form) {
     case "A": return `All ${subjectText} are ${predicateText}.`;
     case "E": return `No ${subjectText} are ${predicateText}.`;

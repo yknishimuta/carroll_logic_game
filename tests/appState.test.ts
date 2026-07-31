@@ -438,11 +438,11 @@ describe("application state", () => {
     expect(withDraft.customTermEditor.draft.jaNounPhrase).toBe("哲学者");
     const failed = reduceAppState(withDraft, {
       type: "submit-custom-term",
-      result: { ok: false, reason: "incomplete" },
+      result: { ok: false, reason: "japanese-required" },
     });
     expect(failed.customTerms).toEqual([]);
     expect(failed.customTermEditor.draft.jaNounPhrase).toBe("哲学者");
-    expect(failed.customTermEditor.status).toBe("incomplete");
+    expect(failed.customTermEditor.status).toBe("japanese-required");
   });
 
   it("stores create and update results while keeping term references", () => {
@@ -523,7 +523,7 @@ describe("application state", () => {
         terms: [updatedTerm],
       },
     });
-    expect(updated.customTerms[0]?.labels.ja.nounPhrase).toBe("思想家");
+    expect(updated.customTerms[0]?.labels.ja?.nounPhrase).toBe("思想家");
     expect(updated.customPremises).toBe(stateWithReferences.customPremises);
     expect(updated.quizSelection).toEqual(stateWithReferences.quizSelection);
     expect(updated.phase).toBe("conclusion");
