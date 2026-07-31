@@ -6,7 +6,7 @@ import type {
 import type { Locale } from "../domain/locale";
 import type { PropositionForm } from "../domain/proposition";
 import type { ConcreteSyllogism } from "../domain/syllogism";
-import type { TermId, TermRole } from "../domain/term";
+import type { TermId } from "../domain/term";
 import type {
   CustomProblemId,
   SavedCustomProblemDefinition,
@@ -15,12 +15,6 @@ import type {
   BiliteralCounterAnchor,
   TriliteralCounterAnchor,
 } from "../domain/counterPlacement";
-import {
-  createEmptyTermAssignmentQuizSelection,
-  type AssignmentMode,
-  type TermAssignmentQuizSelection,
-  type TermAssignmentQuizValidationResult,
-} from "./termAssignmentQuiz";
 import {
   createEmptyCustomProblemDraft,
   updateCustomPremiseForm,
@@ -52,7 +46,10 @@ import {
   type CounterTool,
 } from "./counterPractice";
 import {
+  canEnterConclusion,
   createInitialConclusionQuizState,
+  isCombinedPremisesReady,
+  isConclusionDiagramUnlocked,
   selectConclusionAnswer,
   type ConclusionAnswerChoice,
   type ConclusionAnswerMode,
@@ -77,13 +74,7 @@ export type GamePhase =
   | "first-premise"
   | "combined-premises"
   | "conclusion";
-
-export type TermAssignmentQuizStatus =
-  | "not-submitted"
-  | "incomplete"
-  | "duplicate-term"
-  | "incorrect"
-  | "correct";
+export type AppScreen = "game" | "custom-term-management";
 
 export type CustomProblemStatus =
   | "editing"
@@ -148,6 +139,7 @@ export interface DataImportState {
 }
 
 export interface AppState {
+  readonly screen: AppScreen;
   readonly phase: GamePhase;
   readonly locale: Locale;
   readonly problemId: BuiltInProblemId;
@@ -155,9 +147,6 @@ export interface AppState {
   readonly customProblemDraft: CustomProblemDraft;
   readonly customPremises: ConcreteSyllogism | null;
   readonly customProblemStatus: CustomProblemStatus;
-  readonly assignmentMode: AssignmentMode;
-  readonly quizSelection: TermAssignmentQuizSelection;
-  readonly quizStatus: TermAssignmentQuizStatus;
   readonly customTerms: readonly CustomTermDefinition[];
   readonly customTermEditor: CustomTermEditorState;
   readonly customTermPersistenceStatus: CustomTermPersistenceStatus;
@@ -180,6 +169,8 @@ export interface InitialAppStateOptions {
 }
 
 export type AppAction =
+  | { readonly type: "open-custom-term-management" }
+  | { readonly type: "close-custom-term-management" }
   | { readonly type: "next" }
   | { readonly type: "previous" }
   | { readonly type: "reset" }
@@ -202,16 +193,6 @@ export type AppAction =
       readonly validation: CustomProblemValidationResult;
     }
   | { readonly type: "clear-custom-problem" }
-  | { readonly type: "set-assignment-mode"; readonly mode: AssignmentMode }
-  | {
-      readonly type: "select-quiz-term";
-      readonly role: TermRole;
-      readonly termId: TermId | null;
-    }
-  | {
-      readonly type: "submit-quiz-assignment";
-      readonly validation: TermAssignmentQuizValidationResult;
-    }
   | {
       readonly type: "update-custom-term-draft";
       readonly field: CustomTermDraftField;
@@ -334,13 +315,6 @@ const PHASES = [
   "conclusion",
 ] as const;
 
-function emptyQuizState(): Pick<AppState, "quizSelection" | "quizStatus"> {
-  return {
-    quizSelection: createEmptyTermAssignmentQuizSelection(),
-    quizStatus: "not-submitted",
-  };
-}
-
 function emptyCustomTermEditor(
   status: CustomTermEditorStatus = "editing",
 ): CustomTermEditorState {
@@ -367,6 +341,7 @@ export function createInitialAppState(
   options: InitialAppStateOptions = {},
 ): AppState {
   return {
+    screen: "game",
     phase: "problem",
     locale: "ja",
     problemId: "barbara-aaa1",
@@ -374,8 +349,6 @@ export function createInitialAppState(
     customProblemDraft: createEmptyCustomProblemDraft(),
     customPremises: null,
     customProblemStatus: "editing",
-    assignmentMode: "automatic",
-    ...emptyQuizState(),
     customTerms: options.customTerms === undefined
       ? []
       : [...options.customTerms],
@@ -439,11 +412,14 @@ export function reduceAppState(
   action: AppAction,
 ): AppState {
   switch (action.type) {
+    case "open-custom-term-management":
+      return { ...state, screen: "custom-term-management" };
+    case "close-custom-term-management":
+      return { ...state, screen: "game" };
     case "reset":
       return {
         ...state,
         phase: "problem",
-        ...emptyQuizState(),
         counterPractice: resetCounterPractice(state),
         conclusionQuiz: resetConclusionQuiz(state),
       };
@@ -452,7 +428,6 @@ export function reduceAppState(
         ...state,
         phase: "problem",
         problemId: action.problemId,
-        ...emptyQuizState(),
         counterPractice: resetCounterPractice(state),
         conclusionQuiz: resetConclusionQuiz(state),
       };
@@ -461,7 +436,6 @@ export function reduceAppState(
         ...state,
         phase: "problem",
         problemSource: action.source,
-        ...emptyQuizState(),
         counterPractice: resetCounterPractice(state),
         conclusionQuiz: resetConclusionQuiz(state),
       };
@@ -479,7 +453,6 @@ export function reduceAppState(
         ),
         customPremises: null,
         customProblemStatus: "editing",
-        ...emptyQuizState(),
         counterPractice: resetCounterPractice(state),
         conclusionQuiz: resetConclusionQuiz(state),
       };
@@ -496,7 +469,6 @@ export function reduceAppState(
         ),
         customPremises: null,
         customProblemStatus: "editing",
-        ...emptyQuizState(),
         counterPractice: resetCounterPractice(state),
         conclusionQuiz: resetConclusionQuiz(state),
       };
@@ -511,7 +483,6 @@ export function reduceAppState(
         customProblemStatus: action.validation.ok
           ? "ready"
           : action.validation.reason,
-        ...emptyQuizState(),
         counterPractice: resetCounterPractice(state),
         conclusionQuiz: resetConclusionQuiz(state),
       };
@@ -522,40 +493,8 @@ export function reduceAppState(
         customProblemDraft: createEmptyCustomProblemDraft(),
         customPremises: null,
         customProblemStatus: "editing",
-        ...emptyQuizState(),
         counterPractice: resetCounterPractice(state),
         conclusionQuiz: resetConclusionQuiz(state),
-      };
-    case "set-assignment-mode":
-      return {
-        ...state,
-        phase: "problem",
-        assignmentMode: action.mode,
-        ...emptyQuizState(),
-        counterPractice: resetCounterPractice(state),
-        conclusionQuiz: resetConclusionQuiz(state),
-      };
-    case "select-quiz-term":
-      if (state.assignmentMode === "automatic") {
-        return state;
-      }
-      return {
-        ...state,
-        quizSelection: {
-          ...state.quizSelection,
-          [action.role]: action.termId,
-        },
-        quizStatus: "not-submitted",
-      };
-    case "submit-quiz-assignment":
-      if (state.assignmentMode === "automatic") {
-        return state;
-      }
-      return {
-        ...state,
-        quizStatus: action.validation.ok
-          ? "correct"
-          : action.validation.reason,
       };
     case "update-custom-term-draft":
       return {
@@ -614,17 +553,6 @@ export function reduceAppState(
         state.customProblemDraft,
         action.termId,
       );
-      const selection = {
-        S: state.quizSelection.S === action.termId
-          ? null
-          : state.quizSelection.S,
-        M: state.quizSelection.M === action.termId
-          ? null
-          : state.quizSelection.M,
-        P: state.quizSelection.P === action.termId
-          ? null
-          : state.quizSelection.P,
-      };
       return {
         ...state,
         phase: used ? "problem" : state.phase,
@@ -636,8 +564,6 @@ export function reduceAppState(
         customProblemDraft: draft,
         customPremises: used ? null : state.customPremises,
         customProblemStatus: used ? "editing" : state.customProblemStatus,
-        quizSelection: selection,
-        quizStatus: "not-submitted",
         counterPractice: used
           ? resetCounterPractice(state)
           : state.counterPractice,
@@ -723,7 +649,6 @@ export function reduceAppState(
         customProblemStatus: "editing",
         customTermEditor: emptyCustomTermEditor(),
         savedCustomProblemEditor: emptySavedCustomProblemEditor(),
-        ...emptyQuizState(),
         counterPractice: resetCounterPractice(state),
         conclusionQuiz: resetConclusionQuiz(state),
         dataImport: {
@@ -756,6 +681,11 @@ export function reduceAppState(
         phase: "problem",
         counterPractice: createInitialCounterPracticeState(action.mode),
         conclusionQuiz: resetConclusionQuiz(state),
+      };
+    case "set-conclusion-answer-mode":
+      return {
+        ...state,
+        conclusionQuiz: createInitialConclusionQuizState(action.mode),
       };
     case "set-counter-tool":
       if (state.counterPractice.mode !== "manual") return state;
@@ -796,9 +726,9 @@ export function reduceAppState(
       if (
         state.counterPractice.mode !== "manual" ||
         state.phase !== action.phase ||
-        (
-          state.conclusionQuiz.mode === "quiz" &&
-          state.conclusionQuiz.check.kind !== "correct"
+        !isConclusionDiagramUnlocked(
+          state.conclusionQuiz.mode,
+          state.conclusionQuiz.check,
         )
       ) return state;
       {
@@ -827,8 +757,10 @@ export function reduceAppState(
         state.phase !== action.phase ||
         (
           action.phase === "conclusion" &&
-          state.conclusionQuiz.mode === "quiz" &&
-          state.conclusionQuiz.check.kind !== "correct"
+          !isConclusionDiagramUnlocked(
+            state.conclusionQuiz.mode,
+            state.conclusionQuiz.check,
+          )
         )
       ) return state;
       const field = action.phase === "first-premise"
@@ -858,8 +790,10 @@ export function reduceAppState(
         state.phase !== action.phase ||
         (
           action.phase === "conclusion" &&
-          state.conclusionQuiz.mode === "quiz" &&
-          state.conclusionQuiz.check.kind !== "correct"
+          !isConclusionDiagramUnlocked(
+            state.conclusionQuiz.mode,
+            state.conclusionQuiz.check,
+          )
         )
       ) return state;
       const field = action.phase === "first-premise"
@@ -878,17 +812,14 @@ export function reduceAppState(
         },
       };
     }
-    case "set-conclusion-answer-mode":
-      return {
-        ...state,
-        phase: "problem",
-        conclusionQuiz: createInitialConclusionQuizState(action.mode),
-        counterPractice: resetCounterPractice(state),
-      };
     case "select-conclusion-answer":
       if (
         state.conclusionQuiz.mode !== "quiz" ||
-        state.phase !== "conclusion"
+        state.phase !== "combined-premises" ||
+        !isCombinedPremisesReady(
+          state.counterPractice.mode,
+          state.counterPractice.combinedPremises.check,
+        )
       ) return state;
       return {
         ...state,
@@ -900,7 +831,11 @@ export function reduceAppState(
     case "submit-conclusion-answer":
       if (
         state.conclusionQuiz.mode !== "quiz" ||
-        state.phase !== "conclusion"
+        state.phase !== "combined-premises" ||
+        !isCombinedPremisesReady(
+          state.counterPractice.mode,
+          state.counterPractice.combinedPremises.check,
+        )
       ) return state;
       return {
         ...state,
@@ -961,7 +896,6 @@ export function reduceAppState(
         customProblemDraft: createCustomProblemDraftFromSavedProblem(problem),
         customPremises: problem.premises,
         customProblemStatus: "ready",
-        ...emptyQuizState(),
         counterPractice: resetCounterPractice(state),
         conclusionQuiz: resetConclusionQuiz(state),
         savedCustomProblemEditor:
@@ -1010,10 +944,6 @@ export function reduceAppState(
               state.customPremises === null ||
               state.customProblemStatus !== "ready"
             )
-          ) ||
-          (
-            state.assignmentMode === "quiz" &&
-            state.quizStatus !== "correct"
           )
         )
       ) {
@@ -1021,16 +951,19 @@ export function reduceAppState(
       }
       if (
         state.counterPractice.mode === "manual" &&
-        (
-          (
-            state.phase === "first-premise" &&
-            state.counterPractice.firstPremise.check.kind !== "correct"
-          ) ||
-          (
-            state.phase === "combined-premises" &&
-            state.counterPractice.combinedPremises.check.kind !== "correct"
-          )
-        )
+        state.phase === "first-premise" &&
+        state.counterPractice.firstPremise.check.kind !== "correct"
+      ) return state;
+      if (
+        state.phase === "combined-premises" &&
+        !canEnterConclusion({
+          combinedPremisesReady: isCombinedPremisesReady(
+            state.counterPractice.mode,
+            state.counterPractice.combinedPremises.check,
+          ),
+          conclusionMode: state.conclusionQuiz.mode,
+          conclusionCheck: state.conclusionQuiz.check,
+        })
       ) return state;
       break;
     case "previous":

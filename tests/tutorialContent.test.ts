@@ -27,7 +27,7 @@ describe("tutorial content", () => {
     }
     expect(JA_TUTORIAL_CONTENT.sections[4]?.tables?.[0]?.rows.map((r) => r[0]))
       .toEqual(["A", "E", "I", "O"]);
-    expect(JA_TUTORIAL_CONTENT.sections[10]?.lists?.[0]).toHaveLength(10);
+    expect(JA_TUTORIAL_CONTENT.sections[10]?.lists?.[0]).toHaveLength(8);
     expect(JA_TUTORIAL_CONTENT.sections[11]?.tables?.[0]?.rows.map((r) => r[0]))
       .toEqual(["記号", "駒", "境界", "結論図"]);
   });

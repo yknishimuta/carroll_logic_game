@@ -1,9 +1,13 @@
 import { describe, expect, it } from "vitest";
 import {
+  canEnterConclusion,
   createInitialConclusionQuizState,
   deriveExpectedConclusionAnswer,
   isConclusionAnswerChoice,
   isConclusionAnswerMode,
+  isConclusionDiagramUnlocked,
+  isCombinedPremisesReady,
+  shouldShowConclusionQuiz,
   selectConclusionAnswer,
   validateConclusionAnswer,
 } from "../src/app/conclusionQuiz";
@@ -12,15 +16,49 @@ import { getBuiltInProblem } from "../src/data/problems";
 import type { PropositionForm } from "../src/domain/proposition";
 
 describe("conclusion quiz", () => {
-  it.each([
-    ["automatic", true],
-    ["quiz", true],
-    ["manual", false],
-    ["", false],
-  ])("validates conclusion mode %s", (value, expected) => {
-    expect(isConclusionAnswerMode(value)).toBe(expected);
+  it("validates modes and centralizes diagram unlocking", () => {
+    expect(isConclusionAnswerMode("automatic")).toBe(true);
+    expect(isConclusionAnswerMode("quiz")).toBe(true);
+    expect(isConclusionAnswerMode("other")).toBe(false);
+    expect(isConclusionDiagramUnlocked("automatic", { kind: "not-checked" }))
+      .toBe(true);
+    expect(isConclusionDiagramUnlocked("quiz", { kind: "incorrect" }))
+      .toBe(false);
+    expect(isConclusionDiagramUnlocked("quiz", { kind: "correct" }))
+      .toBe(true);
   });
 
+  it.each([
+    [false, "automatic", "not-checked", false],
+    [true, "automatic", "not-checked", true],
+    [false, "quiz", "not-checked", false],
+    [true, "quiz", "not-checked", false],
+    [true, "quiz", "incorrect", false],
+    [true, "quiz", "correct", true],
+  ] as const)(
+    "enters conclusion ready=%s mode=%s check=%s as %s",
+    (combinedPremisesReady, conclusionMode, kind, expected) => {
+      expect(canEnterConclusion({
+        combinedPremisesReady,
+        conclusionMode,
+        conclusionCheck: kind === "incorrect"
+          ? { kind: "incorrect" }
+          : kind === "correct" ? { kind: "correct" } : { kind: "not-checked" },
+      })).toBe(expected);
+    },
+  );
+
+  it("shows a combined-premises quiz only after placement is ready", () => {
+    expect(isCombinedPremisesReady("automatic", { kind: "not-checked" }))
+      .toBe(true);
+    expect(isCombinedPremisesReady("manual", { kind: "not-checked" }))
+      .toBe(false);
+    expect(isCombinedPremisesReady("manual", { kind: "correct" }))
+      .toBe(true);
+    expect(shouldShowConclusionQuiz("combined-premises", "quiz", true))
+      .toBe(true);
+    expect(shouldShowConclusionQuiz("conclusion", "quiz", true)).toBe(false);
+  });
   it.each([
     ["A", true],
     ["E", true],

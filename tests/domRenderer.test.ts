@@ -13,14 +13,13 @@ function createContainer(): HTMLElement {
 
 function handlers(): GameEventHandlers {
   return {
+    onCustomTermManagementOpen: vi.fn(),
+    onCustomTermManagementClose: vi.fn(),
     onPrevious: vi.fn(),
     onNext: vi.fn(),
     onReset: vi.fn(),
     onProblemChange: vi.fn(),
     onLocaleChange: vi.fn(),
-    onAssignmentModeChange: vi.fn(),
-    onQuizTermChange: vi.fn(),
-    onQuizAssignmentSubmit: vi.fn(),
     onProblemSourceChange: vi.fn(),
     onCustomPremiseFormChange: vi.fn(),
     onCustomPremiseTermChange: vi.fn(),
@@ -32,11 +31,11 @@ function handlers(): GameEventHandlers {
     onCustomTermEditCancel: vi.fn(),
     onCustomTermDelete: vi.fn(),
     onCounterPlacementModeChange: vi.fn(),
+    onConclusionAnswerModeChange: vi.fn(),
     onCounterToolChange: vi.fn(),
     onCounterTargetActivate: vi.fn(),
     onCounterAttemptCheck: vi.fn(),
     onCounterAttemptClear: vi.fn(),
-    onConclusionAnswerModeChange: vi.fn(),
     onConclusionAnswerChange: vi.fn(),
     onConclusionAnswerSubmit: vi.fn(),
     onSavedCustomProblemTitleChange: vi.fn(),
@@ -53,6 +52,41 @@ function handlers(): GameEventHandlers {
 }
 
 describe("renderGameView", () => {
+  it("renders a compact game entry and a separate management screen", () => {
+    const terms = Array.from({ length: 100 }, (_, index) => ({
+      id: `custom-term-${index + 1}` as const,
+      labels: { ja: { nounPhrase: `項${index + 1}` }, en: null },
+    }));
+    const callbacks = handlers();
+    const container = createContainer();
+    renderGameView(container, createGameViewModel(createInitialAppState({
+      customTerms: terms,
+    })), callbacks);
+    expect(container.querySelector('[data-screen="game"]')).not.toBeNull();
+    expect(container.querySelector('[data-screen="custom-term-management"]'))
+      .toBeNull();
+    expect(container.textContent).toContain("登録数：100件");
+    expect(container.querySelector('[data-action="open-custom-term-management"]'))
+      .not.toBeNull();
+    expect(container.querySelector('[data-action="custom-term-input"]')).toBeNull();
+    expect(container.querySelectorAll('[data-custom-term-id]')).toHaveLength(0);
+    expect(container.querySelector(".logic-game__diagram")).not.toBeNull();
+
+    renderGameView(container, createGameViewModel({
+      ...createInitialAppState({ customTerms: terms }),
+      screen: "custom-term-management",
+    }), callbacks);
+    expect(container.querySelector('[data-screen="game"]')).toBeNull();
+    expect(container.querySelector('[data-screen="custom-term-management"]'))
+      .not.toBeNull();
+    expect(container.querySelector('[data-screen-heading="custom-term-management"]'))
+      .not.toBeNull();
+    expect(container.querySelector('[data-action="close-custom-term-management"]'))
+      .not.toBeNull();
+    expect(container.querySelectorAll('[data-custom-term-id]')).toHaveLength(100);
+    expect(container.querySelector(".logic-game__diagram")).toBeNull();
+    expect(container.querySelector('[data-action="problem"]')).toBeNull();
+  });
   it("renders semantic content, selectors, and namespaced SVG", () => {
     const container = createContainer();
     renderGameView(
@@ -171,6 +205,18 @@ describe("renderGameView", () => {
 
     expect(container.querySelector("article")?.dataset.phase).toBe("problem");
     expect(container.querySelectorAll('[aria-current="step"]')).toHaveLength(1);
+    const conclusionMode = container.querySelector<HTMLSelectElement>(
+      '[data-action="conclusion-answer-mode"]',
+    )!;
+    expect(conclusionMode.value).toBe("automatic");
+    expect([...conclusionMode.options].map(({ value, textContent }) => ({
+      value, label: textContent,
+    }))).toEqual([
+      { value: "automatic", label: "自動表示" },
+      { value: "quiz", label: "クイズ" },
+    ]);
+    expect(conclusionMode.getAttribute("aria-describedby"))
+      .toBe("conclusion-answer-mode-description");
     const previous = container.querySelector<HTMLButtonElement>(
       '[data-action="previous"]',
     )!;
@@ -193,6 +239,11 @@ describe("renderGameView", () => {
         phase: "conclusion",
         locale: "en",
         problemId: "invalid-undistributed-middle",
+        conclusionQuiz: {
+          mode: "quiz",
+          selectedAnswer: "none",
+          check: { kind: "correct" },
+        },
       }),
       handlers(),
     );
@@ -249,7 +300,7 @@ describe("renderGameView", () => {
     expect(model.phase).toBe("problem");
   });
 
-  it("renders assignment mode and dispatches its validated change", () => {
+  it("renders read-only term roles without assignment quiz controls", () => {
     const container = createContainer();
     const callbacks = handlers();
     renderGameView(
@@ -257,90 +308,9 @@ describe("renderGameView", () => {
       createGameViewModel(createInitialAppState()),
       callbacks,
     );
-    const mode = container.querySelector<HTMLSelectElement>(
-      '[data-action="assignment-mode"]',
-    )!;
-    expect([...mode.options].map(({ value, textContent }) => [
-      value, textContent,
-    ])).toEqual([
-      ["automatic", "自動"],
-      ["quiz", "クイズ"],
-    ]);
-    mode.value = "quiz";
-    mode.dispatchEvent(new Event("change"));
-    expect(callbacks.onAssignmentModeChange).toHaveBeenCalledOnce();
-    expect(callbacks.onAssignmentModeChange).toHaveBeenCalledWith("quiz");
-  });
-
-  it("renders quiz controls, validates term values, and hides answers", () => {
-    const container = createContainer();
-    const callbacks = handlers();
-    renderGameView(
-      container,
-      createGameViewModel({
-        ...createInitialAppState(),
-        assignmentMode: "quiz",
-      }),
-      callbacks,
-    );
-    const selects = container.querySelectorAll<HTMLSelectElement>(
-      '[data-action="quiz-term"]',
-    );
-    expect(selects).toHaveLength(3);
-    expect([...selects].map(({ dataset }) => dataset.role)).toEqual([
-      "S", "M", "P",
-    ]);
-    expect([...selects[0]!.options].map(({ value }) => value)).toEqual([
-      "", "animal", "mortal", "human",
-    ]);
-    expect(container.querySelector(".logic-game__assignment dl")).toBeNull();
-    expect(container.querySelector(".logic-game__abstraction")).toBeNull();
-    expect(
-      container.querySelector<HTMLButtonElement>('[data-action="next"]')
-        ?.disabled,
-    ).toBe(true);
-
-    selects[0]!.value = "human";
-    selects[0]!.dispatchEvent(new Event("change"));
-    expect(callbacks.onQuizTermChange).toHaveBeenCalledWith("S", "human");
-    selects[0]!.value = "";
-    selects[0]!.dispatchEvent(new Event("change"));
-    expect(callbacks.onQuizTermChange).toHaveBeenLastCalledWith("S", null);
-
-    const check = container.querySelector<HTMLButtonElement>(
-      '[data-action="check-assignment"]',
-    )!;
-    expect(check.type).toBe("button");
-    check.click();
-    expect(callbacks.onQuizAssignmentSubmit).toHaveBeenCalledOnce();
-  });
-
-  it("renders feedback and reveals answers only when correct", () => {
-    const container = createContainer();
-    const callbacks = handlers();
-    const base = {
-      ...createInitialAppState(),
-      assignmentMode: "quiz" as const,
-      quizSelection: { S: "human", M: "animal", P: "mortal" },
-    };
-    renderGameView(
-      container,
-      createGameViewModel({ ...base, quizStatus: "incorrect" }),
-      callbacks,
-    );
-    expect(container.querySelector('[role="status"]')?.textContent).toContain(
-      "割当てが正しくありません",
-    );
-    expect(container.querySelector(".logic-game__assignment dl")).toBeNull();
-
-    renderGameView(
-      container,
-      createGameViewModel({ ...base, quizStatus: "correct" }),
-      callbacks,
-    );
-    const feedback = container.querySelector('[role="status"]');
-    expect(feedback?.getAttribute("aria-live")).toBe("polite");
-    expect(feedback?.textContent).toBe("正しい割当てです。");
+    expect(container.querySelector('[data-action="assignment-mode"]')).toBeNull();
+    expect(container.querySelector('[data-action="quiz-term"]')).toBeNull();
+    expect(container.querySelector('[data-action="check-assignment"]')).toBeNull();
     expect(container.querySelectorAll(".logic-game__assignment dt"))
       .toHaveLength(3);
     expect(container.querySelectorAll(".logic-game__abstraction li"))
@@ -475,6 +445,7 @@ describe("renderGameView", () => {
       createGameViewModel({
         ...createInitialAppState({ customTerms: [philosopher] }),
         problemSource: "custom",
+        screen: "custom-term-management",
       }),
       callbacks,
     );
@@ -511,9 +482,9 @@ describe("renderGameView", () => {
     )!.click();
     expect(callbacks.onCustomTermEdit).toHaveBeenCalledWith("custom-term-1");
     expect(callbacks.onCustomTermDelete).toHaveBeenCalledWith("custom-term-1");
-    expect(container.querySelectorAll(
-      '[data-action="custom-term"] option[value="custom-term-1"]',
-    ).length).toBeGreaterThan(0);
+    expect(container.querySelector('[data-screen="game"]')).toBeNull();
+    expect(container.querySelector('[data-screen="custom-term-management"]'))
+      .not.toBeNull();
   });
 
   it("renders edit cancellation, feedback, warnings, and empty list", () => {
@@ -521,6 +492,7 @@ describe("renderGameView", () => {
     const state = {
       ...createInitialAppState(),
       problemSource: "custom" as const,
+      screen: "custom-term-management" as const,
       customTermPersistenceStatus: "save-error" as const,
       customTermEditor: {
         mode: "edit" as const,
@@ -536,7 +508,7 @@ describe("renderGameView", () => {
     const callbacks = handlers();
     renderGameView(container, createGameViewModel(state), callbacks);
     expect(container.querySelector(".logic-game__custom-term-empty")?.textContent)
-      .toBe("ユーザー名詞はまだありません。");
+      .toBe("ユーザー登録名詞はまだありません。");
     expect(container.querySelector(
       ".logic-game__custom-term-feedback",
     )?.getAttribute("aria-live")).toBe("polite");
@@ -546,6 +518,29 @@ describe("renderGameView", () => {
       '[data-action="cancel-custom-term-edit"]',
     )!.click();
     expect(callbacks.onCustomTermEditCancel).toHaveBeenCalledOnce();
+  });
+
+  it("renders a custom conclusion as a non-alert derived result", () => {
+    const container = createContainer();
+    const initial = createInitialAppState();
+    renderGameView(container, createGameViewModel({
+      ...initial,
+      problemSource: "custom",
+      customProblemStatus: "ready",
+      phase: "conclusion",
+      customPremises: {
+        firstPremise: { form: "A", subject: "animal", predicate: "mortal" },
+        secondPremise: { form: "A", subject: "human", predicate: "animal" },
+      },
+    }), handlers());
+
+    const result = container.querySelector(
+      '[data-conclusion-experience="derived-result"]',
+    );
+    expect(result).not.toBeNull();
+    expect(result?.getAttribute("role")).toBeNull();
+    expect(result?.textContent).toContain("すべての人間は死すべきものである。");
+    expect(container.querySelector('[data-action="conclusion-answer"]')).toBeNull();
   });
 
   it("renders and connects native manual counter controls", () => {
@@ -604,11 +599,7 @@ describe("renderGameView", () => {
     const initial = createInitialAppState();
     const state = {
       ...initial,
-      phase: "conclusion" as const,
-      counterPractice: {
-        ...initial.counterPractice,
-        mode: "manual" as const,
-      },
+      phase: "combined-premises" as const,
       conclusionQuiz: {
         mode: "quiz" as const,
         selectedAnswer: null,
@@ -617,15 +608,24 @@ describe("renderGameView", () => {
     };
     const callbacks = handlers();
     renderGameView(container, createGameViewModel(state), callbacks);
+    expect(container.querySelector(
+      '[data-conclusion-experience="quiz"] fieldset legend',
+    )?.textContent).toBe("結論");
+    expect(container.querySelector(
+      '[data-conclusion-quiz-location="combined-premises"]',
+    )).not.toBeNull();
     const mode = container.querySelector<HTMLSelectElement>(
       '[data-action="conclusion-answer-mode"]',
     )!;
-    expect(mode.value).toBe("quiz");
+    expect([...mode.options].map(({ value }) => value)).toEqual([
+      "automatic", "quiz",
+    ]);
+    expect(mode.getAttribute("aria-describedby"))
+      .toBe("conclusion-answer-mode-description");
     mode.value = "automatic";
     mode.dispatchEvent(new Event("change"));
-    expect(callbacks.onConclusionAnswerModeChange).toHaveBeenCalledWith(
-      "automatic",
-    );
+    expect(callbacks.onConclusionAnswerModeChange)
+      .toHaveBeenCalledWith("automatic");
     const answer = container.querySelector<HTMLSelectElement>(
       '[data-action="conclusion-answer"]',
     )!;
@@ -681,6 +681,10 @@ describe("renderGameView", () => {
     expect(container.querySelectorAll(
       '[data-action="counter-target"]',
     )).toHaveLength(8);
+    expect(container.querySelector("[data-conclusion-quiz-location]")).toBeNull();
+    expect(container.querySelector<HTMLSelectElement>(
+      '[data-action="conclusion-answer-mode"]',
+    )?.disabled).toBe(true);
   });
 
   it("renders and connects the saved custom problem manager", () => {
@@ -713,11 +717,34 @@ describe("renderGameView", () => {
     )!;
     expect(input.type).toBe("text");
     expect(input.maxLength).toBe(100);
+    expect(input.closest("form")).toBeNull();
+    expect(container.querySelector<HTMLButtonElement>(
+      '[data-action="save-custom-problem"]',
+    )?.type).toBe("button");
     input.value = "New name";
     input.dispatchEvent(new Event("input"));
     expect(callbacks.onSavedCustomProblemTitleChange).toHaveBeenCalledWith(
       "New name",
     );
+    input.focus();
+    input.dispatchEvent(new CompositionEvent("compositionstart"));
+    input.value = "た";
+    input.dispatchEvent(new InputEvent("input", { isComposing: true }));
+    input.value = "たな";
+    input.dispatchEvent(new InputEvent("input", { isComposing: true }));
+    expect(callbacks.onSavedCustomProblemTitleChange).toHaveBeenCalledTimes(1);
+    expect(container.querySelector(
+      '[data-action="saved-custom-problem-title"]',
+    )).toBe(input);
+    input.value = "田中の問題";
+    input.dispatchEvent(new CompositionEvent("compositionend"));
+    expect(callbacks.onSavedCustomProblemTitleChange)
+      .toHaveBeenCalledTimes(2);
+    expect(callbacks.onSavedCustomProblemTitleChange)
+      .toHaveBeenCalledWith("田中の問題");
+    input.dispatchEvent(new InputEvent("input"));
+    expect(callbacks.onSavedCustomProblemTitleChange)
+      .toHaveBeenCalledTimes(2);
     container.querySelector<HTMLButtonElement>(
       '[data-action="save-custom-problem"]',
     )!.click();
@@ -790,7 +817,7 @@ describe("renderGameView", () => {
     expect(callbacks.onDataImportCancel).toHaveBeenCalledOnce();
     expect(container.querySelector(".logic-game__data-import-preview")?.textContent)
       .toContain("backup.json");
-    expect(container.textContent).toContain("ユーザー名詞3");
+    expect(container.textContent).toContain("ユーザー登録名詞3");
     expect(container.textContent).not.toContain("custom-term-1");
   });
 });

@@ -19,6 +19,7 @@ export interface UiMessages {
   readonly problemSelectorLabel: string;
   readonly premiseHeading: string;
   readonly assignmentHeading: string;
+  readonly assignmentDescription: string;
   readonly abstractionHeading: string;
   readonly conclusionHeading: string;
   readonly firstPremiseLabel: string;
@@ -28,22 +29,6 @@ export interface UiMessages {
   readonly noConclusion: string;
   readonly progressAriaLabel: string;
   readonly controlsAriaLabel: string;
-  readonly assignmentMode: {
-    readonly selectorLabel: string;
-    readonly automatic: string;
-    readonly quiz: string;
-  };
-  readonly assignmentQuiz: {
-    readonly instruction: string;
-    readonly selectPlaceholder: string;
-    readonly checkButton: string;
-    readonly feedback: {
-      readonly incomplete: string;
-      readonly duplicateTerm: string;
-      readonly incorrect: string;
-      readonly correct: string;
-    };
-  };
   readonly problemSource: {
     readonly selectorLabel: string;
     readonly builtIn: string;
@@ -80,6 +65,14 @@ export interface UiMessages {
   };
   readonly customTerms: {
     readonly heading: string;
+    readonly summaryCount: (count: number) => string;
+    readonly summaryDescription: string;
+    readonly manageAction: string;
+    readonly managementHeading: string;
+    readonly managementCount: (count: number, limit: number) => string;
+    readonly backToGame: string;
+    readonly registeredHeading: string;
+    readonly newTermHeading: string;
     readonly description: string;
     readonly fields: {
       readonly jaNounPhrase: string;
@@ -230,11 +223,6 @@ export interface UiMessages {
     };
   };
   readonly conclusionQuiz: {
-    readonly modeSelectorLabel: string;
-    readonly modes: {
-      readonly automatic: string;
-      readonly quiz: string;
-    };
     readonly heading: string;
     readonly instruction: string;
     readonly selectorLabel: string;
@@ -255,6 +243,20 @@ export interface UiMessages {
     readonly lockedDiagramCaption: string;
     readonly lockedDiagramAccessibleLabel: string;
     readonly lockedDiagramDescription: string;
+  };
+  readonly conclusionMode: {
+    readonly selectorLabel: string;
+    readonly description: string;
+    readonly conclusionLockedDescription: string;
+    readonly modes: {
+      readonly automatic: string;
+      readonly quiz: string;
+    };
+  };
+  readonly derivedConclusion: {
+    readonly heading: string;
+    readonly explanation: string;
+    readonly factualDisclaimer: string;
   };
   readonly phases: {
     readonly problem: string;

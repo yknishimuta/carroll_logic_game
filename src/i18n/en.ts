@@ -16,7 +16,8 @@ export const EN_MESSAGES = {
   languageSelectorLabel: "Language",
   problemSelectorLabel: "Problem",
   premiseHeading: "Premises",
-  assignmentHeading: "Term Assignment",
+  assignmentHeading: "Terms used in the diagram",
+  assignmentDescription: "The diagram uses the following term roles.",
   abstractionHeading: "Abstract Form",
   conclusionHeading: "Conclusion",
   firstPremiseLabel: "First Premise",
@@ -26,22 +27,6 @@ export const EN_MESSAGES = {
   noConclusion: "No determinate conclusion follows from these premises.",
   progressAriaLabel: "Progress",
   controlsAriaLabel: "Game controls",
-  assignmentMode: {
-    selectorLabel: "Term Assignment",
-    automatic: "Automatic",
-    quiz: "Quiz",
-  },
-  assignmentQuiz: {
-    instruction: "Assign each term to S, M, or P.",
-    selectPlaceholder: "Select a term",
-    checkButton: "Check Assignment",
-    feedback: {
-      incomplete: "Select a term for S, M, and P.",
-      duplicateTerm: "The same term cannot be assigned to more than one role.",
-      incorrect: "The assignment is not correct. The middle term M occurs in both premises.",
-      correct: "The assignment is correct.",
-    },
-  },
   problemSource: {
     selectorLabel: "Problem Type",
     builtIn: "Built-in Problem",
@@ -78,6 +63,14 @@ export const EN_MESSAGES = {
   },
   customTerms: {
     heading: "Custom Terms",
+    summaryCount: (count) => `${count} registered`,
+    summaryDescription: "Add, edit, or delete custom terms.",
+    manageAction: "Manage custom terms",
+    managementHeading: "Custom term management",
+    managementCount: (count, limit) => `${count} of ${limit} registered`,
+    backToGame: "Back to game",
+    registeredHeading: "Registered custom terms",
+    newTermHeading: "New custom term",
     description: "Add terms for use in custom problems. Custom terms are saved in this browser.",
     fields: {
       jaNounPhrase: "Japanese noun phrase",
@@ -228,13 +221,8 @@ export const EN_MESSAGES = {
     },
   },
   conclusionQuiz: {
-    modeSelectorLabel: "Conclusion Mode",
-    modes: {
-      automatic: "Show Automatically",
-      quiz: "Quiz",
-    },
-    heading: "Choose the Conclusion",
-    instruction: "Select the conclusion that follows from the two premises.",
+    heading: "Conclusion quiz",
+    instruction: "Select the conclusion that follows from the premises.",
     selectorLabel: "Conclusion",
     selectPlaceholder: "Select a conclusion",
     options: {
@@ -247,12 +235,26 @@ export const EN_MESSAGES = {
     checkButton: "Check Answer",
     feedback: {
       incomplete: "Select a conclusion.",
-      incorrect: "That conclusion is not correct. Review the premises and diagram.",
-      correct: "The conclusion is correct.",
+      incorrect: "Try again.",
+      correct: "Correct.",
     },
     lockedDiagramCaption: "The conclusion diagram is hidden until the conclusion is answered.",
     lockedDiagramAccessibleLabel: "Empty biliteral diagram before answering",
     lockedDiagramDescription: "A biliteral diagram without counters before the conclusion is answered.",
+  },
+  conclusionMode: {
+    selectorLabel: "Conclusion display",
+    description: "Automatic mode shows the derived result immediately. Quiz mode hides the conclusion diagram until the correct answer is given.",
+    conclusionLockedDescription: "Return to the combined-premises step to change this setting.",
+    modes: {
+      automatic: "Show automatically",
+      quiz: "Quiz",
+    },
+  },
+  derivedConclusion: {
+    heading: "Derived result",
+    explanation: "This result follows from the form of the premises you entered.",
+    factualDisclaimer: "This application does not judge whether the premises are factually true.",
   },
   phases: {
     problem: "Problem",

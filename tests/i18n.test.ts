@@ -52,25 +52,30 @@ describe("UI messages", () => {
     );
   });
 
-  it("provides localized assignment-mode and quiz messages", () => {
-    expect(JA_MESSAGES.assignmentMode).toEqual({
-      selectorLabel: "項の割当て方法",
-      automatic: "自動",
-      quiz: "クイズ",
+  it("provides neutral term-role and problem-experience messages", () => {
+    expect(JA_MESSAGES.assignmentHeading).toBe("図で使用する項");
+    expect(EN_MESSAGES.assignmentHeading).toBe("Terms used in the diagram");
+    expect(JA_MESSAGES.derivedConclusion.factualDisclaimer)
+      .toContain("現実に正しいかどうかは判定しません");
+    expect(EN_MESSAGES.derivedConclusion.factualDisclaimer)
+      .toContain("factually true");
+    expect(JSON.stringify(JA_MESSAGES)).not.toContain("割当てが正しくありません");
+    expect("assignmentQuiz" in JA_MESSAGES).toBe(false);
+  });
+
+  it("provides matching conclusion-mode settings in both languages", () => {
+    expect(JA_MESSAGES.conclusionMode).toEqual({
+      selectorLabel: "結論の表示",
+      description: "自動表示では、結論段階で導出結果をすぐに表示します。クイズでは、正しい結論を答えるまで結論図を隠します。",
+      conclusionLockedDescription: "結論表示後に設定を変更するには、統合前提へ戻ってください。",
+      modes: { automatic: "自動表示", quiz: "クイズ" },
     });
-    expect(EN_MESSAGES.assignmentMode).toEqual({
-      selectorLabel: "Term Assignment",
-      automatic: "Automatic",
-      quiz: "Quiz",
+    expect(EN_MESSAGES.conclusionMode).toEqual({
+      selectorLabel: "Conclusion display",
+      description: "Automatic mode shows the derived result immediately. Quiz mode hides the conclusion diagram until the correct answer is given.",
+      conclusionLockedDescription: "Return to the combined-premises step to change this setting.",
+      modes: { automatic: "Show automatically", quiz: "Quiz" },
     });
-    expect(Object.values(JA_MESSAGES.assignmentQuiz.feedback)).toHaveLength(4);
-    expect(Object.values(EN_MESSAGES.assignmentQuiz.feedback)).toHaveLength(4);
-    expect(JA_MESSAGES.assignmentQuiz.instruction).not.toBe(
-      EN_MESSAGES.assignmentQuiz.instruction,
-    );
-    expect(JA_MESSAGES.assignmentQuiz.checkButton).not.toBe(
-      EN_MESSAGES.assignmentQuiz.checkButton,
-    );
   });
 
   it("provides localized custom-problem messages and all form labels", () => {
@@ -113,8 +118,14 @@ describe("UI messages", () => {
       "updated",
       "deleted",
     ]);
-    expect(JA_MESSAGES.customTerms.heading).toBe("ユーザー名詞");
+    expect(JA_MESSAGES.customTerms.heading).toBe("ユーザー登録名詞");
     expect(EN_MESSAGES.customTerms.heading).toBe("Custom Terms");
+    expect(JA_MESSAGES.customTerms.summaryCount(24)).toBe("登録数：24件");
+    expect(EN_MESSAGES.customTerms.summaryCount(24)).toBe("24 registered");
+    expect(JA_MESSAGES.customTerms.managementCount(24, 100))
+      .toBe("登録済み：24 / 100件");
+    expect(EN_MESSAGES.customTerms.managementCount(24, 100))
+      .toBe("24 of 100 registered");
     expect(JA_MESSAGES.customTerms.persistence.saveError).not.toBe(
       EN_MESSAGES.customTerms.persistence.saveError,
     );

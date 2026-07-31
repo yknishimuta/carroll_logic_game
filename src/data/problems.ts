@@ -49,8 +49,8 @@ export const BUILT_IN_PROBLEMS = [
   {
     id: "invalid-undistributed-middle",
     title: {
-      ja: "中項不周延（無効）",
-      en: "Undistributed middle (invalid)",
+      ja: "中項不周延",
+      en: "Undistributed middle",
     },
     premises: {
       firstPremise: { form: "A", subject: "cat", predicate: "animal" },

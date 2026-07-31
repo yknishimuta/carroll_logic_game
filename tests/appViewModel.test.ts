@@ -15,7 +15,16 @@ function state(
   locale: Locale = "ja",
   problemId: BuiltInProblemId = "barbara-aaa1",
 ) {
-  return { ...createInitialAppState(), phase, locale, problemId };
+  const initial = createInitialAppState();
+  return {
+    ...initial,
+    phase,
+    locale,
+    problemId,
+    conclusionQuiz: phase === "conclusion"
+      ? { mode: "automatic" as const, selectedAnswer: null, check: { kind: "not-checked" as const } }
+      : initial.conclusionQuiz,
+  };
 }
 
 function count(svg: string, fragment: string): number {
@@ -206,116 +215,17 @@ describe("catalog-driven view models", () => {
   });
 });
 
-describe("term assignment quiz view models", () => {
-  const quizState = {
-    ...createInitialAppState(),
-    assignmentMode: "quiz" as const,
-  };
-
-  it("shows ordered localized role selectors without revealing answers", () => {
-    const ja = createGameViewModel(quizState);
-    const en = createGameViewModel({ ...quizState, locale: "en" });
-    expect(ja.assignmentModeSelector.options).toEqual([
-      { value: "automatic", label: "自動" },
-      { value: "quiz", label: "クイズ" },
-    ]);
-    expect(ja.assignmentPanel.kind).toBe("quiz");
-    expect(en.assignmentPanel.kind).toBe("quiz");
-    if (ja.assignmentPanel.kind !== "quiz" ||
-        en.assignmentPanel.kind !== "quiz") return;
-    expect(ja.assignmentPanel.roleSelectors.map(({ role }) => role)).toEqual([
-      "S", "M", "P",
-    ]);
-    for (const selector of ja.assignmentPanel.roleSelectors) {
-      expect(selector.options).toEqual([
-        { value: "animal", label: "動物" },
-        { value: "mortal", label: "死すべきもの" },
-        { value: "human", label: "人間" },
-      ]);
-      expect(selector.selectedTermId).toBeNull();
-    }
-    expect(en.assignmentPanel.roleSelectors[0]?.options.map(({ label }) => label))
-      .toEqual(["animals", "mortal beings", "humans"]);
-    expect(ja.assignmentPanel.resolvedItems).toBeNull();
-    expect(ja.assignmentPanel.abstractPremises).toBeNull();
-    expect(ja.navigation.nextDisabled).toBe(true);
-  });
-
-  it.each([
-    ["incomplete", "S・M・Pをすべて選択してください。"],
-    ["duplicate-term", "同じ名詞を複数の役割に割り当てることはできません。"],
-    ["incorrect", "割当てが正しくありません。中項Mは二つの前提に共通する項です。"],
-  ] as const)("localizes %s feedback", (quizStatus, message) => {
-    const model = createGameViewModel({ ...quizState, quizStatus });
-    expect(model.assignmentPanel.kind).toBe("quiz");
-    if (model.assignmentPanel.kind === "quiz") {
-      expect(model.assignmentPanel.feedback).toEqual({
-        kind: quizStatus,
-        message,
-      });
-    }
-  });
-
-  it("keeps a correct selection while localizing the quiz", () => {
-    const model = createGameViewModel({
-      ...quizState,
-      locale: "en",
-      quizSelection: { S: "human", M: "animal", P: "mortal" },
-      quizStatus: "correct",
-    });
-    expect(model.assignmentPanel.kind).toBe("quiz");
-    if (model.assignmentPanel.kind !== "quiz") return;
-    expect(model.assignmentPanel.feedback?.message).toBe(
-      "The assignment is correct.",
-    );
-    expect(model.assignmentPanel.roleSelectors.map(
-      ({ selectedTermId }) => selectedTermId,
-    )).toEqual(["human", "animal", "mortal"]);
+describe("term role display view models", () => {
+  it("shows computed S, M, and P without quiz controls", () => {
+    const model = createGameViewModel(createInitialAppState());
+    expect(model.assignmentPanel.kind).toBe("resolved");
+    expect(model.termAssignment.map(({ role }) => role)).toEqual(["S", "M", "P"]);
+    expect(model.assignmentHeading).toBe("図で使用する項");
+    expect(model.assignmentDescription)
+      .toBe("この問題では、次の対応で図を表示します。");
     expect(model.navigation.nextDisabled).toBe(false);
+    expect("assignmentModeSelector" in model).toBe(false);
   });
-
-  it("reveals the assignment and abstraction after a correct answer", () => {
-    const model = createGameViewModel({
-      ...quizState,
-      quizSelection: { S: "human", M: "animal", P: "mortal" },
-      quizStatus: "correct",
-    });
-    expect(model.assignmentPanel.kind).toBe("quiz");
-    if (model.assignmentPanel.kind !== "quiz") return;
-    expect(model.assignmentPanel.feedback?.message).toBe(
-      "正しい割当てです。",
-    );
-    expect(model.assignmentPanel.resolvedItems).toEqual(model.termAssignment);
-    expect(model.assignmentPanel.abstractPremises).toEqual(
-      model.abstractPremises,
-    );
-    expect(model.navigation.nextDisabled).toBe(false);
-  });
-
-  it("uses the resolved panel after leaving problem and preserves logic", () => {
-    const automatic = createGameViewModel(state("first-premise"));
-    const quiz = createGameViewModel({
-      ...quizState,
-      phase: "first-premise",
-      quizStatus: "correct",
-    });
-    expect(quiz.assignmentPanel.kind).toBe("resolved");
-    expect(logicalSvgSignature(quiz.diagram.svg)).toEqual(
-      logicalSvgSignature(automatic.diagram.svg),
-    );
-  });
-
-  it.each(BUILT_IN_PROBLEMS)(
-    "creates three quiz options for $id",
-    ({ id }) => {
-      const model = createGameViewModel({ ...quizState, problemId: id });
-      expect(model.assignmentPanel.kind).toBe("quiz");
-      if (model.assignmentPanel.kind === "quiz") {
-        expect(model.assignmentPanel.roleSelectors).toHaveLength(3);
-        expect(model.assignmentPanel.roleSelectors[0]?.options).toHaveLength(3);
-      }
-    },
-  );
 });
 
 describe("custom problem view models", () => {
@@ -350,6 +260,47 @@ describe("custom problem view models", () => {
     customPremises: premises,
     customProblemStatus: "ready" as const,
   };
+
+  it("supports automatic and quiz conclusions for both problem sources", () => {
+    const builtAutomatic = createGameViewModel({
+      ...createInitialAppState(), phase: "conclusion",
+    });
+    const builtQuiz = createGameViewModel({
+      ...createInitialAppState(),
+      phase: "combined-premises",
+      conclusionQuiz: {
+        mode: "quiz",
+        selectedAnswer: null,
+        check: { kind: "not-checked" },
+      },
+    });
+    const customAutomatic = createGameViewModel({
+      ...ready, phase: "conclusion",
+    });
+    const customQuiz = createGameViewModel({
+      ...ready,
+      phase: "combined-premises",
+      conclusionQuiz: {
+        mode: "quiz",
+        selectedAnswer: null,
+        check: { kind: "not-checked" },
+      },
+    });
+
+    for (const model of [builtAutomatic, customAutomatic]) {
+      expect(model.conclusionAnswerModeSelector.selectedValue).toBe("automatic");
+      expect(model.conclusionQuiz).toBeNull();
+      expect(model.concreteConclusion).not.toBeNull();
+      expect(model.derivedConclusion).not.toBeNull();
+    }
+    for (const model of [builtQuiz, customQuiz]) {
+      expect(model.conclusionAnswerModeSelector.selectedValue).toBe("quiz");
+      expect(model.conclusionQuiz).not.toBeNull();
+      expect(model.concreteConclusion).toBeNull();
+      expect(model.derivedConclusion).toBeNull();
+      expect(model.diagram.kind).toBe("triliteral");
+    }
+  });
 
   it("shows an empty editor and disables progress before creation", () => {
     const model = createGameViewModel({
@@ -447,21 +398,10 @@ describe("custom problem view models", () => {
     }
   });
 
-  it("supports quiz mode for the created custom problem", () => {
-    const unanswered = createGameViewModel({
-      ...ready,
-      assignmentMode: "quiz",
-    });
-    expect(unanswered.assignmentPanel.kind).toBe("quiz");
-    expect(unanswered.navigation.nextDisabled).toBe(true);
-    const correct = createGameViewModel({
-      ...ready,
-      assignmentMode: "quiz",
-      quizSelection: { S: "human", M: "animal", P: "mortal" },
-      quizStatus: "correct",
-    });
-    expect(correct.navigation.nextDisabled).toBe(false);
-    expect(correct.assignmentPanel.kind).toBe("quiz");
+  it("shows computed term roles without blocking a created custom problem", () => {
+    const model = createGameViewModel(ready);
+    expect(model.assignmentPanel.kind).toBe("resolved");
+    expect(model.navigation.nextDisabled).toBe(false);
   });
 
   it("shows no conclusion for a structurally valid invalid custom problem", () => {
@@ -496,9 +436,28 @@ describe("custom term view models", () => {
   const customState = {
     ...createInitialAppState({ customTerms: [philosopher] }),
     problemSource: "custom" as const,
+    screen: "custom-term-management" as const,
   };
 
-  it("shows the manager only on the custom problem phase", () => {
+  it("creates screen-specific custom-term summaries", () => {
+    const game = createGameViewModel({ ...customState, screen: "game" });
+    expect(game.activeScreen).toBe("game");
+    expect(game.customTermSummary).toMatchObject({
+      countText: "登録数：1件",
+      manageLabel: "ユーザー登録名詞を管理",
+    });
+    expect(game.customTermManager).toBeNull();
+    const management = createGameViewModel(customState);
+    expect(management.activeScreen).toBe("custom-term-management");
+    expect(management.customTermManagement).toEqual({
+      heading: "ユーザー登録名詞の管理",
+      countText: "登録済み：1 / 100件",
+      backLabel: "ゲームへ戻る",
+    });
+    expect(management.customTermManager?.items).toHaveLength(1);
+  });
+
+  it("shows the manager only on the management screen", () => {
     const model = createGameViewModel(customState);
     expect(model.customTermManager).not.toBeNull();
     expect(model.customTermManager?.items).toMatchObject([
@@ -514,7 +473,7 @@ describe("custom term view models", () => {
     ]);
     expect(createGameViewModel({
       ...customState,
-      problemSource: "built-in",
+      screen: "game",
     }).customTermManager).toBeNull();
     expect(createGameViewModel({
       ...customState,
@@ -524,7 +483,9 @@ describe("custom term view models", () => {
         firstPremise: { form: "A", subject: "animal", predicate: "mortal" },
         secondPremise: { form: "A", subject: "human", predicate: "animal" },
       },
-    }).customTermManager).toBeNull();
+    }).customTermManager).not.toBeNull();
+    expect(model.activeScreen).toBe("custom-term-management");
+    expect(model.customTermManagement.countText).toBe("登録済み：1 / 100件");
   });
 
   it("appends localized custom options after built-ins", () => {
@@ -542,10 +503,10 @@ describe("custom term view models", () => {
     ["japanese-required", "日本語名詞句を入力してください。"],
     ["term-text-too-long", "各入力は80文字以内にしてください。"],
     ["duplicate-term", "同じ名詞が既に登録されています。"],
-    ["term-limit-reached", "ユーザー名詞は100件まで追加できます。"],
-    ["created", "ユーザー名詞を追加しました。"],
-    ["updated", "ユーザー名詞を更新しました。"],
-    ["deleted", "ユーザー名詞を削除しました。"],
+    ["term-limit-reached", "ユーザー登録名詞は100件まで追加できます。"],
+    ["created", "ユーザー登録名詞を追加しました。"],
+    ["updated", "ユーザー登録名詞を更新しました。"],
+    ["deleted", "ユーザー登録名詞を削除しました。"],
   ] as const)("shows custom term status %s", (status, message) => {
     const model = createGameViewModel({
       ...customState,
@@ -634,7 +595,6 @@ describe("custom term view models", () => {
       },
       customPremises: premises,
       customProblemStatus: "ready" as const,
-      assignmentMode: "quiz" as const,
     };
     const ja = createGameViewModel(state);
     const en = createGameViewModel({ ...state, locale: "en" });
@@ -646,11 +606,7 @@ describe("custom term view models", () => {
       "All philosophers are humans.",
       "All animals are humans.",
     ]);
-    expect(ja.assignmentPanel.kind).toBe("quiz");
-    if (ja.assignmentPanel.kind === "quiz") {
-      expect(ja.assignmentPanel.roleSelectors[0]?.options.map(({ value }) => value))
-        .toEqual(["custom-term-1", "human", "animal"]);
-    }
+    expect(ja.assignmentPanel.kind).toBe("resolved");
   });
 
   it("reflects edited labels while keeping logical SVG data", () => {
@@ -744,15 +700,11 @@ describe("custom term view models", () => {
     const initial = createInitialAppState();
     const model = createGameViewModel({
       ...initial,
-      phase: "conclusion",
+      phase: "combined-premises",
       conclusionQuiz: {
         mode: "quiz",
         selectedAnswer: null,
         check: { kind: "not-checked" },
-      },
-      counterPractice: {
-        ...initial.counterPractice,
-        mode: "manual",
       },
     });
     expect(model.conclusionQuiz?.options.map(({ value }) => value)).toEqual(
@@ -769,15 +721,15 @@ describe("custom term view models", () => {
     expect(model.abstractConclusion).toBeNull();
     expect(model.noConclusionMessage).toBeNull();
     expect(model.counterPracticePanel).toBeNull();
-    expect(count(model.diagram.svg, "data-counter-kind=")).toBe(0);
-    expect(model.diagram.caption).toContain("回答するまで");
+    expect(count(model.diagram.svg, "data-counter-kind=")).toBe(6);
+    expect(model.navigation.nextDisabled).toBe(true);
   });
 
-  it("generates English candidates and discloses a correct automatic conclusion", () => {
+  it("generates English candidates and enables navigation after a correct answer", () => {
     const initial = createInitialAppState();
     const model = createGameViewModel({
       ...initial,
-      phase: "conclusion",
+      phase: "combined-premises",
       locale: "en",
       conclusionQuiz: {
         mode: "quiz",
@@ -792,12 +744,11 @@ describe("custom term view models", () => {
       "O — Some humans are not mortal.",
       "No determinate conclusion",
     ]);
-    expect(model.conclusionQuiz?.feedback?.message).toBe(
-      "The conclusion is correct.",
-    );
-    expect(model.concreteConclusion).toBe("All humans are mortal.");
-    expect(model.abstractConclusion).toBe("All S are P.");
-    expect(count(model.diagram.svg, "data-counter-kind=")).toBe(2);
+    expect(model.conclusionQuiz?.feedback?.message).toBe("Correct.");
+    expect(model.concreteConclusion).toBeNull();
+    expect(model.abstractConclusion).toBeNull();
+    expect(model.navigation.nextDisabled).toBe(false);
+    expect(model.diagram.kind).toBe("triliteral");
   });
 
   it("unlocks manual conclusion practice only after a correct answer", () => {
@@ -842,7 +793,7 @@ describe("custom term view models", () => {
     expect(count(model.diagram.svg, "data-counter-kind=")).toBe(0);
   });
 
-  it("uses custom-term labels in localized conclusion candidates", () => {
+  it("uses custom-term labels in localized derived results", () => {
     const premises = {
       firstPremise: {
         form: "A" as const,
@@ -861,20 +812,21 @@ describe("custom term view models", () => {
       customProblemStatus: "ready" as const,
       customPremises: premises,
       conclusionQuiz: {
-        mode: "quiz" as const,
+        mode: "automatic" as const,
         selectedAnswer: null,
         check: { kind: "not-checked" as const },
       },
     };
-    expect(createGameViewModel(base).conclusionQuiz?.options[0]?.label).toBe(
-      "A — すべての哲学者は動物である。",
+    expect(createGameViewModel(base).conclusionQuiz).toBeNull();
+    expect(createGameViewModel(base).concreteConclusion).toBe(
+      "すべての哲学者は動物である。",
     );
+    expect(createGameViewModel(base).derivedConclusion?.factualDisclaimer)
+      .toContain("現実に正しいかどうかは判定しません");
     expect(createGameViewModel({
       ...base,
       locale: "en",
-    }).conclusionQuiz?.options[0]?.label).toBe(
-      "A — All philosophers are animals.",
-    );
+    }).concreteConclusion).toBe("All philosophers are animals.");
   });
 
   it("builds a localized saved custom problem manager", () => {

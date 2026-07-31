@@ -231,6 +231,13 @@ noscript {
   font-weight: 700;
 }
 
+.logic-game__selector-description {
+  max-width: 40rem;
+  font-weight: 400;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
 .logic-game__settings select {
   min-height: 2.75rem;
   width: 100%;
@@ -255,6 +262,7 @@ noscript {
   margin: 0;
   font-size: clamp(1.75rem, 5vw, 2.5rem);
   line-height: 1.25;
+  overflow-wrap: anywhere;
 }
 
 .logic-game h2 {
@@ -340,62 +348,6 @@ input:focus-visible,
 
 .logic-game__assignment dd {
   margin: 0;
-}
-
-.logic-game__assignment-quiz {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 0.75rem;
-  align-items: end;
-}
-
-.logic-game__assignment-quiz label {
-  display: grid;
-  gap: 0.35rem;
-}
-
-.logic-game__assignment-role {
-  font-weight: 700;
-}
-
-.logic-game__assignment-quiz select,
-.logic-game__assignment-quiz button {
-  min-height: 2.75rem;
-  padding: 0.5rem 0.75rem;
-  color: var(--foreground);
-  background: var(--surface);
-  border: 2px solid var(--border);
-  border-radius: 0.35rem;
-  font: inherit;
-}
-
-.logic-game__assignment-quiz button {
-  grid-column: 1 / -1;
-  border-color: var(--accent);
-  cursor: pointer;
-}
-
-.logic-game__assignment-quiz :focus-visible {
-  outline: 0.2rem solid var(--accent);
-  outline-offset: 0.15rem;
-}
-
-.logic-game__assignment-feedback {
-  padding: 0.75rem 1rem;
-  border-left: 0.25rem solid var(--accent);
-  background: var(--surface-muted);
-}
-
-.logic-game__assignment-feedback--correct::before {
-  content: "✓ ";
-  font-weight: 700;
-}
-
-.logic-game__assignment-feedback--incomplete::before,
-.logic-game__assignment-feedback--duplicate-term::before,
-.logic-game__assignment-feedback--incorrect::before {
-  content: "! ";
-  font-weight: 700;
 }
 
 .logic-game__custom-problem fieldset {
@@ -625,10 +577,6 @@ input:focus-visible,
     grid-template-columns: 1fr;
   }
 
-  .logic-game__assignment-quiz {
-    grid-template-columns: 1fr;
-  }
-
   .logic-game__custom-problem fieldset {
     grid-template-columns: 1fr;
   }
@@ -833,6 +781,44 @@ input:focus-visible,
   overflow-wrap: anywhere;
 }
 
+.logic-game__custom-term-summary,
+.logic-game__term-management,
+.logic-game__term-management .logic-game__custom-terms {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.logic-game__custom-term-summary {
+  padding: 1rem;
+  border: 1px solid var(--border);
+  border-radius: 0.5rem;
+}
+
+.logic-game__custom-term-summary > *,
+.logic-game__term-management-count {
+  margin-block: 0;
+}
+
+.logic-game__custom-term-summary button,
+.logic-game__term-management-back {
+  max-width: 100%;
+  justify-self: start;
+  white-space: normal;
+}
+
+.logic-game__term-management .logic-game__custom-term-list li,
+.logic-game__term-management .logic-game__custom-term-list dd {
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 30rem) {
+  .logic-game__term-management .logic-game__custom-term-list button {
+    display: block;
+    width: 100%;
+    margin-block-start: 0.5rem;
+  }
+}
+
 .logic-game__fallback-badge {
   display: block;
   margin-block: 0.25rem;
@@ -840,6 +826,9 @@ input:focus-visible,
 }
 
 @media (forced-colors: active) {
+  .logic-game__custom-term-summary {
+    border-color: CanvasText;
+  }
   .logic-game__custom-term-group--optional {
     border-color: CanvasText;
   }

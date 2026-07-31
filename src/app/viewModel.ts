@@ -14,7 +14,11 @@ import type {
   TriliteralCounterPlacements,
 } from "../domain/counterPlacement";
 import type { Locale } from "../domain/locale";
-import type { CustomTermId } from "../domain/customTerm";
+import {
+  CUSTOM_TERM_LIMIT,
+  type CustomTermId,
+} from "../domain/customTerm";
+import type { AppScreen } from "./state";
 import {
   SAVED_CUSTOM_PROBLEM_TITLE_MAX_LENGTH,
   type CustomProblemId,
@@ -37,7 +41,6 @@ import type {
   CustomProblemStatus,
   GamePhase,
 } from "./state";
-import { getProblemTermIds } from "./termAssignmentQuiz";
 import {
   createAvailableTermCatalog,
   resolveAvailableTerm,
@@ -58,6 +61,13 @@ import {
 } from "./counterPractice";
 import type {
   ConclusionAnswerChoice,
+  ConclusionAnswerMode,
+} from "./conclusionQuiz";
+import {
+  canEnterConclusion,
+  isCombinedPremisesReady,
+  isConclusionDiagramUnlocked,
+  shouldShowConclusionQuiz,
 } from "./conclusionQuiz";
 import type { SavedCustomProblemEditorStatus } from "./state";
 
@@ -70,6 +80,8 @@ export interface SelectorViewModel {
   readonly label: string;
   readonly selectedValue: string;
   readonly placeholder?: string;
+  readonly description?: string;
+  readonly disabled?: boolean;
   readonly options: readonly SelectOptionViewModel[];
 }
 
@@ -78,34 +90,11 @@ export interface TermAssignmentItemViewModel {
   readonly label: string;
 }
 
-export interface TermRoleSelectorViewModel {
-  readonly role: TermRole;
-  readonly label: string;
-  readonly selectedTermId: TermId | null;
-  readonly placeholder: string;
-  readonly options: readonly SelectOptionViewModel[];
-}
-
-export interface QuizFeedbackViewModel {
-  readonly kind: "incomplete" | "duplicate-term" | "incorrect" | "correct";
-  readonly message: string;
-}
-
 export type TermAssignmentPanelViewModel =
   | {
       readonly kind: "resolved";
       readonly items: readonly TermAssignmentItemViewModel[];
       readonly abstractPremises: readonly [string, string];
-    }
-  | {
-      readonly kind: "quiz";
-      readonly instruction: string;
-      readonly roleSelectors: readonly TermRoleSelectorViewModel[];
-      readonly checkButtonLabel: string;
-      readonly checkButtonDisabled: false;
-      readonly feedback: QuizFeedbackViewModel | null;
-      readonly resolvedItems: readonly TermAssignmentItemViewModel[] | null;
-      readonly abstractPremises: readonly [string, string] | null;
     }
   | { readonly kind: "unavailable" };
 
@@ -147,6 +136,8 @@ export interface CustomTermListItemViewModel {
 
 export interface CustomTermManagerViewModel {
   readonly heading: string;
+  readonly newTermHeading: string;
+  readonly registeredHeading: string;
   readonly description: string;
   readonly mode: "create" | "edit";
   readonly fields: {
@@ -310,6 +301,19 @@ export interface ProgressStepViewModel {
 }
 
 export interface GameViewModel {
+  readonly activeScreen: AppScreen;
+  readonly customTermSummary: {
+    readonly heading: string;
+    readonly countText: string;
+    readonly description: string;
+    readonly manageLabel: string;
+    readonly loadWarning: string | null;
+  };
+  readonly customTermManagement: {
+    readonly heading: string;
+    readonly countText: string;
+    readonly backLabel: string;
+  };
   readonly accessibility: {
     readonly skipToMain: string;
     readonly settingsHeading: string;
@@ -330,7 +334,6 @@ export interface GameViewModel {
   readonly languageSelector: SelectorViewModel;
   readonly problemSourceSelector: SelectorViewModel;
   readonly problemSelector: SelectorViewModel;
-  readonly assignmentModeSelector: SelectorViewModel;
   readonly counterPlacementModeSelector: SelectorViewModel;
   readonly conclusionAnswerModeSelector: SelectorViewModel;
   readonly customProblemEditor: CustomProblemEditorViewModel | null;
@@ -340,6 +343,7 @@ export interface GameViewModel {
   readonly dataBackup: DataBackupViewModel | null;
   readonly premiseHeading: string;
   readonly assignmentHeading: string;
+  readonly assignmentDescription: string;
   readonly abstractionHeading: string;
   readonly conclusionHeading: string;
   readonly premiseLabels: readonly [string, string];
@@ -358,6 +362,11 @@ export interface GameViewModel {
   readonly diagram: DiagramViewModel;
   readonly counterPracticePanel: CounterPracticeViewModel | null;
   readonly conclusionQuiz: ConclusionQuizViewModel | null;
+  readonly derivedConclusion: {
+    readonly heading: string;
+    readonly explanation: string;
+    readonly factualDisclaimer: string;
+  } | null;
   readonly navigation: NavigationViewModel;
 }
 
@@ -536,6 +545,8 @@ function createCustomTermManager(
       };
   return {
     heading: messages.customTerms.heading,
+    newTermHeading: messages.customTerms.newTermHeading,
+    registeredHeading: messages.customTerms.registeredHeading,
     description: messages.customTerms.description,
     mode: state.customTermEditor.mode,
     fields: messages.customTerms.fields,
@@ -749,9 +760,7 @@ function navigation(
       return {
         ...shared,
         previousDisabled: true,
-        nextDisabled:
-          !ready ||
-          (state.assignmentMode === "quiz" && state.quizStatus !== "correct"),
+        nextDisabled: !ready,
         nextLabel: messages.navigation.nextFirstPremise,
       };
     case "first-premise":
@@ -764,14 +773,22 @@ function navigation(
         nextLabel: messages.navigation.nextCombinedPremises,
       };
     case "combined-premises":
+      {
+        const combinedPremisesReady = isCombinedPremisesReady(
+          state.counterPractice.mode,
+          state.counterPractice.combinedPremises.check,
+        );
       return {
         ...shared,
         previousDisabled: false,
-        nextDisabled:
-          state.counterPractice.mode === "manual" &&
-          state.counterPractice.combinedPremises.check.kind !== "correct",
+        nextDisabled: !canEnterConclusion({
+          combinedPremisesReady,
+          conclusionMode: state.conclusionQuiz.mode,
+          conclusionCheck: state.conclusionQuiz.check,
+        }),
         nextLabel: messages.navigation.nextConclusion,
       };
+      }
     case "conclusion":
       return { ...shared, previousDisabled: false, nextDisabled: true, nextLabel: messages.navigation.completed };
   }
@@ -842,8 +859,10 @@ function counterPanel(
     state.phase === "problem" ||
     (
       state.phase === "conclusion" &&
-      state.conclusionQuiz.mode === "quiz" &&
-      state.conclusionQuiz.check.kind !== "correct"
+      !isConclusionDiagramUnlocked(
+        state.conclusionQuiz.mode,
+        state.conclusionQuiz.check,
+      )
     )
   ) {
     return null;
@@ -917,8 +936,14 @@ function conclusionQuizViewModel(
   resolveTerm: (termId: TermId) => ReturnType<typeof resolveAvailableTerm>,
 ): ConclusionQuizViewModel | null {
   if (
-    state.conclusionQuiz.mode !== "quiz" ||
-    state.phase !== "conclusion" ||
+    !shouldShowConclusionQuiz(
+      state.phase,
+      state.conclusionQuiz.mode,
+      isCombinedPremisesReady(
+        state.counterPractice.mode,
+        state.counterPractice.combinedPremises.check,
+      ),
+    ) ||
     computation === null
   ) return null;
   const forms = ["A", "E", "I", "O"] as const;
@@ -954,57 +979,26 @@ function conclusionQuizViewModel(
 }
 
 function assignmentPanel(
-  state: AppState,
-  messages: UiMessages,
   premises: ConcreteSyllogism | null,
   computation: ProblemComputation | null,
   items: readonly TermAssignmentItemViewModel[],
   abstractPremises: readonly [string, string] | null,
-  resolveTerm: (termId: TermId) => ReturnType<typeof resolveAvailableTerm>,
 ): TermAssignmentPanelViewModel {
   if (
     premises === null ||
     computation === null ||
     abstractPremises === null
   ) return { kind: "unavailable" };
-  if (state.assignmentMode !== "quiz" || state.phase !== "problem") {
-    return { kind: "resolved", items, abstractPremises };
-  }
-  const feedback = state.quizStatus === "not-submitted"
-    ? null
-    : {
-        kind: state.quizStatus,
-        message: state.quizStatus === "duplicate-term"
-          ? messages.assignmentQuiz.feedback.duplicateTerm
-          : messages.assignmentQuiz.feedback[state.quizStatus],
-      };
-  const options = getProblemTermIds(premises).map((termId) => {
-    const custom = state.customTerms.find(({ id }) => id === termId);
-    const resolved = custom === undefined ? null : resolveCustomTermText(custom, state.locale);
-    return {
-      value: termId,
-      label: resolved?.isFallback
-        ? `${resolved.displayName}${state.locale === "ja" ? "［" : " ["}${messages.customTerms.untranslatedOption}${state.locale === "ja" ? "］" : "]"}`
-        : getTermDisplayName(resolveTerm(termId), state.locale),
-    };
-  });
-  const correct = state.quizStatus === "correct";
-  return {
-    kind: "quiz",
-    instruction: messages.assignmentQuiz.instruction,
-    roleSelectors: (["S", "M", "P"] as const).map((role) => ({
-      role,
-      label: role,
-      selectedTermId: state.quizSelection[role],
-      placeholder: messages.assignmentQuiz.selectPlaceholder,
-      options,
-    })),
-    checkButtonLabel: messages.assignmentQuiz.checkButton,
-    checkButtonDisabled: false,
-    feedback,
-    resolvedItems: correct ? items : null,
-    abstractPremises: correct ? abstractPremises : null,
-  };
+  return { kind: "resolved", items, abstractPremises };
+}
+
+function problemTermIds(premises: ConcreteSyllogism): readonly TermId[] {
+  return [...new Set([
+    premises.firstPremise.subject,
+    premises.firstPremise.predicate,
+    premises.secondPremise.subject,
+    premises.secondPremise.predicate,
+  ])];
 }
 
 export function createGameViewModel(state: AppState): GameViewModel {
@@ -1043,18 +1037,17 @@ export function createGameViewModel(state: AppState): GameViewModel {
   ] as const;
   const ready = premises !== null && computation !== null;
   const panel = assignmentPanel(
-    state,
-    messages,
     premises,
     computation,
     termAssignment,
     abstractPremises,
-    resolveTerm,
   );
   const manual = state.counterPractice.mode === "manual";
-  const conclusionDisclosed =
-    state.conclusionQuiz.mode === "automatic" ||
-    state.conclusionQuiz.check.kind === "correct";
+  const conclusionDisclosed = state.phase === "conclusion" &&
+    isConclusionDiagramUnlocked(
+      state.conclusionQuiz.mode,
+      state.conclusionQuiz.check,
+    );
   const diagram = state.phase === "problem" || computation === null
     ? {
         kind: "triliteral" as const,
@@ -1132,6 +1125,22 @@ export function createGameViewModel(state: AppState): GameViewModel {
     : formatAbstractProposition(computation.abstractConclusion, state.locale);
 
   return {
+    activeScreen: state.screen,
+    customTermSummary: {
+      heading: messages.customTerms.heading,
+      countText: messages.customTerms.summaryCount(state.customTerms.length),
+      description: messages.customTerms.summaryDescription,
+      manageLabel: messages.customTerms.manageAction,
+      loadWarning: state.customTermPersistenceStatus === "load-error"
+        ? messages.customTerms.persistence.loadError : null,
+    },
+    customTermManagement: {
+      heading: messages.customTerms.managementHeading,
+      countText: messages.customTerms.managementCount(
+        state.customTerms.length, CUSTOM_TERM_LIMIT,
+      ),
+      backLabel: messages.customTerms.backToGame,
+    },
     accessibility: messages.accessibility,
     locale: state.locale,
     documentTitle: messages.documentTitle,
@@ -1168,14 +1177,6 @@ export function createGameViewModel(state: AppState): GameViewModel {
         label: title[state.locale],
       })),
     },
-    assignmentModeSelector: {
-      label: messages.assignmentMode.selectorLabel,
-      selectedValue: state.assignmentMode,
-      options: [
-        { value: "automatic", label: messages.assignmentMode.automatic },
-        { value: "quiz", label: messages.assignmentMode.quiz },
-      ],
-    },
     counterPlacementModeSelector: {
       label: messages.counterPractice.modeSelectorLabel,
       selectedValue: state.counterPractice.mode,
@@ -1188,22 +1189,22 @@ export function createGameViewModel(state: AppState): GameViewModel {
       ],
     },
     conclusionAnswerModeSelector: {
-      label: messages.conclusionQuiz.modeSelectorLabel,
+      label: messages.conclusionMode.selectorLabel,
+      description: state.phase === "conclusion"
+        ? messages.conclusionMode.conclusionLockedDescription
+        : messages.conclusionMode.description,
+      disabled: state.phase === "conclusion",
       selectedValue: state.conclusionQuiz.mode,
-      options: [
-        {
-          value: "automatic",
-          label: messages.conclusionQuiz.modes.automatic,
-        },
-        { value: "quiz", label: messages.conclusionQuiz.modes.quiz },
-      ],
+      options: (["automatic", "quiz"] as readonly ConclusionAnswerMode[]).map(
+        (value) => ({ value, label: messages.conclusionMode.modes[value] }),
+      ),
     },
     customProblemEditor:
       state.problemSource === "custom" && state.phase === "problem"
         ? createCustomEditor(state, messages, catalog)
         : null,
     customTermManager:
-      state.problemSource === "custom" && state.phase === "problem"
+      state.screen === "custom-term-management"
         ? createCustomTermManager(state, messages)
         : null,
     savedCustomProblemManager:
@@ -1215,6 +1216,7 @@ export function createGameViewModel(state: AppState): GameViewModel {
       : null,
     premiseHeading: messages.premiseHeading,
     assignmentHeading: messages.assignmentHeading,
+    assignmentDescription: messages.assignmentDescription,
     abstractionHeading: messages.abstractionHeading,
     conclusionHeading: messages.conclusionHeading,
     premiseLabels: [messages.firstPremiseLabel, messages.secondPremiseLabel],
@@ -1228,7 +1230,7 @@ export function createGameViewModel(state: AppState): GameViewModel {
       { phase: "conclusion", label: messages.phases.conclusion },
     ],
     concretePremises,
-    termFallbackNotice: premises !== null && getProblemTermIds(premises).some(
+    termFallbackNotice: premises !== null && problemTermIds(premises).some(
       (id) => {
         const custom = state.customTerms.find((term) => term.id === id);
         return custom !== undefined && resolveCustomTermText(custom, state.locale).isFallback;
@@ -1253,6 +1255,17 @@ export function createGameViewModel(state: AppState): GameViewModel {
       computation,
       resolveTerm,
     ),
+    derivedConclusion: state.phase === "conclusion" && computation !== null &&
+        (
+          state.conclusionQuiz.mode === "automatic" ||
+          (state.problemSource === "custom" && conclusionDisclosed)
+        )
+      ? {
+          heading: messages.derivedConclusion.heading,
+          explanation: messages.derivedConclusion.explanation,
+          factualDisclaimer: messages.derivedConclusion.factualDisclaimer,
+        }
+      : null,
     navigation: navigation(state, messages, ready),
   };
 }

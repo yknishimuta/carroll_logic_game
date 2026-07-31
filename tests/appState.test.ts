@@ -103,127 +103,21 @@ describe("application state", () => {
     });
   });
 
-  it("changes mode and clears quiz progress", () => {
-    expect(
-      reduceAppState(
-        {
-          ...initial,
-          phase: "conclusion",
-          quizSelection: { S: "human", M: "animal", P: "mortal" },
-          quizStatus: "correct",
-        },
-        { type: "set-assignment-mode", mode: "quiz" },
-      ),
-    ).toEqual({
-      ...initial,
-      assignmentMode: "quiz",
-    });
-  });
-
-  it("selects each role in quiz mode and resets submitted status", () => {
-    let state: AppState = { ...initial, assignmentMode: "quiz" };
-    state = reduceAppState(state, {
-      type: "select-quiz-term",
-      role: "S",
-      termId: "human",
-    });
-    state = reduceAppState(
-      { ...state, quizStatus: "incorrect" },
-      { type: "select-quiz-term", role: "M", termId: "animal" },
-    );
-    state = reduceAppState(
-      { ...state, quizStatus: "correct" },
-      { type: "select-quiz-term", role: "P", termId: "mortal" },
-    );
-    expect(state.quizSelection).toEqual({
-      S: "human",
-      M: "animal",
-      P: "mortal",
-    });
-    expect(state.quizStatus).toBe("not-submitted");
-  });
-
-  it.each([
-    [{ ok: true } as const, "correct"],
-    [{ ok: false, reason: "incomplete" } as const, "incomplete"],
-    [{ ok: false, reason: "duplicate-term" } as const, "duplicate-term"],
-    [{ ok: false, reason: "incorrect" } as const, "incorrect"],
-  ] as const)("maps validation %j to %s", (validation, status) => {
-    const state = reduceAppState(
-      { ...initial, assignmentMode: "quiz" },
-      { type: "submit-quiz-assignment", validation },
-    );
-    expect(state.quizStatus).toBe(status);
-  });
-
-  it.each([
-    "not-submitted",
-    "incomplete",
-    "duplicate-term",
-    "incorrect",
-  ] as const)("blocks quiz next while status is %s", (quizStatus) => {
-    const state = { ...initial, assignmentMode: "quiz" as const, quizStatus };
-    expect(reduceAppState(state, { type: "next" })).toEqual(state);
-  });
-
-  it("allows quiz next only after a correct answer", () => {
-    const state = {
-      ...initial,
-      assignmentMode: "quiz" as const,
-      quizStatus: "correct" as const,
-    };
-    expect(reduceAppState(state, { type: "next" }).phase).toBe(
-      "first-premise",
-    );
-  });
-
-  it("ignores quiz actions in automatic mode", () => {
-    expect(
-      reduceAppState(initial, {
-        type: "select-quiz-term",
-        role: "S",
-        termId: "human",
-      }),
-    ).toBe(initial);
-    expect(
-      reduceAppState(initial, {
-        type: "submit-quiz-assignment",
-        validation: { ok: true },
-      }),
-    ).toBe(initial);
-  });
-
-  it("clears answers on problem change and reset but not locale change", () => {
-    const answered: AppState = {
-      ...initial,
-      phase: "conclusion",
-      locale: "ja",
-      assignmentMode: "quiz",
-      quizSelection: { S: "human", M: "animal", P: "mortal" },
-      quizStatus: "correct",
-    };
-    const localized = reduceAppState(answered, {
-      type: "set-locale",
-      locale: "en",
-    });
-    expect(localized).toEqual({ ...answered, locale: "en" });
-
-    for (const result of [
-      reduceAppState(answered, {
-        type: "select-problem",
-        problemId: "darii-aii1",
-      }),
-      reduceAppState(answered, { type: "reset" }),
-    ]) {
-      expect(result.assignmentMode).toBe("quiz");
-      expect(result.quizSelection).toEqual({ S: null, M: null, P: null });
-      expect(result.quizStatus).toBe("not-submitted");
-      expect(result.phase).toBe("problem");
-    }
+  it("does not require a term-assignment quiz before advancing", () => {
+    expect(reduceAppState(initial, { type: "next" }).phase)
+      .toBe("first-premise");
+    expect("assignmentMode" in initial).toBe(false);
+    expect("quizSelection" in initial).toBe(false);
+    expect("quizStatus" in initial).toBe(false);
   });
 
   it("starts with the built-in source and an empty custom draft", () => {
     expect(initial.problemSource).toBe("built-in");
+    expect(initial.conclusionQuiz).toEqual({
+      mode: "automatic",
+      selectedAnswer: null,
+      check: { kind: "not-checked" },
+    });
     expect(initial.customProblemDraft).toEqual({
       majorPremise: {
         form: null,
@@ -240,7 +134,7 @@ describe("application state", () => {
     expect(initial.customProblemStatus).toBe("editing");
   });
 
-  it("switches sources while preserving custom input and clearing quiz state", () => {
+  it("switches sources while preserving custom input", () => {
     const custom = {
       ...initial,
       phase: "conclusion" as const,
@@ -252,8 +146,6 @@ describe("application state", () => {
           predicateTermId: null,
         },
       },
-      quizSelection: { S: "human", M: null, P: null },
-      quizStatus: "incorrect" as const,
     };
     const selected = reduceAppState(custom, {
       type: "set-problem-source",
@@ -262,8 +154,6 @@ describe("application state", () => {
     expect(selected.problemSource).toBe("custom");
     expect(selected.phase).toBe("problem");
     expect(selected.customProblemDraft).toEqual(custom.customProblemDraft);
-    expect(selected.quizSelection).toEqual({ S: null, M: null, P: null });
-    expect(selected.quizStatus).toBe("not-submitted");
   });
 
   it("updates custom fields only in custom source", () => {
@@ -315,12 +205,6 @@ describe("application state", () => {
     expect(reduceAppState(ready, { type: "next" }).phase).toBe(
       "first-premise",
     );
-    const quiz = { ...ready, assignmentMode: "quiz" as const };
-    expect(reduceAppState(quiz, { type: "next" }).phase).toBe("problem");
-    expect(reduceAppState(
-      { ...quiz, quizStatus: "correct" },
-      { type: "next" },
-    ).phase).toBe("first-premise");
   });
 
   it.each([
@@ -353,8 +237,6 @@ describe("application state", () => {
       problemSource: "custom",
       customPremises: premises,
       customProblemStatus: "ready",
-      quizSelection: { S: "human", M: "animal", P: "mortal" },
-      quizStatus: "correct",
     };
     const edited = reduceAppState(ready, {
       type: "update-custom-premise-form",
@@ -363,7 +245,6 @@ describe("application state", () => {
     });
     expect(edited.customPremises).toBeNull();
     expect(edited.customProblemStatus).toBe("editing");
-    expect(edited.quizStatus).toBe("not-submitted");
     const cleared = reduceAppState(ready, { type: "clear-custom-problem" });
     expect(cleared.customProblemDraft).toEqual(initial.customProblemDraft);
     expect(cleared.customPremises).toBeNull();
@@ -396,6 +277,32 @@ describe("application state", () => {
       { ...custom, phase: "conclusion" },
       { type: "reset" },
     ).customProblemStatus).toBe("ready");
+  });
+
+  it("switches screens without changing game or editor state", () => {
+    const state = {
+      ...createInitialAppState(),
+      phase: "conclusion" as const,
+      problemSource: "custom" as const,
+      customTermEditor: {
+        mode: "edit" as const,
+        editingTermId: "custom-term-1" as const,
+        draft: { jaNounPhrase: "入力途中", enSubjectPlural: "",
+          enPredicatePhrase: "" },
+        status: "editing" as const,
+      },
+    };
+    expect(state.screen).toBe("game");
+    const opened = reduceAppState(state, {
+      type: "open-custom-term-management",
+    });
+    expect(opened.screen).toBe("custom-term-management");
+    expect({ ...opened, screen: state.screen }).toEqual(state);
+    const closed = reduceAppState(opened, {
+      type: "close-custom-term-management",
+    });
+    expect(closed).toEqual(state);
+    expect(closed.customTermEditor).toBe(state.customTermEditor);
   });
 
   const philosopher = {
@@ -506,13 +413,6 @@ describe("application state", () => {
         },
       },
       customProblemStatus: "ready" as const,
-      assignmentMode: "quiz" as const,
-      quizSelection: {
-        S: "custom-term-1",
-        M: "human",
-        P: "animal",
-      },
-      quizStatus: "correct" as const,
     };
     const updated = reduceAppState(stateWithReferences, {
       type: "submit-custom-term",
@@ -525,7 +425,6 @@ describe("application state", () => {
     });
     expect(updated.customTerms[0]?.labels.ja?.nounPhrase).toBe("思想家");
     expect(updated.customPremises).toBe(stateWithReferences.customPremises);
-    expect(updated.quizSelection).toEqual(stateWithReferences.quizSelection);
     expect(updated.phase).toBe("conclusion");
     expect(reduceAppState(updated, {
       type: "cancel-edit-custom-term",
@@ -569,9 +468,6 @@ describe("application state", () => {
         secondPremise: { form: "A", subject: "human", predicate: "animal" },
       },
       customProblemStatus: "ready",
-      assignmentMode: "quiz",
-      quizSelection: { S: "custom-term-1", M: "human", P: "animal" },
-      quizStatus: "correct",
     };
     const deleted = reduceAppState(state, {
       type: "delete-custom-term",
@@ -587,8 +483,6 @@ describe("application state", () => {
     expect(deleted.customPremises).toBeNull();
     expect(deleted.customProblemStatus).toBe("editing");
     expect(deleted.phase).toBe("problem");
-    expect(deleted.quizSelection.S).toBeNull();
-    expect(deleted.quizStatus).toBe("not-submitted");
   });
 
   it("does not invalidate a problem for an unrelated deletion", () => {
@@ -727,41 +621,10 @@ describe("application state", () => {
     }).counterPractice.firstPremise.placements).toEqual([]);
   });
 
-  it("initializes and restarts conclusion quiz while preserving settings", () => {
-    const manual = {
-      ...initial,
-      locale: "en" as const,
-      counterPractice: {
-        ...initial.counterPractice,
-        mode: "manual" as const,
-        firstPremise: {
-          placements: [{
-            kind: "emptiness" as const,
-            anchor: { type: "cell" as const, cell: "SMp" as const },
-          }],
-          check: { kind: "correct" as const },
-        },
-      },
-    };
-    const quiz = reduceAppState(manual, {
-      type: "set-conclusion-answer-mode",
-      mode: "quiz",
-    });
-    expect(quiz.phase).toBe("problem");
-    expect(quiz.locale).toBe("en");
-    expect(quiz.counterPractice.mode).toBe("manual");
-    expect(quiz.counterPractice.firstPremise.placements).toEqual([]);
-    expect(quiz.conclusionQuiz).toEqual({
-      mode: "quiz",
-      selectedAnswer: null,
-      check: { kind: "not-checked" },
-    });
-  });
-
-  it("selects and checks a conclusion only in quiz conclusion phase", () => {
+  it("selects and checks a conclusion in quiz mode for either problem source", () => {
     const quiz = {
       ...initial,
-      phase: "conclusion" as const,
+      phase: "combined-premises" as const,
       conclusionQuiz: {
         mode: "quiz" as const,
         selectedAnswer: null,
@@ -788,11 +651,14 @@ describe("application state", () => {
     }).conclusionQuiz.check).toEqual({ kind: "not-checked" });
     expect(reduceAppState({
       ...quiz,
-      phase: "combined-premises",
+      phase: "conclusion",
     }, {
       type: "select-conclusion-answer",
       answer: "A",
-    })).toEqual({ ...quiz, phase: "combined-premises" });
+    })).toEqual({ ...quiz, phase: "conclusion" });
+    expect(reduceAppState({ ...quiz, problemSource: "custom" }, {
+      type: "select-conclusion-answer", answer: "A",
+    }).conclusionQuiz.selectedAnswer).toBe("A");
   });
 
   it("locks manual conclusion counters until the conclusion is correct", () => {
@@ -827,6 +693,19 @@ describe("application state", () => {
         kind: "emptiness",
         anchor: { type: "cell", cell: "SP" },
       }]);
+
+    const customQuiz = { ...locked, problemSource: "custom" as const };
+    expect(reduceAppState(customQuiz, action)).toBe(customQuiz);
+    const automatic = {
+      ...locked,
+      problemSource: "custom" as const,
+      conclusionQuiz: { ...locked.conclusionQuiz, mode: "automatic" as const },
+    };
+    expect(reduceAppState(automatic, action).counterPractice.conclusion.placements)
+      .toEqual([{
+        kind: "emptiness",
+        anchor: { type: "cell", cell: "SP" },
+      }]);
   });
 
   it("preserves conclusion answers for locale and previous, resets for problem changes", () => {
@@ -856,6 +735,85 @@ describe("application state", () => {
     });
   });
 
+  it("changes conclusion mode without changing game state and resets its answer", () => {
+    const answered = {
+      ...initial,
+      phase: "combined-premises" as const,
+      conclusionQuiz: {
+        mode: "quiz" as const,
+        selectedAnswer: "E" as const,
+        check: { kind: "incorrect" as const },
+      },
+    };
+    const changed = reduceAppState(answered, {
+      type: "set-conclusion-answer-mode",
+      mode: "automatic",
+    });
+    expect(changed.conclusionQuiz).toEqual({
+      mode: "automatic",
+      selectedAnswer: null,
+      check: { kind: "not-checked" },
+    });
+    expect({ ...changed, conclusionQuiz: answered.conclusionQuiz })
+      .toEqual(answered);
+    expect(answered.conclusionQuiz.selectedAnswer).toBe("E");
+  });
+
+  it("enters conclusion automatically or only after a correct quiz answer", () => {
+    const combined = { ...initial, phase: "combined-premises" as const };
+    expect(reduceAppState(combined, { type: "next" }).phase).toBe("conclusion");
+    const quiz = reduceAppState(combined, {
+      type: "set-conclusion-answer-mode",
+      mode: "quiz",
+    });
+    expect(reduceAppState(quiz, { type: "next" }).phase)
+      .toBe("combined-premises");
+    const incorrect = {
+      ...quiz,
+      conclusionQuiz: {
+        ...quiz.conclusionQuiz,
+        check: { kind: "incorrect" as const },
+      },
+    };
+    expect(reduceAppState(incorrect, { type: "next" }).phase)
+      .toBe("combined-premises");
+    const correct = {
+      ...quiz,
+      conclusionQuiz: {
+        ...quiz.conclusionQuiz,
+        check: { kind: "correct" as const },
+      },
+    };
+    expect(reduceAppState(correct, { type: "next" }).phase)
+      .toBe("conclusion");
+    const automaticConclusion = { ...initial, phase: "conclusion" as const };
+    expect(reduceAppState(automaticConclusion, {
+      type: "select-conclusion-answer",
+      answer: "A",
+    })).toBe(automaticConclusion);
+    expect(reduceAppState(automaticConclusion, {
+      type: "submit-conclusion-answer",
+      validation: { ok: true },
+    })).toBe(automaticConclusion);
+  });
+
+  it("ignores conclusion answers until manual combined placement is correct", () => {
+    const unfinished = {
+      ...initial,
+      phase: "combined-premises" as const,
+      counterPractice: { ...initial.counterPractice, mode: "manual" as const },
+      conclusionQuiz: {
+        mode: "quiz" as const,
+        selectedAnswer: null,
+        check: { kind: "not-checked" as const },
+      },
+    };
+    expect(reduceAppState(unfinished, {
+      type: "select-conclusion-answer",
+      answer: "A",
+    })).toBe(unfinished);
+  });
+
   it("loads, opens, edits, and deletes saved custom problems", () => {
     const problem = {
       id: "custom-problem-1" as const,
@@ -876,10 +834,19 @@ describe("application state", () => {
     let state = createInitialAppState({ savedCustomProblems: [problem] });
     expect(state.savedCustomProblems).toEqual([problem]);
     state = reduceAppState(state, {
+      type: "set-conclusion-answer-mode",
+      mode: "quiz",
+    });
+    state = reduceAppState(state, {
       type: "open-saved-custom-problem",
       problemId: "custom-problem-1",
     });
     expect(state.problemSource).toBe("custom");
+    expect(state.conclusionQuiz).toEqual({
+      mode: "quiz",
+      selectedAnswer: null,
+      check: { kind: "not-checked" },
+    });
     expect(state.customProblemStatus).toBe("ready");
     expect(state.customProblemDraft.majorPremise).toEqual({
       form: "A",
@@ -1012,9 +979,7 @@ describe("application state", () => {
       locale: "en",
       problemSource: "custom",
       phase: "conclusion",
-      assignmentMode: "quiz",
       counterPractice: { ...ready.counterPractice, mode: "manual" },
-      conclusionQuiz: { ...ready.conclusionQuiz, mode: "quiz" },
     }, { type: "apply-pending-data-import" });
     expect(applied.customTerms).toEqual([philosopher]);
     expect(applied.savedCustomProblems).toEqual(content.savedCustomProblems);
@@ -1022,12 +987,10 @@ describe("application state", () => {
       locale: "en",
       phase: "problem",
       problemSource: "built-in",
-      assignmentMode: "quiz",
       customPremises: null,
       customProblemStatus: "editing",
     });
     expect(applied.counterPractice.mode).toBe("manual");
-    expect(applied.conclusionQuiz.mode).toBe("quiz");
     expect(applied.dataImport.status).toBe("applied");
   });
 

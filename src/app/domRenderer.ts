@@ -12,11 +12,7 @@ import {
   isPropositionForm,
   type PropositionForm,
 } from "../domain/proposition";
-import { isTermRole, type TermId, type TermRole } from "../domain/term";
-import {
-  isAssignmentMode,
-  type AssignmentMode,
-} from "./termAssignmentQuiz";
+import type { TermId } from "../domain/term";
 import {
   isCustomPremisePosition,
   isCustomTermField,
@@ -47,19 +43,16 @@ import {
   type CustomProblemId,
 } from "../domain/savedCustomProblem";
 import { parseSafeSvgElement } from "./svgDom";
+import { bindCompositionAwareTextInput } from "./compositionAwareTextInput";
 
 export interface GameEventHandlers {
+  readonly onCustomTermManagementOpen: () => void;
+  readonly onCustomTermManagementClose: () => void;
   readonly onPrevious: () => void;
   readonly onNext: () => void;
   readonly onReset: () => void;
   readonly onProblemChange: (problemId: BuiltInProblemId) => void;
   readonly onLocaleChange: (locale: Locale) => void;
-  readonly onAssignmentModeChange: (mode: AssignmentMode) => void;
-  readonly onQuizTermChange: (
-    role: TermRole,
-    termId: TermId | null,
-  ) => void;
-  readonly onQuizAssignmentSubmit: () => void;
   readonly onProblemSourceChange: (source: ProblemSource) => void;
   readonly onCustomPremiseFormChange: (
     position: CustomPremisePosition,
@@ -82,12 +75,12 @@ export interface GameEventHandlers {
   readonly onCustomTermDelete: (termId: CustomTermId) => void;
   readonly onCounterPlacementModeChange:
     (mode: CounterPlacementMode) => void;
+  readonly onConclusionAnswerModeChange:
+    (mode: ConclusionAnswerMode) => void;
   readonly onCounterToolChange: (tool: CounterTool) => void;
   readonly onCounterTargetActivate: (targetKey: string) => void;
   readonly onCounterAttemptCheck: () => void;
   readonly onCounterAttemptClear: () => void;
-  readonly onConclusionAnswerModeChange:
-    (mode: ConclusionAnswerMode) => void;
   readonly onConclusionAnswerChange:
     (answer: ConclusionAnswerChoice | null) => void;
   readonly onConclusionAnswerSubmit: () => void;
@@ -263,7 +256,6 @@ function createSelector(
   action:
     | "locale"
     | "problem"
-    | "assignment-mode"
     | "problem-source"
     | "counter-placement-mode"
     | "conclusion-answer-mode",
@@ -276,6 +268,7 @@ function createSelector(
   const select = element("select");
   select.dataset.action = action;
   select.setAttribute("aria-label", model.label);
+  select.disabled = model.disabled ?? false;
 
   model.options.forEach(({ value, label: optionLabel }) => {
     const option = element("option");
@@ -286,6 +279,13 @@ function createSelector(
   select.value = model.selectedValue;
   select.addEventListener("change", () => onChange(select.value));
   label.append(labelText, select);
+  if (model.description !== undefined) {
+    const description = element("span", "logic-game__selector-description");
+    description.id = `${action}-description`;
+    description.textContent = model.description;
+    select.setAttribute("aria-describedby", description.id);
+    label.append(description);
+  }
   return label;
 }
 
@@ -313,16 +313,6 @@ function createSettings(
           throw new Error(`Unknown problem source selected: "${value}".`);
         }
         handlers.onProblemSourceChange(value);
-      },
-    ),
-    createSelector(
-      "assignment-mode",
-      model.assignmentModeSelector,
-      (value) => {
-        if (!isAssignmentMode(value)) {
-          throw new Error(`Unknown assignment mode selected: "${value}".`);
-        }
-        handlers.onAssignmentModeChange(value);
       },
     ),
     createSelector(
@@ -354,7 +344,7 @@ function createSettings(
         }
         handlers.onProblemChange(value);
       }),
-      section.querySelector('[data-action="assignment-mode"]')
+      section.querySelector('[data-action="counter-placement-mode"]')
         ?.parentElement ?? null,
     );
   }
@@ -368,12 +358,17 @@ function createConclusionQuizSection(
   const quiz = model.conclusionQuiz;
   if (quiz === null) return null;
   const section = element("section", "logic-game__conclusion-quiz");
+  section.dataset.conclusionExperience = "quiz";
+  section.dataset.conclusionQuizLocation = "combined-premises";
   section.append(heading("h2", quiz.heading));
+  const fieldset = element("fieldset");
+  const legend = element("legend");
+  legend.textContent = quiz.selectorLabel;
   const instruction = element("p");
   instruction.textContent = quiz.instruction;
   const label = element("label");
   const labelText = element("span");
-  labelText.textContent = quiz.selectorLabel;
+  labelText.textContent = quiz.selectPlaceholder;
   const select = element("select");
   select.dataset.action = "conclusion-answer";
   const placeholder = element("option");
@@ -404,7 +399,8 @@ function createConclusionQuizSection(
   check.dataset.action = "check-conclusion-answer";
   check.textContent = quiz.checkButtonLabel;
   check.addEventListener("click", handlers.onConclusionAnswerSubmit);
-  section.append(instruction, label, check);
+  fieldset.append(legend, instruction, label, check);
+  section.append(fieldset);
   if (quiz.feedback !== null) {
     const feedback = element(
       "p",
@@ -414,7 +410,7 @@ function createConclusionQuizSection(
     feedback.setAttribute("aria-live", "polite");
     feedback.id = "conclusion-quiz-feedback";
     feedback.textContent = quiz.feedback.message;
-    section.append(feedback);
+    fieldset.append(feedback);
   }
   return section;
 }
@@ -449,8 +445,9 @@ function createSavedCustomProblemManagerSection(
       "saved-custom-problem-feedback",
     );
   }
-  input.addEventListener("input", () =>
-    handlers.onSavedCustomProblemTitleChange(input.value)
+  bindCompositionAwareTextInput(
+    input,
+    handlers.onSavedCustomProblemTitleChange,
   );
   label.append(labelText, input);
   const submit = element("button");
@@ -705,6 +702,7 @@ function customTermButton(
   action: "edit-custom-term" | "delete-custom-term",
   termId: CustomTermId,
   label: string,
+  termName: string,
   handler: (termId: CustomTermId) => void,
 ): HTMLButtonElement {
   const button = element("button");
@@ -712,6 +710,7 @@ function customTermButton(
   button.dataset.action = action;
   button.dataset.termId = termId;
   button.textContent = label;
+  button.setAttribute("aria-label", `${label}: ${termName}`);
   button.addEventListener("click", () => {
     const value = button.dataset.termId;
     if (value === undefined || !isCustomTermId(value)) {
@@ -729,7 +728,9 @@ function createCustomTermManagerSection(
   const manager = model.customTermManager;
   if (manager === null) return null;
   const section = element("section", "logic-game__custom-terms");
-  section.append(heading("h2", manager.heading));
+  const formHeading = element("h3");
+  formHeading.textContent = manager.newTermHeading;
+  section.append(formHeading);
   const description = element("p");
   description.textContent = manager.description;
   const form = element("div", "logic-game__custom-term-form");
@@ -781,18 +782,7 @@ function createCustomTermManagerSection(
       }
       handlers.onCustomTermDraftChange(value, input.value);
     };
-    let composing = false;
-    input.addEventListener("compositionstart", () => {
-      composing = true;
-    });
-    input.addEventListener("input", () => {
-      if (!composing) updateDraft();
-    });
-    input.addEventListener("compositionend", () => {
-      if (!composing) return;
-      composing = false;
-      updateDraft();
-    });
+    bindCompositionAwareTextInput(input, updateDraft);
     label.append(span, input);
     fieldset.append(label);
     });
@@ -815,6 +805,9 @@ function createCustomTermManagerSection(
   }
   section.append(description, form);
 
+  const listHeading = element("h3");
+  listHeading.textContent = manager.registeredHeading;
+  section.append(listHeading);
   if (manager.emptyListMessage !== null) {
     const empty = element("p", "logic-game__custom-term-empty");
     empty.textContent = manager.emptyListMessage;
@@ -852,12 +845,14 @@ function createCustomTermManagerSection(
           "edit-custom-term",
           item.id,
           item.editLabel,
+          item.displayName,
           handlers.onCustomTermEdit,
         ),
         customTermButton(
           "delete-custom-term",
           item.id,
           item.deleteLabel,
+          item.displayName,
           handlers.onCustomTermDelete,
         ),
       );
@@ -902,89 +897,14 @@ function appendResolvedAssignment(
 
 function createAssignmentSection(
   model: GameViewModel,
-  handlers: GameEventHandlers,
 ): HTMLElement {
   const section = element("section", "logic-game__assignment");
   section.append(heading("h2", model.assignmentHeading));
+  const description = element("p");
+  description.textContent = model.assignmentDescription;
+  section.append(description);
   if (model.assignmentPanel.kind === "resolved") {
     appendResolvedAssignment(section, model.assignmentPanel.items);
-    return section;
-  }
-  if (model.assignmentPanel.kind === "unavailable") {
-    return section;
-  }
-  const panel = model.assignmentPanel;
-
-  const instruction = element("p");
-  instruction.textContent = panel.instruction;
-  const quiz = element("fieldset", "logic-game__assignment-quiz");
-  const quizLegend = element("legend");
-  quizLegend.textContent = model.assignmentHeading;
-  quiz.append(quizLegend);
-  panel.roleSelectors.forEach((selectorModel) => {
-    const label = element("label");
-    const roleLabel = element("span", "logic-game__assignment-role");
-    roleLabel.textContent = selectorModel.label;
-    const select = element("select");
-    select.dataset.action = "quiz-term";
-    select.dataset.role = selectorModel.role;
-    const placeholder = element("option");
-    placeholder.value = "";
-    placeholder.textContent = selectorModel.placeholder;
-    select.append(placeholder);
-    selectorModel.options.forEach(({ value, label: optionLabel }) => {
-      const option = element("option");
-      option.value = value;
-      option.textContent = optionLabel;
-      select.append(option);
-    });
-    select.value = selectorModel.selectedTermId ?? "";
-    if (
-      panel.feedback !== null &&
-      panel.feedback.kind !== "correct"
-    ) {
-      select.setAttribute("aria-invalid", "true");
-      select.setAttribute("aria-describedby", "assignment-feedback");
-    }
-    select.addEventListener("change", () => {
-      const roleValue = select.dataset.role;
-      if (roleValue === undefined || !isTermRole(roleValue)) {
-        throw new Error(`Unknown term role selected: "${roleValue ?? ""}".`);
-      }
-      const termId = select.value;
-      if (
-        termId !== "" &&
-        !selectorModel.options.some(({ value }) => value === termId)
-      ) {
-        throw new Error(`Unknown quiz term selected: "${termId}".`);
-      }
-      handlers.onQuizTermChange(roleValue, termId === "" ? null : termId);
-    });
-    label.append(roleLabel, select);
-    quiz.append(label);
-  });
-  const checkButton = element("button");
-  checkButton.type = "button";
-  checkButton.dataset.action = "check-assignment";
-  checkButton.textContent = model.assignmentPanel.checkButtonLabel;
-  checkButton.disabled = model.assignmentPanel.checkButtonDisabled;
-  checkButton.addEventListener("click", handlers.onQuizAssignmentSubmit);
-  quiz.append(checkButton);
-  section.append(instruction, quiz);
-
-  if (model.assignmentPanel.feedback !== null) {
-    const feedback = element(
-      "p",
-      `logic-game__assignment-feedback logic-game__assignment-feedback--${model.assignmentPanel.feedback.kind}`,
-    );
-    feedback.setAttribute("role", "status");
-    feedback.setAttribute("aria-live", "polite");
-    feedback.id = "assignment-feedback";
-    feedback.textContent = model.assignmentPanel.feedback.message;
-    section.append(feedback);
-  }
-  if (model.assignmentPanel.resolvedItems !== null) {
-    appendResolvedAssignment(section, model.assignmentPanel.resolvedItems);
   }
   return section;
 }
@@ -992,9 +912,7 @@ function createAssignmentSection(
 function createAbstractionSection(model: GameViewModel): HTMLElement | null {
   const premises = model.assignmentPanel.kind === "resolved"
     ? model.assignmentPanel.abstractPremises
-    : model.assignmentPanel.kind === "quiz"
-      ? model.assignmentPanel.abstractPremises
-      : null;
+    : null;
   if (premises === null) {
     return null;
   }
@@ -1126,12 +1044,25 @@ function createConclusionSection(
   ) return null;
 
   const section = element("section", "logic-game__conclusion");
-  section.append(heading("h2", model.conclusionHeading));
+  if (model.derivedConclusion !== null) {
+    section.dataset.conclusionExperience = "derived-result";
+  }
+  section.append(heading(
+    "h2",
+    model.derivedConclusion?.heading ?? model.conclusionHeading,
+  ));
 
   if (model.noConclusionMessage !== null) {
     const message = element("p", "logic-game__no-conclusion");
     message.textContent = model.noConclusionMessage;
     section.append(message);
+    if (model.derivedConclusion !== null) {
+      const explanation = element("p");
+      explanation.textContent = model.derivedConclusion.explanation;
+      const disclaimer = element("p");
+      disclaimer.textContent = model.derivedConclusion.factualDisclaimer;
+      section.append(explanation, disclaimer);
+    }
     return section;
   }
 
@@ -1157,6 +1088,13 @@ function createConclusionSection(
     document.createTextNode(model.abstractConclusion),
   );
   section.append(concrete, abstract);
+  if (model.derivedConclusion !== null) {
+    const explanation = element("p");
+    explanation.textContent = model.derivedConclusion.explanation;
+    const disclaimer = element("p");
+    disclaimer.textContent = model.derivedConclusion.factualDisclaimer;
+    section.append(explanation, disclaimer);
+  }
   return section;
 }
 
@@ -1206,6 +1144,58 @@ function createControls(
   return nav;
 }
 
+function createCustomTermSummary(
+  model: GameViewModel,
+  handlers: GameEventHandlers,
+): HTMLElement {
+  const section = element("section", "logic-game__custom-term-summary");
+  section.append(heading("h2", model.customTermSummary.heading));
+  const count = element("p");
+  count.textContent = model.customTermSummary.countText;
+  const description = element("p");
+  description.textContent = model.customTermSummary.description;
+  const manage = element("button");
+  manage.type = "button";
+  manage.dataset.action = "open-custom-term-management";
+  manage.textContent = model.customTermSummary.manageLabel;
+  manage.addEventListener("click", handlers.onCustomTermManagementOpen);
+  section.append(count, description, manage);
+  if (model.customTermSummary.loadWarning !== null) {
+    const warning = element("p", "logic-game__custom-term-warning");
+    warning.setAttribute("role", "status");
+    warning.textContent = model.customTermSummary.loadWarning;
+    section.append(warning);
+  }
+  return section;
+}
+
+function createCustomTermManagementScreen(
+  model: GameViewModel,
+  handlers: GameEventHandlers,
+): HTMLElement {
+  const main = element("main", "logic-game__main logic-game__term-management");
+  main.id = "main-content";
+  main.dataset.screen = "custom-term-management";
+  const title = heading("h2", model.customTermManagement.heading);
+  title.tabIndex = -1;
+  title.dataset.screenHeading = "custom-term-management";
+  const count = element("p", "logic-game__term-management-count");
+  count.textContent = model.customTermManagement.countText;
+  const back = element("button", "logic-game__term-management-back");
+  back.type = "button";
+  back.dataset.action = "close-custom-term-management";
+  back.textContent = model.customTermManagement.backLabel;
+  back.addEventListener("click", handlers.onCustomTermManagementClose);
+  const locale = createSelector("locale", model.languageSelector, (value) => {
+    if (!isLocale(value)) throw new Error(`Unknown locale selected: "${value}".`);
+    handlers.onLocaleChange(value);
+  });
+  main.append(title, count, back, locale);
+  const manager = createCustomTermManagerSection(model, handlers);
+  if (manager !== null) main.append(manager);
+  return main;
+}
+
 export function renderGameView(
   container: HTMLElement,
   model: GameViewModel,
@@ -1216,6 +1206,7 @@ export function renderGameView(
 
   const article = element("article", "logic-game");
   article.dataset.phase = model.phase;
+  article.dataset.activeScreen = model.activeScreen;
 
   const skipLink = element("a", "skip-link");
   skipLink.href = "#main-content";
@@ -1234,12 +1225,24 @@ export function renderGameView(
   tutorialLink.textContent = model.tutorialLink.label;
   header.append(tutorialLink);
 
+  if (model.activeScreen === "custom-term-management") {
+    article.append(
+      skipLink,
+      header,
+      createCustomTermManagementScreen(model, handlers),
+    );
+    assignFocusKeys(article);
+    container.replaceChildren(article);
+    return;
+  }
+
   const progress = createProgress(model);
   progress.setAttribute(
     "aria-label",
     model.accessibility.progressNavigationLabel,
   );
   const main = element("main", "logic-game__main");
+  main.dataset.screen = "game";
   main.id = "main-content";
   main.tabIndex = -1;
   main.setAttribute("aria-label", model.accessibility.mainRegionLabel);
@@ -1248,11 +1251,15 @@ export function renderGameView(
   phaseHeading.dataset.phaseHeading = model.phase;
   main.append(phaseHeading);
 
-  article.append(skipLink, header, createSettings(model, handlers), progress);
+  article.append(
+    skipLink,
+    header,
+    createSettings(model, handlers),
+    createCustomTermSummary(model, handlers),
+    progress,
+  );
   const customProblem = createCustomProblemSection(model, handlers);
   if (customProblem !== null) main.append(customProblem);
-  const customTerms = createCustomTermManagerSection(model, handlers);
-  if (customTerms !== null) main.append(customTerms);
   const savedCustomProblems = createSavedCustomProblemManagerSection(
     model,
     handlers,
@@ -1260,14 +1267,15 @@ export function renderGameView(
   if (savedCustomProblems !== null) main.append(savedCustomProblems);
   const problem = createProblemSection(model);
   if (problem !== null) main.append(problem);
-  main.append(createAssignmentSection(model, handlers));
+  main.append(createAssignmentSection(model));
   const abstraction = createAbstractionSection(model);
   if (abstraction !== null) {
     main.append(abstraction);
   }
+  main.append(createDiagramSection(model, handlers));
+
   const conclusionQuiz = createConclusionQuizSection(model, handlers);
   if (conclusionQuiz !== null) main.append(conclusionQuiz);
-  main.append(createDiagramSection(model, handlers));
 
   const conclusion = createConclusionSection(model);
   if (conclusion !== null) {
