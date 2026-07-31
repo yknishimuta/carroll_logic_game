@@ -46,7 +46,6 @@ function select(
   action:
     | "locale"
     | "problem"
-    | "assignment-mode"
     | "problem-source"
     | "counter-placement-mode"
     | "conclusion-answer-mode",
@@ -68,6 +67,13 @@ function answerConclusion(
   )!;
   control.value = answer;
   control.dispatchEvent(new Event("change"));
+}
+
+function submitConclusion(container: HTMLElement, answer: "A" | "E" | "I" | "O" | "none"): void {
+  answerConclusion(container, answer);
+  container.querySelector<HTMLButtonElement>(
+    '[data-action="check-conclusion-answer"]',
+  )!.click();
 }
 
 function chooseCounterTool(
@@ -130,13 +136,27 @@ function inputCustomTerm(
   input.dispatchEvent(new Event("input"));
 }
 
+function openTermManagement(container: HTMLElement): void {
+  container.querySelector<HTMLButtonElement>(
+    '[data-action="open-custom-term-management"]',
+  )!.click();
+}
+
+function closeTermManagement(container: HTMLElement): void {
+  container.querySelector<HTMLButtonElement>(
+    '[data-action="close-custom-term-management"]',
+  )!.click();
+}
+
 function addPhilosopher(container: HTMLElement): void {
+  openTermManagement(container);
   inputCustomTerm(container, "jaNounPhrase", "哲学者");
   inputCustomTerm(container, "enSubjectPlural", "philosophers");
   inputCustomTerm(container, "enPredicatePhrase", "philosophers");
   container.querySelector<HTMLButtonElement>(
     '[data-action="submit-custom-term"]',
   )!.click();
+  closeTermManagement(container);
 }
 
 function saveCurrentProblem(
@@ -150,24 +170,6 @@ function saveCurrentProblem(
   input.dispatchEvent(new Event("input"));
   container.querySelector<HTMLButtonElement>(
     '[data-action="save-custom-problem"]',
-  )!.click();
-}
-
-function selectQuizTerm(
-  container: HTMLElement,
-  role: "S" | "M" | "P",
-  value: string,
-): void {
-  const control = container.querySelector<HTMLSelectElement>(
-    `[data-action="quiz-term"][data-role="${role}"]`,
-  )!;
-  control.value = value;
-  control.dispatchEvent(new Event("change"));
-}
-
-function submitQuiz(container: HTMLElement): void {
-  container.querySelector<HTMLButtonElement>(
-    '[data-action="check-assignment"]',
   )!.click();
 }
 
@@ -249,7 +251,7 @@ beforeEach(() => {
     await Promise.resolve();
     await Promise.resolve();
     expect(container.textContent).toContain("import.json");
-    expect(container.textContent).toContain("ユーザー名詞1");
+    expect(container.textContent).toContain("ユーザー登録名詞1");
     expect(container.querySelector('[data-custom-term-id]')).toBeNull();
     container.querySelector<HTMLButtonElement>(
       '[data-action="apply-data-import"]',
@@ -297,6 +299,26 @@ beforeEach(() => {
   });
 
 describe("mounted application interaction", () => {
+  it("round trips through management with stable focus and game state", () => {
+    const container = mount();
+    button(container, "next").click();
+    expect(phase(container)).toBe("first-premise");
+    const manage = container.querySelector<HTMLButtonElement>(
+      '[data-action="open-custom-term-management"]',
+    )!;
+    manage.click();
+    expect(container.querySelector('[data-screen="custom-term-management"]'))
+      .not.toBeNull();
+    expect(document.activeElement).toBe(container.querySelector(
+      '[data-screen-heading="custom-term-management"]',
+    ));
+    expect(container.querySelector('[data-action="next"]')).toBeNull();
+    closeTermManagement(container);
+    expect(phase(container)).toBe("first-premise");
+    expect(document.activeElement).toBe(container.querySelector(
+      '[data-action="open-custom-term-management"]',
+    ));
+  });
   it("preserves phase and counters while switching language", () => {
     const container = mount();
     button(container, "next").click();
@@ -416,127 +438,16 @@ describe("mounted application interaction", () => {
     }
   });
 
-  it("blocks quiz progress and reports incomplete, duplicate, and incorrect", () => {
+  it("shows read-only term roles and advances without an assignment quiz", () => {
     const container = mount();
-    select(container, "assignment-mode", "quiz");
-    expect(phase(container)).toBe("problem");
-    expect(container.querySelectorAll('[data-action="quiz-term"]'))
-      .toHaveLength(3);
-    expect(button(container, "next").disabled).toBe(true);
-    expect(container.querySelector(".logic-game__assignment dl")).toBeNull();
-    expect(container.querySelector(".logic-game__abstraction")).toBeNull();
-
-    submitQuiz(container);
-    expect(container.textContent).toContain("S・M・Pをすべて選択してください。");
-    selectQuizTerm(container, "S", "animal");
-    selectQuizTerm(container, "M", "animal");
-    selectQuizTerm(container, "P", "mortal");
-    submitQuiz(container);
-    expect(container.textContent).toContain(
-      "同じ名詞を複数の役割に割り当てることはできません。",
-    );
-    selectQuizTerm(container, "M", "human");
-    submitQuiz(container);
-    expect(container.textContent).toContain("割当てが正しくありません。");
-    expect(button(container, "next").disabled).toBe(true);
-  });
-
-  it("accepts Barbara, reveals the abstraction, and completes the game", () => {
-    const container = mount();
-    select(container, "assignment-mode", "quiz");
-    selectQuizTerm(container, "S", "human");
-    selectQuizTerm(container, "M", "animal");
-    selectQuizTerm(container, "P", "mortal");
-    submitQuiz(container);
-    expect(container.textContent).toContain("正しい割当てです。");
-    expect(container.querySelectorAll(".logic-game__assignment dt"))
-      .toHaveLength(3);
-    expect(container.querySelectorAll(".logic-game__abstraction li"))
-      .toHaveLength(2);
+    expect(container.querySelector('[data-action="assignment-mode"]')).toBeNull();
+    expect(container.querySelector('[data-action="quiz-term"]')).toBeNull();
+    expect(container.querySelector('[data-action="check-assignment"]')).toBeNull();
+    expect(container.querySelectorAll(".logic-game__assignment dt")).toHaveLength(3);
+    expect(container.textContent).toContain("図で使用する項");
     expect(button(container, "next").disabled).toBe(false);
-    advanceToConclusion(container);
-    expect(phase(container)).toBe("conclusion");
-    expect(container.textContent).toContain("すべての人間は死すべきものである。");
-  });
-
-  it("hides a previously correct answer after changing a selection", () => {
-    const container = mount();
-    select(container, "assignment-mode", "quiz");
-    selectQuizTerm(container, "S", "human");
-    selectQuizTerm(container, "M", "animal");
-    selectQuizTerm(container, "P", "mortal");
-    submitQuiz(container);
-    selectQuizTerm(container, "P", "human");
-    expect(container.textContent).not.toContain("正しい割当てです。");
-    expect(container.querySelector(".logic-game__assignment dl")).toBeNull();
-    expect(container.querySelector(".logic-game__abstraction")).toBeNull();
-    expect(button(container, "next").disabled).toBe(true);
-  });
-
-  it("preserves quiz answers across locale and clears them across problem", () => {
-    const container = mount();
-    select(container, "assignment-mode", "quiz");
-    selectQuizTerm(container, "S", "human");
-    selectQuizTerm(container, "M", "animal");
-    select(container, "locale", "en");
-    expect(
-      container.querySelector<HTMLSelectElement>(
-        '[data-action="quiz-term"][data-role="S"]',
-      )?.value,
-    ).toBe("human");
-    expect(container.textContent).toContain("Assign each term to S, M, or P.");
-    select(container, "problem", "darii-aii1");
-    expect(phase(container)).toBe("problem");
-    expect(
-      container.querySelector<HTMLSelectElement>(
-        '[data-action="assignment-mode"]',
-      )?.value,
-    ).toBe("quiz");
-    expect([...container.querySelectorAll<HTMLSelectElement>(
-      '[data-action="quiz-term"]',
-    )].every(({ value }) => value === "")).toBe(true);
-    expect(container.textContent).toContain("poets");
-  });
-
-  it.each([
-    ["darii-aii1", "student", "poet", "writer", "Some students are writers."],
-    ["cesare-eae2", "sparrow", "bird", "mammal", "No sparrows are mammals."],
-  ] as const)(
-    "solves %s in quiz mode",
-    (problemId, S, M, P, conclusion) => {
-      const container = mount();
-      select(container, "locale", "en");
-      select(container, "assignment-mode", "quiz");
-      select(container, "problem", problemId);
-      selectQuizTerm(container, "S", S);
-      selectQuizTerm(container, "M", M);
-      selectQuizTerm(container, "P", P);
-      submitQuiz(container);
-      advanceToConclusion(container);
-      expect(container.textContent).toContain(conclusion);
-    },
-  );
-
-  it("reset preserves quiz mode and selection context but clears the answer", () => {
-    const container = mount();
-    select(container, "locale", "en");
-    select(container, "assignment-mode", "quiz");
-    select(container, "problem", "darii-aii1");
-    selectQuizTerm(container, "S", "student");
-    button(container, "reset").click();
-    expect(document.documentElement.lang).toBe("en");
-    expect(
-      container.querySelector<HTMLSelectElement>('[data-action="problem"]')
-        ?.value,
-    ).toBe("darii-aii1");
-    expect(
-      container.querySelector<HTMLSelectElement>(
-        '[data-action="assignment-mode"]',
-      )?.value,
-    ).toBe("quiz");
-    expect([...container.querySelectorAll<HTMLSelectElement>(
-      '[data-action="quiz-term"]',
-    )].every(({ value }) => value === "")).toBe(true);
+    button(container, "next").click();
+    expect(phase(container)).toBe("first-premise");
   });
 
   it("creates and completes a custom Barbara problem", () => {
@@ -580,6 +491,26 @@ describe("mounted application interaction", () => {
     expect(container.querySelectorAll("[data-counter-kind]")).toHaveLength(0);
   });
 
+  it("derives by form without judging factually false premises", () => {
+    const container = mount();
+    select(container, "problem-source", "custom");
+    selectCustom(container, "custom-form", "major", "A");
+    selectCustom(container, "custom-term", "major", "cat", "subjectTermId");
+    selectCustom(container, "custom-term", "major", "animal", "predicateTermId");
+    selectCustom(container, "custom-form", "minor", "A");
+    selectCustom(container, "custom-term", "minor", "human", "subjectTermId");
+    selectCustom(container, "custom-term", "minor", "cat", "predicateTermId");
+    createCustom(container);
+    advanceToConclusion(container);
+
+    expect(container.textContent).toContain("すべての人間は動物である。");
+    expect(container.textContent).toContain(
+      "このアプリは、前提が現実に正しいかどうかは判定しません。",
+    );
+    expect(container.querySelector('[data-action="conclusion-answer"]')).toBeNull();
+    expect(container.textContent).not.toContain("前提が事実として誤っている");
+  });
+
   it("invalidates editing, clears input, and restores draft across sources", () => {
     const container = mount();
     select(container, "problem-source", "custom");
@@ -605,7 +536,7 @@ describe("mounted application interaction", () => {
       .every(({ value }) => value === "")).toBe(true);
   });
 
-  it("preserves custom values across locale and supports quiz", () => {
+  it("preserves custom values across locale and shows a derived result", () => {
     const container = mount();
     select(container, "problem-source", "custom");
     fillCustomBarbara(container);
@@ -616,17 +547,99 @@ describe("mounted application interaction", () => {
     )?.value).toBe("animal");
     expect(container.textContent).toContain("Create a Custom Problem");
     createCustom(container);
-    select(container, "assignment-mode", "quiz");
-    selectQuizTerm(container, "S", "human");
-    selectQuizTerm(container, "M", "animal");
-    selectQuizTerm(container, "P", "mortal");
-    submitQuiz(container);
-    expect(container.textContent).toContain("The assignment is correct.");
     advanceToConclusion(container);
+    expect(container.querySelector('[data-action="conclusion-answer"]')).toBeNull();
+    expect(container.querySelector('[data-conclusion-experience="derived-result"]'))
+      .not.toBeNull();
     expect(container.textContent).toContain("All humans are mortal.");
     button(container, "reset").click();
     expect(phase(container)).toBe("problem");
     expect(container.textContent).toContain("The custom problem has been created.");
+  });
+
+  it("applies quiz mode to a custom problem and switches modes before conclusion", () => {
+    const container = mount();
+    select(container, "problem-source", "custom");
+    fillCustomBarbara(container);
+    createCustom(container);
+    select(container, "conclusion-answer-mode", "quiz");
+    advanceToConclusion(container);
+
+    expect(phase(container)).toBe("combined-premises");
+    expect(container.querySelector('[data-action="conclusion-answer"]')).not.toBeNull();
+    expect(container.querySelector(".logic-game__conclusion")).toBeNull();
+    answerConclusion(container, "E");
+    container.querySelector<HTMLButtonElement>(
+      '[data-action="check-conclusion-answer"]',
+    )!.click();
+    expect(container.textContent).toContain("もう一度考えてください。");
+
+    const modeSelector = container.querySelector<HTMLSelectElement>(
+      '[data-action="conclusion-answer-mode"]',
+    )!;
+    modeSelector.focus();
+    select(container, "conclusion-answer-mode", "automatic");
+    expect(document.activeElement?.getAttribute("data-action"))
+      .toBe("conclusion-answer-mode");
+    expect(container.querySelector('[data-action="conclusion-answer"]')).toBeNull();
+    expect(button(container, "next").disabled).toBe(false);
+
+    select(container, "conclusion-answer-mode", "quiz");
+    expect(container.querySelector('[data-action="conclusion-answer"]')).not.toBeNull();
+    expect(container.textContent).not.toContain("もう一度考えてください。");
+    expect(container.querySelector(".logic-game__conclusion")).toBeNull();
+    submitConclusion(container, "A");
+    expect(container.textContent).toContain("正解です。");
+    expect(phase(container)).toBe("combined-premises");
+    expect(container.querySelector(".logic-game__conclusion")).toBeNull();
+    expect(button(container, "next").disabled).toBe(false);
+    button(container, "next").click();
+    expect(phase(container)).toBe("conclusion");
+    expect(container.textContent).toContain("すべての人間は死すべきものである。");
+  });
+
+  it("enters a custom quiz conclusion after completing manual premise placements", () => {
+    const container = mount();
+    select(container, "problem-source", "custom");
+    fillCustomBarbara(container);
+    createCustom(container);
+    select(container, "counter-placement-mode", "manual");
+    button(container, "next").click();
+    activateCounterTarget(container, "triliteral:cell:SMp");
+    activateCounterTarget(container, "triliteral:cell:sMp");
+    chooseCounterTool(container, "existence");
+    activateCounterTarget(container, "triliteral:boundary:S:SMP:sMP");
+    container.querySelector<HTMLButtonElement>(
+      '[data-action="check-counter-attempt"]',
+    )!.click();
+    button(container, "next").click();
+    chooseCounterTool(container, "emptiness");
+    for (const cell of ["SMp", "sMp", "SmP", "Smp"]) {
+      activateCounterTarget(container, `triliteral:cell:${cell}`);
+    }
+    chooseCounterTool(container, "existence");
+    activateCounterTarget(container, "triliteral:boundary:S:SMP:sMP");
+    activateCounterTarget(container, "triliteral:cell:SMP");
+    container.querySelector<HTMLButtonElement>(
+      '[data-action="check-counter-attempt"]',
+    )!.click();
+
+    expect(container.querySelector('[data-action="conclusion-answer"]')).toBeNull();
+    expect(button(container, "next").disabled).toBe(false);
+    select(container, "conclusion-answer-mode", "quiz");
+    expect(button(container, "next").disabled).toBe(true);
+    expect(phase(container)).toBe("combined-premises");
+    expect(container.querySelectorAll('[data-action="counter-target"]'))
+      .toHaveLength(20);
+    submitConclusion(container, "E");
+    expect(button(container, "next").disabled).toBe(true);
+    submitConclusion(container, "A");
+    expect(phase(container)).toBe("combined-premises");
+    expect(button(container, "next").disabled).toBe(false);
+    expect(container.querySelector(".logic-game__conclusion")).toBeNull();
+    button(container, "next").click();
+    expect(container.querySelectorAll('[data-action="counter-target"]'))
+      .toHaveLength(8);
   });
 
   it("adds consecutive custom terms, saves them, and restores on remount", () => {
@@ -634,10 +647,8 @@ describe("mounted application interaction", () => {
     const container = mount(storage);
     select(container, "problem-source", "custom");
     addPhilosopher(container);
-    expect(container.textContent).toContain("ユーザー名詞を追加しました。");
-    expect(container.querySelector(
-      '[data-custom-term-id="custom-term-1"]',
-    )?.textContent).toContain("哲学者");
+    expect(container.textContent).toContain("登録数：1件");
+    expect(container.querySelector('[data-custom-term-id]')).toBeNull();
     expect(container.querySelector(
       '[data-action="custom-term"] option[value="custom-term-1"]',
     )?.textContent).toBe("哲学者");
@@ -647,6 +658,7 @@ describe("mounted application interaction", () => {
         terms: [{ id: "custom-term-1" }],
       });
 
+    openTermManagement(container);
     inputCustomTerm(container, "jaNounPhrase", "思想家");
     inputCustomTerm(container, "enSubjectPlural", "thinkers");
     inputCustomTerm(container, "enPredicatePhrase", "thinkers");
@@ -659,6 +671,7 @@ describe("mounted application interaction", () => {
 
     const restored = mount(storage);
     select(restored, "problem-source", "custom");
+    openTermManagement(restored);
     expect(restored.querySelectorAll(".logic-game__custom-term-list li"))
       .toHaveLength(2);
   });
@@ -666,6 +679,7 @@ describe("mounted application interaction", () => {
   it("shows one locale-specific custom-term error and focuses its field", () => {
     const container = mount();
     select(container, "problem-source", "custom");
+    openTermManagement(container);
     const submit = () => container.querySelector<HTMLButtonElement>(
       '[data-action="submit-custom-term"]',
     )!.click();
@@ -712,9 +726,13 @@ describe("mounted application interaction", () => {
     const container = mount(storage);
     select(container, "problem-source", "custom");
     addPhilosopher(container);
+    openTermManagement(container);
     container.querySelector<HTMLButtonElement>(
       '[data-action="edit-custom-term"][data-term-id="custom-term-1"]',
     )!.click();
+    expect(document.activeElement).toBe(container.querySelector(
+      '[data-action="custom-term-input"][data-field="jaNounPhrase"]',
+    ));
     inputCustomTerm(container, "jaNounPhrase", "思想家");
     container.querySelector<HTMLButtonElement>(
       '[data-action="cancel-custom-term-edit"]',
@@ -734,10 +752,12 @@ describe("mounted application interaction", () => {
       '[data-custom-term-id="custom-term-1"]',
     )?.textContent).toContain("思想家");
     select(container, "locale", "en");
+    closeTermManagement(container);
     expect(container.querySelector(
       '[data-action="custom-term"] option[value="custom-term-1"]',
     )?.textContent).toBe("philosophers");
 
+    openTermManagement(container);
     container.querySelector<HTMLButtonElement>(
       '[data-action="delete-custom-term"][data-term-id="custom-term-1"]',
     )!.click();
@@ -748,7 +768,7 @@ describe("mounted application interaction", () => {
       .not.toContain("custom-term-1");
   });
 
-  it("uses a custom term in a problem and quiz, then safely invalidates deletion", () => {
+  it("uses a custom term in a problem result, then safely invalidates deletion", () => {
     const storage = new MemoryStorage();
     const container = mount(storage);
     select(container, "problem-source", "custom");
@@ -767,18 +787,14 @@ describe("mounted application interaction", () => {
     selectCustom(container, "custom-term", "minor", "human", "predicateTermId");
     createCustom(container);
     expect(container.textContent).toContain("すべての哲学者は人間である。");
-    select(container, "assignment-mode", "quiz");
-    selectQuizTerm(container, "S", "custom-term-1");
-    selectQuizTerm(container, "M", "human");
-    selectQuizTerm(container, "P", "animal");
-    submitQuiz(container);
-    expect(container.textContent).toContain("正しい割当てです。");
     advanceToConclusion(container);
     expect(container.textContent).toContain("すべての哲学者は動物である。");
     button(container, "reset").click();
+    openTermManagement(container);
     container.querySelector<HTMLButtonElement>(
       '[data-action="delete-custom-term"][data-term-id="custom-term-1"]',
     )!.click();
+    closeTermManagement(container);
     expect(phase(container)).toBe("problem");
     expect(button(container, "next").disabled).toBe(true);
     expect(container.querySelector<HTMLSelectElement>(
@@ -794,7 +810,7 @@ describe("mounted application interaction", () => {
     const loaded = mount(malformed);
     select(loaded, "problem-source", "custom");
     expect(loaded.textContent).toContain(
-      "保存されていたユーザー名詞を読み込めませんでした。",
+      "保存されていたユーザー登録名詞を読み込めませんでした。",
     );
     expect(loaded.textContent).toContain("動物");
 
@@ -806,10 +822,11 @@ describe("mounted application interaction", () => {
     select(session, "problem-source", "custom");
     addPhilosopher(session);
     expect(session.querySelector(
-      '[data-custom-term-id="custom-term-1"]',
+      '[data-action="custom-term"] option[value="custom-term-1"]',
     )).not.toBeNull();
+    openTermManagement(session);
     expect(session.textContent).toContain(
-      "ユーザー名詞をブラウザへ保存できませんでした。",
+      "ユーザー登録名詞をブラウザへ保存できませんでした。",
     );
   });
 
@@ -912,7 +929,7 @@ describe("mounted application interaction", () => {
     )).toBeNull();
     expect(container.querySelectorAll(
       '.carroll-diagram [data-counter-kind]',
-    )).toHaveLength(0);
+    )).toHaveLength(6);
 
     container.querySelector<HTMLButtonElement>(
       '[data-action="check-conclusion-answer"]',
@@ -922,7 +939,7 @@ describe("mounted application interaction", () => {
     container.querySelector<HTMLButtonElement>(
       '[data-action="check-conclusion-answer"]',
     )!.click();
-    expect(container.textContent).toContain("その結論は正しくありません");
+    expect(container.textContent).toContain("もう一度考えてください。");
     expect(container.querySelector(
       ".logic-game__conclusion",
     )).toBeNull();
@@ -931,13 +948,13 @@ describe("mounted application interaction", () => {
     container.querySelector<HTMLButtonElement>(
       '[data-action="check-conclusion-answer"]',
     )!.click();
-    expect(container.textContent).toContain("正しい結論です。");
-    expect(container.textContent).toContain(
-      "すべての人間は死すべきものである。",
-    );
+    expect(container.textContent).toContain("正解です。");
+    expect(container.querySelector(".logic-game__conclusion")).toBeNull();
+    expect(phase(container)).toBe("combined-premises");
+    expect(button(container, "next").disabled).toBe(false);
     expect(container.querySelectorAll(
       '.carroll-diagram [data-counter-kind]',
-    )).toHaveLength(2);
+    )).toHaveLength(6);
 
     answerConclusion(container, "E");
     expect(container.querySelector(
@@ -945,7 +962,13 @@ describe("mounted application interaction", () => {
     )).toBeNull();
     expect(container.querySelectorAll(
       '.carroll-diagram [data-counter-kind]',
-    )).toHaveLength(0);
+    )).toHaveLength(6);
+    submitConclusion(container, "A");
+    button(container, "next").click();
+    expect(phase(container)).toBe("conclusion");
+    expect(container.textContent).toContain(
+      "すべての人間は死すべきものである。",
+    );
   });
 
   it.each([
@@ -961,7 +984,9 @@ describe("mounted application interaction", () => {
     container.querySelector<HTMLButtonElement>(
       '[data-action="check-conclusion-answer"]',
     )!.click();
-    expect(container.textContent).toContain("正しい結論です。");
+    expect(container.textContent).toContain("正解です。");
+    button(container, "next").click();
+    expect(phase(container)).toBe("conclusion");
   });
 
   it("accepts none only for the invalid built-in problem", () => {
@@ -973,11 +998,16 @@ describe("mounted application interaction", () => {
     container.querySelector<HTMLButtonElement>(
       '[data-action="check-conclusion-answer"]',
     )!.click();
-    expect(container.textContent).toContain("その結論は正しくありません");
+    expect(container.textContent).toContain("もう一度考えてください。");
     answerConclusion(container, "none");
     container.querySelector<HTMLButtonElement>(
       '[data-action="check-conclusion-answer"]',
     )!.click();
+    expect(button(container, "next").disabled).toBe(false);
+    expect(container.textContent).not.toContain(
+      "これらの前提から確定した結論は得られません。",
+    );
+    button(container, "next").click();
     expect(container.textContent).toContain(
       "これらの前提から確定した結論は得られません。",
     );
@@ -1006,14 +1036,19 @@ describe("mounted application interaction", () => {
     container.querySelector<HTMLButtonElement>(
       '[data-action="check-counter-attempt"]',
     )!.click();
-    button(container, "next").click();
     expect(container.querySelectorAll(
       '[data-action="counter-target"]',
-    )).toHaveLength(0);
+    )).toHaveLength(20);
+    expect(button(container, "next").disabled).toBe(true);
     answerConclusion(container, "A");
     container.querySelector<HTMLButtonElement>(
       '[data-action="check-conclusion-answer"]',
     )!.click();
+    expect(button(container, "next").disabled).toBe(false);
+    expect(container.querySelectorAll(
+      '[data-action="counter-target"]',
+    )).toHaveLength(20);
+    button(container, "next").click();
     expect(container.querySelectorAll(
       '[data-action="counter-target"]',
     )).toHaveLength(8);
@@ -1079,6 +1114,15 @@ describe("mounted application interaction", () => {
       "すべての人間は死すべきものである。",
     );
     button(restored, "reset").click();
+    select(restored, "conclusion-answer-mode", "quiz");
+    restored.querySelector<HTMLButtonElement>(
+      '[data-action="open-saved-custom-problem"]',
+    )!.click();
+    advanceToConclusion(restored);
+    expect(phase(restored)).toBe("combined-premises");
+    expect(restored.querySelector('[data-action="conclusion-answer"]'))
+      .not.toBeNull();
+    button(restored, "reset").click();
     restored.querySelector<HTMLButtonElement>(
       '[data-action="delete-saved-custom-problem"]',
     )!.click();
@@ -1087,6 +1131,80 @@ describe("mounted application interaction", () => {
     )).toBeNull();
     expect(JSON.parse(storage.values.get(CUSTOM_PROBLEM_STORAGE_KEY)!))
       .toEqual({ version: 1, problems: [] });
+  });
+
+  it("creates and edits saved problem titles with IME composition", () => {
+    const storage = new MemoryStorage();
+    const container = mount(storage);
+    select(container, "problem-source", "custom");
+    fillCustomBarbara(container);
+    createCustom(container);
+    const original = container.querySelector<HTMLInputElement>(
+      '[data-action="saved-custom-problem-title"]',
+    )!;
+    original.focus();
+    original.dispatchEvent(new CompositionEvent("compositionstart"));
+    for (const value of ["t", "た", "たn", "たな"]) {
+      original.value = value;
+      original.dispatchEvent(new InputEvent("input", { isComposing: true }));
+      expect(container.querySelector(
+        '[data-action="saved-custom-problem-title"]',
+      )).toBe(original);
+    }
+    original.value = "田中の問題";
+    original.setSelectionRange(5, 5);
+    original.dispatchEvent(new CompositionEvent("compositionend"));
+    const committed = container.querySelector<HTMLInputElement>(
+      '[data-action="saved-custom-problem-title"]',
+    )!;
+    expect(committed.value).toBe("田中の問題");
+    expect(document.activeElement).toBe(committed);
+    expect([committed.selectionStart, committed.selectionEnd]).toEqual([5, 5]);
+    committed.dispatchEvent(new InputEvent("input"));
+    container.querySelector<HTMLButtonElement>(
+      '[data-action="save-custom-problem"]',
+    )!.click();
+    expect(container.querySelector(
+      '[data-saved-custom-problem-id="custom-problem-1"]',
+    )?.textContent).toContain("田中の問題");
+
+    container.querySelector<HTMLButtonElement>(
+      '[data-action="edit-saved-custom-problem"]',
+    )!.click();
+    const editing = container.querySelector<HTMLInputElement>(
+      '[data-action="saved-custom-problem-title"]',
+    )!;
+    editing.focus();
+    editing.dispatchEvent(new CompositionEvent("compositionstart"));
+    editing.value = "亀と動物";
+    editing.dispatchEvent(new InputEvent("input", { isComposing: true }));
+    expect(container.querySelector(
+      '[data-action="saved-custom-problem-title"]',
+    )).toBe(editing);
+    editing.value = "亀と動物の問題";
+    editing.dispatchEvent(new CompositionEvent("compositionend"));
+    container.querySelector<HTMLButtonElement>(
+      '[data-action="save-custom-problem"]',
+    )!.click();
+    expect(container.querySelector(
+      '[data-saved-custom-problem-id="custom-problem-1"]',
+    )?.textContent).toContain("亀と動物の問題");
+    expect(JSON.parse(storage.values.get(CUSTOM_PROBLEM_STORAGE_KEY)!))
+      .toMatchObject({
+        problems: [{ title: "亀と動物の問題" }],
+      });
+
+    container.querySelector<HTMLButtonElement>(
+      '[data-action="edit-saved-custom-problem"]',
+    )!.click();
+    const english = container.querySelector<HTMLInputElement>(
+      '[data-action="saved-custom-problem-title"]',
+    )!;
+    english.value = "Test problem";
+    english.dispatchEvent(new InputEvent("input"));
+    expect(container.querySelector<HTMLInputElement>(
+      '[data-action="saved-custom-problem-title"]',
+    )?.value).toBe("Test problem");
   });
 
   it("prevents deleting a custom term referenced by a saved problem", () => {
@@ -1127,18 +1245,20 @@ describe("mounted application interaction", () => {
     createCustom(container);
     saveCurrentProblem(container, "Philosophers");
     const storedTermsBefore = storage.values.get(CUSTOM_TERM_STORAGE_KEY);
+    openTermManagement(container);
     container.querySelector<HTMLButtonElement>(
       '[data-action="delete-custom-term"][data-term-id="custom-term-1"]',
     )!.click();
     expect(container.querySelector(
       '[data-custom-term-id="custom-term-1"]',
     )).not.toBeNull();
-    expect(container.querySelector(
-      '[data-saved-custom-problem-id="custom-problem-1"]',
-    )).not.toBeNull();
     expect(container.textContent).toContain(
       "保存済みの自由問題で使用されているため削除できません",
     );
+    closeTermManagement(container);
+    expect(container.querySelector(
+      '[data-saved-custom-problem-id="custom-problem-1"]',
+    )).not.toBeNull();
     expect(storage.values.get(CUSTOM_TERM_STORAGE_KEY)).toBe(
       storedTermsBefore,
     );
@@ -1198,6 +1318,7 @@ describe("mounted application interaction", () => {
     ));
 
     select(container, "problem-source", "custom");
+    openTermManagement(container);
     const input = container.querySelector<HTMLInputElement>(
       '[data-action="custom-term-input"][data-field="enSubjectPlural"]',
     )!;
@@ -1218,6 +1339,7 @@ describe("mounted application interaction", () => {
   it("keeps the Japanese input node during IME composition", () => {
     const container = mount();
     select(container, "problem-source", "custom");
+    openTermManagement(container);
     const input = container.querySelector<HTMLInputElement>(
       '[data-action="custom-term-input"][data-field="jaNounPhrase"]',
     )!;

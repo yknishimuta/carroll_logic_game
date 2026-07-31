@@ -7,7 +7,6 @@ import {
 import { createGameViewModel } from "./app/viewModel";
 import { getBuiltInProblem } from "./data/problems";
 import { computeProblem } from "./app/problemComputation";
-import { validateTermAssignmentQuiz } from "./app/termAssignmentQuiz";
 import { validateCustomProblemDraft } from "./app/customProblem";
 import { BUILT_IN_TERMS } from "./data/terms";
 import {
@@ -152,7 +151,18 @@ export function mountApp(
         "start-edit-saved-custom-problem",
         "apply-pending-data-import",
       ].includes(action.type);
-      if (changesContext) {
+      if (action.type === "open-custom-term-management") {
+        container.querySelector<HTMLElement>(
+          '[data-screen-heading="custom-term-management"]',
+        )?.focus({ preventScroll: true });
+      } else if (action.type === "close-custom-term-management") {
+        restoreFocusByKey(container, "open-custom-term-management");
+      } else if (action.type === "start-edit-custom-term") {
+        restoreFocusByKey(
+          container,
+          `custom-term-input:${state.locale === "ja" ? "jaNounPhrase" : "enSubjectPlural"}`,
+        );
+      } else if (changesContext) {
         focusPhaseHeading(container);
       } else if (action.type === "submit-custom-term" && !action.result.ok) {
         const field = createGameViewModel(state).customTermManager
@@ -168,6 +178,10 @@ export function mountApp(
     };
 
     renderGameView(container, createGameViewModel(state), {
+      onCustomTermManagementOpen: () =>
+        dispatch({ type: "open-custom-term-management" }),
+      onCustomTermManagementClose: () =>
+        dispatch({ type: "close-custom-term-management" }),
       onPrevious: () => dispatch({ type: "previous" }),
       onNext: () => dispatch({ type: "next" }),
       onReset: () => dispatch({ type: "reset" }),
@@ -177,8 +191,6 @@ export function mountApp(
         dispatch({ type: "set-problem-source", source }),
       onLocaleChange: (locale) =>
         dispatch({ type: "set-locale", locale }),
-      onAssignmentModeChange: (mode) =>
-        dispatch({ type: "set-assignment-mode", mode }),
       onCounterPlacementModeChange: (mode) =>
         dispatch({ type: "set-counter-placement-mode", mode }),
       onConclusionAnswerModeChange: (mode) =>
@@ -256,29 +268,6 @@ export function mountApp(
           throw new Error("Counter attempt cleared during the problem phase.");
         }
         dispatch({ type: "clear-counter-attempt", phase: state.phase });
-      },
-      onQuizTermChange: (role, termId) =>
-        dispatch({ type: "select-quiz-term", role, termId }),
-      onQuizAssignmentSubmit: () => {
-        const premises = state.problemSource === "built-in"
-          ? getBuiltInProblem(state.problemId).premises
-          : state.customPremises;
-        if (premises === null) {
-          throw new Error("Cannot validate a quiz before creating a problem.");
-        }
-        const expected = computeProblem({
-          id: state.problemSource === "built-in"
-            ? state.problemId
-            : "custom",
-          premises,
-        }).assignment;
-        dispatch({
-          type: "submit-quiz-assignment",
-          validation: validateTermAssignmentQuiz(
-            state.quizSelection,
-            expected,
-          ),
-        });
       },
       onCustomPremiseFormChange: (position, form) =>
         dispatch({ type: "update-custom-premise-form", position, form }),

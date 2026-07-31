@@ -71,8 +71,8 @@ const cellRowsEn = [
 ] as const;
 
 export const JA_TUTORIAL_CONTENT: TutorialContent = {
-  title: "コマ配置のチュートリアル",
-  documentTitle: "コマ配置のチュートリアル — ルイス・キャロルの論理ゲーム",
+  title: "チュートリアル",
+  documentTitle: "チュートリアル — ルイス・キャロルの論理ゲーム",
   skipLink: "本文へ移動",
   backToGame: "ゲームへ戻る",
   languageLabel: "言語",
@@ -113,7 +113,7 @@ export const JA_TUTORIAL_CONTENT: TutorialContent = {
     {
       id: ids[2], heading: "3. 三文字図の8領域",
       paragraphs: ["S／S′、M／M′、P／P′という三つの二分から、2 × 2 × 2 = 8領域ができます。"],
-      tables: [{ caption: "三文字図のセル略記", headers: ["略記", "完全表記", "意味"], rows: cellRowsJa }],
+      tables: [{ caption: "三文字図のセル略記", headers: ["略記", "集合表記", "意味"], rows: cellRowsJa }],
       ruleSources: [
         { id: "eight-triliteral-regions", label: "三文字図の8領域", sourceReferences: [{ relation: "direct", sourceId: "symbolic-logic-i-iv-i" }] },
       ],
@@ -224,15 +224,13 @@ export const JA_TUTORIAL_CONTENT: TutorialContent = {
     },
     {
       id: ids[10], heading: "11. よくある間違い",
-      paragraphs: ["次の誤解を避けてください。"],
+      paragraphs: ["次の間違いにご注意ください。"],
       lists: [[
         "S′を反対語と思う → Sではないもの全体です。",
         "境界Iを両セルへの存在と思う → どちらか一方です。",
         "境界Iを根拠なく移す → 片側がOのときだけ確定します。",
         "空条件にOを一つだけ置く → 第三項で分かれた両セルへ置きます。",
-        "第一前提図を統合図と思う → 完全図を置き直します。",
         "二つのIを同一対象と思う → 別の存在要求かもしれません。",
-        "M消去前に結論図へ移る → まず二前提を統合します。",
         "元セル片方のOだけで結論Oにする → 両方Oが必要です。",
         "Oを命題全体の偽と思う → セルが空という意味です。",
         "Iを数字1と読む → 存在を表す英字Iです。",

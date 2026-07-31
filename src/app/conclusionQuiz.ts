@@ -2,9 +2,14 @@ import {
   isPropositionForm,
   type PropositionForm,
 } from "../domain/proposition";
+import type {
+  CounterAttemptCheckState,
+  CounterPlacementMode,
+} from "./counterPractice";
+import type { GamePhase } from "./state";
 
-export type ConclusionAnswerMode = "automatic" | "quiz";
 export type ConclusionAnswerChoice = PropositionForm | "none";
+export type ConclusionAnswerMode = "automatic" | "quiz";
 
 export function isConclusionAnswerMode(
   value: string,
@@ -82,4 +87,38 @@ export function selectConclusionAnswer(
     selectedAnswer: answer,
     check: { kind: "not-checked" },
   };
+}
+
+export function isConclusionDiagramUnlocked(
+  mode: ConclusionAnswerMode,
+  check: ConclusionQuizCheckState,
+): boolean {
+  return mode === "automatic" || check.kind === "correct";
+}
+
+export function isCombinedPremisesReady(
+  counterMode: CounterPlacementMode,
+  combinedCheck: CounterAttemptCheckState,
+): boolean {
+  return counterMode === "automatic" || combinedCheck.kind === "correct";
+}
+
+export function shouldShowConclusionQuiz(
+  phase: GamePhase,
+  mode: ConclusionAnswerMode,
+  combinedPremisesReady: boolean,
+): boolean {
+  return phase === "combined-premises" &&
+    mode === "quiz" &&
+    combinedPremisesReady;
+}
+
+export function canEnterConclusion(input: {
+  readonly combinedPremisesReady: boolean;
+  readonly conclusionMode: ConclusionAnswerMode;
+  readonly conclusionCheck: ConclusionQuizCheckState;
+}): boolean {
+  if (!input.combinedPremisesReady) return false;
+  return input.conclusionMode === "automatic" ||
+    input.conclusionCheck.kind === "correct";
 }
