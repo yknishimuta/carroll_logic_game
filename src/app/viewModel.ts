@@ -554,11 +554,11 @@ function createCustomTermManager(
       ? [{ locale: "ja", heading: messages.customTerms.currentLanguage,
           optional: false, helpText: null },
         { locale: "en", heading: messages.customTerms.otherLanguage,
-          optional: true, helpText: `${messages.customTerms.englishOptional} ${messages.customTerms.fallbackExplanation} ${messages.customTerms.noAutomationExplanation}` }]
+          optional: true, helpText: `${messages.customTerms.englishOptional} ${messages.customTerms.fallbackExplanation}` }]
       : [{ locale: "en", heading: messages.customTerms.currentLanguage,
           optional: false, helpText: null },
         { locale: "ja", heading: messages.customTerms.otherLanguage,
-          optional: true, helpText: `${messages.customTerms.japaneseOptional} ${messages.customTerms.fallbackExplanation} ${messages.customTerms.noAutomationExplanation}` }],
+          optional: true, helpText: `${messages.customTerms.japaneseOptional} ${messages.customTerms.fallbackExplanation}` }],
     requiredLabel: messages.customTerms.required,
     optionalLabel: messages.customTerms.optional,
     submitLabel: state.customTermEditor.mode === "create"
@@ -1189,9 +1189,9 @@ export function createGameViewModel(state: AppState): GameViewModel {
     },
     conclusionAnswerModeSelector: {
       label: messages.conclusionMode.selectorLabel,
-      description: state.phase === "conclusion"
-        ? messages.conclusionMode.conclusionLockedDescription
-        : messages.conclusionMode.description,
+      ...(state.phase === "conclusion"
+        ? { description: messages.conclusionMode.conclusionLockedDescription }
+        : {}),
       disabled: state.phase === "conclusion",
       selectedValue: state.conclusionQuiz.mode,
       options: (["automatic", "quiz"] as readonly ConclusionAnswerMode[]).map(

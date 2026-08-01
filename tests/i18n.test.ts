@@ -67,7 +67,6 @@ describe("UI messages", () => {
     });
     expect(EN_MESSAGES.conclusionMode).toEqual({
       selectorLabel: "Conclusion display",
-      description: "Automatic mode shows the derived result immediately. Quiz mode hides the conclusion diagram until the correct answer is given.",
       conclusionLockedDescription: "Return to the combined-premises step to change this setting.",
       modes: { automatic: "Show automatically", quiz: "Quiz" },
     });

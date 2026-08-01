@@ -52,29 +52,53 @@ function handlers(): GameEventHandlers {
 }
 
 describe("renderGameView", () => {
-  it("groups the inline skip link before the tutorial link in both screens", () => {
+  it("shows the inline skip link before the tutorial link on the game screen", () => {
+    const container = createContainer();
+    renderGameView(container, createGameViewModel(createInitialAppState()), handlers());
+    const actions = container.querySelector(".logic-game__header-actions")!;
+    const links = [...actions.querySelectorAll<HTMLAnchorElement>("a")];
+    expect(links).toHaveLength(2);
+    expect(links[0]?.getAttribute("href")).toBe("#main-content");
+    expect(links[0]?.textContent).toBe("メインコンテンツへ移動");
+    expect(links[0]?.classList.contains("skip-link--inline")).toBe(true);
+    expect(links[1]?.getAttribute("href")).toBe("./tutorial.html");
+    expect(links.every((link) =>
+      link.classList.contains("logic-game__header-link")
+    )).toBe(true);
+    expect(container.querySelector(".logic-game__header-back")).toBeNull();
+    expect(container.querySelectorAll("main#main-content")).toHaveLength(1);
+  });
+
+  it("replaces the management header skip link with a second working back button", () => {
     const container = createContainer();
     const callbacks = handlers();
-
-    for (const screen of ["game", "custom-term-management"] as const) {
-      renderGameView(container, createGameViewModel({
-        ...createInitialAppState(),
-        screen,
-      }), callbacks);
-      const actions = container.querySelector(".logic-game__header-actions")!;
-      const links = [...actions.querySelectorAll<HTMLAnchorElement>("a")];
-      expect(links).toHaveLength(2);
-      expect(links[0]?.getAttribute("href")).toBe("#main-content");
-      expect(links[0]?.textContent).toBe("メインコンテンツへ移動");
-      expect(links[0]?.classList.contains("skip-link--inline")).toBe(true);
-      expect(links[1]?.getAttribute("href")).toBe("./tutorial.html");
-      expect(links.every((link) =>
-        link.classList.contains("logic-game__header-link")
-      )).toBe(true);
-      expect(container.querySelectorAll("main#main-content")).toHaveLength(1);
-      expect(container.querySelector("main#main-content")?.getAttribute("tabindex"))
-        .toBe("-1");
-    }
+    renderGameView(container, createGameViewModel({
+      ...createInitialAppState(),
+      screen: "custom-term-management",
+    }), callbacks);
+    expect(container.querySelector(".skip-link")).toBeNull();
+    const headerBack = container.querySelector<HTMLButtonElement>(
+      ".logic-game__header-back",
+    )!;
+    const contentBack = container.querySelector<HTMLButtonElement>(
+      ".logic-game__term-management-back",
+    )!;
+    expect(headerBack.type).toBe("button");
+    expect(headerBack.textContent).toBe("ゲームへ戻る");
+    expect(container.querySelectorAll(
+      '[data-action="close-custom-term-management"]',
+    )).toHaveLength(2);
+    const actions = container.querySelector(".logic-game__header-actions")!;
+    expect(actions.firstElementChild).toBe(headerBack);
+    expect(actions.lastElementChild?.classList.contains(
+      "logic-game__tutorial-link",
+    )).toBe(true);
+    headerBack.click();
+    contentBack.click();
+    expect(callbacks.onCustomTermManagementClose).toHaveBeenCalledTimes(2);
+    expect(container.querySelectorAll("main#main-content")).toHaveLength(1);
+    expect(container.querySelector("main#main-content")?.getAttribute("tabindex"))
+      .toBe("-1");
   });
 
   it("renders a compact game entry and a separate management screen", () => {
@@ -241,7 +265,7 @@ describe("renderGameView", () => {
       { value: "quiz", label: "クイズ" },
     ]);
     expect(conclusionMode.getAttribute("aria-describedby"))
-      .toBe("conclusion-answer-mode-description");
+      .toBeNull();
     const previous = container.querySelector<HTMLButtonElement>(
       '[data-action="previous"]',
     )!;
@@ -646,7 +670,7 @@ describe("renderGameView", () => {
       "automatic", "quiz",
     ]);
     expect(mode.getAttribute("aria-describedby"))
-      .toBe("conclusion-answer-mode-description");
+      .toBeNull();
     mode.value = "automatic";
     mode.dispatchEvent(new Event("change"));
     expect(callbacks.onConclusionAnswerModeChange)

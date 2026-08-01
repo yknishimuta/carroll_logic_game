@@ -680,8 +680,9 @@ body {
 .logic-game h1 { font-family: Georgia, "Yu Mincho", "Hiragino Mincho ProN", serif; letter-spacing: .025em; }
 .logic-game__tutorial-link, .logic-game a { color: var(--alice-primary-active); text-underline-offset: .18em; }
 .logic-game__header-actions { display: flex; align-items: center; flex-wrap: wrap; gap: .75rem; }
-.logic-game__header-link { display: inline-flex; align-items: center; padding: .35rem .75rem; border: 1px solid var(--alice-border-strong); border-radius: 999px; background: rgba(255,255,255,.6); color: var(--alice-primary-active); }
+.logic-game__header-link { display: inline-flex; align-items: center; min-height: 2.75rem; padding: .35rem .75rem; border: 1px solid var(--alice-border-strong); border-radius: 999px; background: rgba(255,255,255,.6); color: var(--alice-primary-active); }
 .logic-game__header-link:hover { border-color: var(--alice-primary-hover); background: var(--alice-surface-soft); }
+.logic-game__header-link:active { border-color: var(--alice-primary-active); background: #d8edf7; }
 .logic-game__header-link:focus-visible { outline: 3px solid var(--alice-focus); outline-offset: 3px; }
 
 button, select, input { color: var(--alice-text); border-color: var(--alice-border-strong); background-color: var(--alice-surface-solid); }

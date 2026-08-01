@@ -84,7 +84,6 @@ export const EN_MESSAGES = {
     englishOptional: "English translation is optional",
     japaneseOptional: "Japanese translation is optional",
     fallbackExplanation: "When no translation is provided, the registered language is shown unchanged.",
-    noAutomationExplanation: "No automatic translation or romanization is performed.",
     englishMissing: "English translation not provided",
     japaneseMissing: "Japanese translation not provided",
     showingJapanese: "Showing the Japanese text unchanged",
@@ -244,7 +243,6 @@ export const EN_MESSAGES = {
   },
   conclusionMode: {
     selectorLabel: "Conclusion display",
-    description: "Automatic mode shows the derived result immediately. Quiz mode hides the conclusion diagram until the correct answer is given.",
     conclusionLockedDescription: "Return to the combined-premises step to change this setting.",
     modes: {
       automatic: "Show automatically",

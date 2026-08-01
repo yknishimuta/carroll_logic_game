@@ -86,7 +86,6 @@ export interface UiMessages {
     readonly englishOptional: string;
     readonly japaneseOptional: string;
     readonly fallbackExplanation: string;
-    readonly noAutomationExplanation: string;
     readonly englishMissing: string;
     readonly japaneseMissing: string;
     readonly showingJapanese: string;
@@ -246,7 +245,6 @@ export interface UiMessages {
   };
   readonly conclusionMode: {
     readonly selectorLabel: string;
-    readonly description: string;
     readonly conclusionLockedDescription: string;
     readonly modes: {
       readonly automatic: string;

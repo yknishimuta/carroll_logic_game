@@ -857,6 +857,7 @@ describe("custom term view models", () => {
     expect(ja.savedCustomProblemManager?.items[0]).toMatchObject({
       id: "custom-problem-1",
       title: "哲学者の問題",
+      editLabel: "名前を変更",
       concretePremises: [
         "すべての人間は動物である。",
         "すべての哲学者は人間である。",

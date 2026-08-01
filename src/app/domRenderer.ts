@@ -1227,7 +1227,23 @@ export function renderGameView(
     `${model.tutorialLink.label}（${model.tutorialLink.opensInNewTabLabel}）`,
   );
   tutorialLink.textContent = model.tutorialLink.label;
-  headerActions.append(skipLink, tutorialLink);
+  if (model.activeScreen === "custom-term-management") {
+    const headerBack = element(
+      "button",
+      "logic-game__header-back logic-game__header-link",
+    );
+    headerBack.type = "button";
+    headerBack.dataset.action = "close-custom-term-management";
+    headerBack.dataset.role = "header";
+    headerBack.textContent = model.customTermManagement.backLabel;
+    headerBack.addEventListener(
+      "click",
+      handlers.onCustomTermManagementClose,
+    );
+    headerActions.append(headerBack, tutorialLink);
+  } else {
+    headerActions.append(skipLink, tutorialLink);
+  }
   header.append(headerActions);
 
   if (model.activeScreen === "custom-term-management") {
