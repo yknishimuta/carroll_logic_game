@@ -504,9 +504,6 @@ describe("mounted application interaction", () => {
     advanceToConclusion(container);
 
     expect(container.textContent).toContain("すべての人間は動物である。");
-    expect(container.textContent).toContain(
-      "このアプリは、前提が現実に正しいかどうかは判定しません。",
-    );
     expect(container.querySelector('[data-action="conclusion-answer"]')).toBeNull();
     expect(container.textContent).not.toContain("前提が事実として誤っている");
   });

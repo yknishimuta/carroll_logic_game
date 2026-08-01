@@ -244,7 +244,6 @@ export const JA_MESSAGES = {
   },
   conclusionMode: {
     selectorLabel: "結論の表示",
-    description: "自動表示では、結論段階で導出結果をすぐに表示します。クイズでは、正しい結論を答えるまで結論図を隠します。",
     conclusionLockedDescription: "結論表示後に設定を変更するには、統合前提へ戻ってください。",
     modes: {
       automatic: "自動表示",
@@ -254,7 +253,6 @@ export const JA_MESSAGES = {
   derivedConclusion: {
     heading: "導出結果",
     explanation: "この結果は、入力した前提の形式から導かれます。",
-    factualDisclaimer: "このアプリは、前提が現実に正しいかどうかは判定しません。",
   },
   phases: {
     problem: "問題",

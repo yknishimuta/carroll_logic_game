@@ -254,7 +254,6 @@ export const EN_MESSAGES = {
   derivedConclusion: {
     heading: "Derived result",
     explanation: "This result follows from the form of the premises you entered.",
-    factualDisclaimer: "This application does not judge whether the premises are factually true.",
   },
   phases: {
     problem: "Problem",

@@ -256,7 +256,6 @@ export interface UiMessages {
   readonly derivedConclusion: {
     readonly heading: string;
     readonly explanation: string;
-    readonly factualDisclaimer: string;
   };
   readonly phases: {
     readonly problem: string;

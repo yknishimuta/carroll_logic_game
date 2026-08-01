@@ -821,8 +821,6 @@ describe("custom term view models", () => {
     expect(createGameViewModel(base).concreteConclusion).toBe(
       "すべての哲学者は動物である。",
     );
-    expect(createGameViewModel(base).derivedConclusion?.factualDisclaimer)
-      .toContain("現実に正しいかどうかは判定しません");
     expect(createGameViewModel({
       ...base,
       locale: "en",

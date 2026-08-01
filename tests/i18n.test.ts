@@ -55,10 +55,6 @@ describe("UI messages", () => {
   it("provides neutral term-role and problem-experience messages", () => {
     expect(JA_MESSAGES.assignmentHeading).toBe("図で使用する項");
     expect(EN_MESSAGES.assignmentHeading).toBe("Terms used in the diagram");
-    expect(JA_MESSAGES.derivedConclusion.factualDisclaimer)
-      .toContain("現実に正しいかどうかは判定しません");
-    expect(EN_MESSAGES.derivedConclusion.factualDisclaimer)
-      .toContain("factually true");
     expect(JSON.stringify(JA_MESSAGES)).not.toContain("割当てが正しくありません");
     expect("assignmentQuiz" in JA_MESSAGES).toBe(false);
   });
@@ -66,7 +62,6 @@ describe("UI messages", () => {
   it("provides matching conclusion-mode settings in both languages", () => {
     expect(JA_MESSAGES.conclusionMode).toEqual({
       selectorLabel: "結論の表示",
-      description: "自動表示では、結論段階で導出結果をすぐに表示します。クイズでは、正しい結論を答えるまで結論図を隠します。",
       conclusionLockedDescription: "結論表示後に設定を変更するには、統合前提へ戻ってください。",
       modes: { automatic: "自動表示", quiz: "クイズ" },
     });

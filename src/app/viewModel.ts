@@ -365,7 +365,6 @@ export interface GameViewModel {
   readonly derivedConclusion: {
     readonly heading: string;
     readonly explanation: string;
-    readonly factualDisclaimer: string;
   } | null;
   readonly navigation: NavigationViewModel;
 }
@@ -1263,7 +1262,6 @@ export function createGameViewModel(state: AppState): GameViewModel {
       ? {
           heading: messages.derivedConclusion.heading,
           explanation: messages.derivedConclusion.explanation,
-          factualDisclaimer: messages.derivedConclusion.factualDisclaimer,
         }
       : null,
     navigation: navigation(state, messages, ready),

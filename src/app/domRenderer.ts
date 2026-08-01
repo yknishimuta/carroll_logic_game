@@ -1059,9 +1059,7 @@ function createConclusionSection(
     if (model.derivedConclusion !== null) {
       const explanation = element("p");
       explanation.textContent = model.derivedConclusion.explanation;
-      const disclaimer = element("p");
-      disclaimer.textContent = model.derivedConclusion.factualDisclaimer;
-      section.append(explanation, disclaimer);
+      section.append(explanation);
     }
     return section;
   }
@@ -1091,9 +1089,7 @@ function createConclusionSection(
   if (model.derivedConclusion !== null) {
     const explanation = element("p");
     explanation.textContent = model.derivedConclusion.explanation;
-    const disclaimer = element("p");
-    disclaimer.textContent = model.derivedConclusion.factualDisclaimer;
-    section.append(explanation, disclaimer);
+    section.append(explanation);
   }
   return section;
 }
