@@ -180,9 +180,11 @@ noscript {
 }
 
 .logic-game {
+  min-width: 0;
   display: grid;
   gap: 1.25rem;
 }
+.logic-game > *, .logic-game__settings > *, .logic-game__main > section { min-width: 0; }
 
 .logic-game__main {
   display: grid;
@@ -609,24 +611,120 @@ input:focus-visible,
   }
 }
 
+/* Alice through the looking-glass theme */
+:root {
+  color-scheme: light;
+  --alice-page-top: #e8f5fb;
+  --alice-page-bottom: #cfe7f3;
+  --alice-surface: rgba(250, 253, 255, 0.92);
+  --alice-surface-solid: #f8fcfe;
+  --alice-surface-soft: rgba(229, 243, 250, 0.88);
+  --alice-border: #a9cadb;
+  --alice-border-strong: #78a9c2;
+  --alice-primary: #477f9f;
+  --alice-primary-hover: #376d8c;
+  --alice-primary-active: #2d5d77;
+  --alice-heading: #294f65;
+  --alice-text: #243b48;
+  --alice-muted: #587381;
+  --alice-focus: #175f88;
+  --alice-shadow: rgba(47, 91, 113, 0.16);
+  --background: var(--alice-page-top);
+  --foreground: var(--alice-text);
+  --surface: var(--alice-surface-solid);
+  --surface-muted: var(--alice-surface-soft);
+  --accent: var(--alice-primary);
+  --border: var(--alice-border);
+}
+
+html { overflow-x: hidden; background: var(--alice-page-bottom); }
+body {
+  position: relative;
+  overflow-x: hidden;
+  background:
+    radial-gradient(circle at 16% 9%, rgba(255,255,255,.9), transparent 28rem),
+    radial-gradient(ellipse at 78% 38%, rgba(255,255,255,.42), transparent 35rem),
+    linear-gradient(165deg, var(--alice-page-top), var(--alice-page-bottom));
+}
+#app, noscript { position: relative; z-index: 1; }
+.logic-game {
+  padding: clamp(.5rem, 2vw, 1.25rem);
+  background: var(--alice-surface);
+  border: 1px solid rgba(120,169,194,.58);
+  border-radius: .85rem;
+  box-shadow: 0 18px 48px var(--alice-shadow), inset 0 1px rgba(255,255,255,.9);
+  backdrop-filter: blur(5px);
+}
+.logic-game__header,
+.logic-game__settings,
+.logic-game__main > section,
+.logic-game__progress,
+.logic-game__controls {
+  background: linear-gradient(100deg, var(--alice-surface-solid), rgba(237,247,252,.94));
+  border-color: var(--alice-border);
+  border-radius: .7rem;
+  box-shadow: inset 0 1px rgba(255,255,255,.95);
+}
+.logic-game__header {
+  background: linear-gradient(100deg, rgba(247,252,255,.98), rgba(210,235,247,.9), rgba(247,252,255,.98));
+  border-top-color: var(--alice-border-strong);
+  border-bottom-color: rgba(255,255,255,.95);
+}
+.logic-game h1, .logic-game h2, .logic-game h3 { color: var(--alice-heading); }
+.logic-game h1 { font-family: Georgia, "Yu Mincho", "Hiragino Mincho ProN", serif; letter-spacing: .025em; }
+.logic-game__tutorial-link, .logic-game a { color: var(--alice-primary-active); text-underline-offset: .18em; }
+.logic-game__tutorial-link { display: inline-block; padding: .35rem .75rem; border: 1px solid var(--alice-border-strong); border-radius: 999px; background: rgba(255,255,255,.6); }
+
+button, select, input { color: var(--alice-text); border-color: var(--alice-border-strong); background-color: var(--alice-surface-solid); }
+button { padding: .55rem .9rem; border: 2px solid var(--alice-primary); border-radius: .4rem; cursor: pointer; }
+button:hover:not(:disabled) { border-color: var(--alice-primary-hover); background: var(--alice-surface-soft); }
+button:active:not(:disabled) { border-color: var(--alice-primary-active); background: #d8edf7; }
+button:disabled { color: var(--alice-muted); background: #e3edf2; border-color: #9eb6c2; opacity: 1; cursor: not-allowed; }
+button:focus-visible, select:focus-visible, input:focus-visible, a:focus-visible, .skip-link:focus-visible, [tabindex="-1"]:focus-visible {
+  outline: 3px solid var(--alice-focus);
+  outline-offset: 3px;
+}
+[aria-invalid="true"] { border-color: #9b3434; box-shadow: inset 0 0 0 1px #9b3434; }
+.logic-game__controls button:not(:disabled), .logic-game__custom-problem-actions button:first-child {
+  color: #fff; background: var(--alice-primary); border-color: var(--alice-primary);
+}
+.logic-game__controls button:hover:not(:disabled), .logic-game__custom-problem-actions button:first-child:hover { background: var(--alice-primary-hover); }
+.logic-game__controls button:active:not(:disabled), .logic-game__custom-problem-actions button:first-child:active { background: var(--alice-primary-active); }
+.logic-game__progress { background: linear-gradient(90deg, var(--alice-surface-soft), #fff, var(--alice-surface-soft)); }
+.logic-game__progress li { background: rgba(255,255,255,.68); }
+.logic-game__progress .is-complete { border-color: var(--alice-border-strong); background: #e2f1f8; }
+.logic-game__progress .is-current { border: 3px double var(--alice-primary-active); background: #fff; color: var(--alice-heading); font-weight: 700; box-shadow: 0 2px 8px var(--alice-shadow); }
+.logic-game__progress .is-current::after { content: " ◆"; font-size: .7em; }
+.logic-game__progress .is-upcoming { color: var(--alice-muted); border-style: dashed; }
+.logic-game__instruction, .logic-game__custom-problem-feedback, .logic-game__custom-term-feedback, .logic-game__custom-term-warning { background: var(--alice-surface-soft); }
+.logic-game__svg-container, .logic-game__interactive-diagram { background: #fff; border: 1px solid var(--alice-border); border-radius: .5rem; }
+.carroll-diagram { color: #243b48; }
+.logic-game__data-backup { background: var(--alice-surface-soft); border-color: var(--alice-border); }
+.logic-game__data-backup-action { background: var(--alice-surface-solid); }
+
+@media (max-width: 38rem) {
+  body { padding: .75rem .5rem; }
+  .logic-game { padding: .4rem; border-radius: .6rem; }
+  .logic-game__header, .logic-game__settings, .logic-game__main > section, .logic-game__progress, .logic-game__controls { padding: 1rem; }
+  button, select, input { white-space: normal; overflow-wrap: anywhere; }
+  .logic-game h1, .logic-game h2, .logic-game h3, .logic-game p, .logic-game label { overflow-wrap: anywhere; }
+}
+@media (prefers-contrast: more) {
+  :root { --alice-surface: #fff; --alice-surface-soft: #e3f2f8; --alice-border: #547f96; --alice-muted: #365667; }
+  .logic-game, .logic-game__header, .logic-game__settings, .logic-game__main > section { backdrop-filter: none; }
+}
+@media print {
+  :root { --foreground: #111; --surface: #fff; --surface-muted: #fff; }
+  html, body { background: #fff !important; color: #111; }
+  .logic-game, .logic-game__header, .logic-game__settings, .logic-game__main > section, .logic-game__progress, .logic-game__controls { background: #fff; box-shadow: none; backdrop-filter: none; border-color: #777; }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .skip-link {
     transition: none;
   }
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #191816;
-    --foreground: #eeece7;
-    --surface: #26231f;
-    --surface-muted: #34302a;
-    --accent: #d4b27d;
-    --border: #5a544b;
-    --existence-counter-color: #ff7b82;
-    --emptiness-counter-color: #b7b7b7;
-  }
-}
 .logic-game__data-backup {
   margin-block: 1.25rem;
   padding: 1rem;

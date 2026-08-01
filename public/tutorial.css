@@ -148,3 +148,64 @@ th, td { border: 1px solid var(--border); padding: .55rem; text-align: start; }
 @media (prefers-reduced-motion: reduce) {
   .skip-link { transition: none; }
 }
+
+/* Quieter companion theme for the long-form tutorial. */
+:root {
+  color-scheme: light;
+  --alice-page-top: #e8f5fb;
+  --alice-page-bottom: #cfe7f3;
+  --alice-surface-solid: #f8fcfe;
+  --alice-surface-soft: rgba(229, 243, 250, 0.88);
+  --alice-border: #a9cadb;
+  --alice-border-strong: #78a9c2;
+  --alice-primary: #477f9f;
+  --alice-primary-hover: #376d8c;
+  --alice-heading: #294f65;
+  --alice-text: #243b48;
+  --alice-focus: #175f88;
+  --alice-shadow: rgba(47, 91, 113, 0.16);
+  --page: var(--alice-page-top);
+  --panel: #fff;
+  --ink: var(--alice-text);
+  --accent: var(--alice-primary);
+  --border: var(--alice-border);
+  --notice: #e5f3fa;
+}
+html { overflow-x: hidden; background: var(--alice-page-bottom); }
+body {
+  position: relative;
+  min-height: 100vh;
+  overflow-x: hidden;
+  background:
+    radial-gradient(circle at 12% 8%, rgba(255,255,255,.85), transparent 25rem),
+    linear-gradient(165deg, var(--alice-page-top), var(--alice-page-bottom));
+}
+#tutorial-app, noscript { position: relative; z-index: 1; }
+a { color: var(--alice-primary-hover); text-underline-offset: .18em; }
+:focus-visible { outline: 3px solid var(--alice-focus); outline-offset: 3px; }
+.tutorial__header h1, .tutorial__section h2, .tutorial__section h3 { color: var(--alice-heading); }
+.tutorial__header h1 { font-family: Georgia, "Yu Mincho", "Hiragino Mincho ProN", serif; letter-spacing: .02em; }
+.tutorial__header a { padding: .35rem .75rem; border: 1px solid var(--alice-border-strong); border-radius: 999px; background: rgba(255,255,255,.75); }
+select { color: var(--alice-text); background: #fff; border: 2px solid var(--alice-border-strong); border-radius: .4rem; }
+.tutorial__contents, .tutorial__section, .tutorial__source-references {
+  background: rgba(255,255,255,.97);
+  border-color: var(--alice-border);
+  border-radius: .7rem;
+  box-shadow: 0 10px 30px var(--alice-shadow), inset 0 1px #fff;
+}
+.tutorial__contents { background: linear-gradient(100deg, rgba(248,252,254,.98), rgba(229,243,250,.96)); }
+.tutorial__notice { background: var(--notice); border-color: var(--alice-border-strong); }
+.tutorial__diagram { background: #fff; border-color: var(--alice-border-strong); }
+.tutorial__table-scroll { border: 1px solid var(--alice-border); background: #fff; }
+th { color: var(--alice-heading); background: var(--alice-surface-soft); }
+th, td, .tutorial__rule-sources { border-color: var(--alice-border); }
+.carroll-diagram { color: var(--alice-text); }
+
+@media (prefers-contrast: more) {
+  :root { --alice-border: #547f96; --alice-surface-soft: #e3f2f8; }
+  .tutorial__contents, .tutorial__section, .tutorial__source-references { background: #fff; }
+}
+@media print {
+  html, body { background: #fff !important; color: #111; }
+  .tutorial__contents, .tutorial__section, .tutorial__source-references { background: #fff; color: #111; box-shadow: none; border-color: #777; }
+}
