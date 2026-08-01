@@ -1175,6 +1175,7 @@ function createCustomTermManagementScreen(
 ): HTMLElement {
   const main = element("main", "logic-game__main logic-game__term-management");
   main.id = "main-content";
+  main.tabIndex = -1;
   main.dataset.screen = "custom-term-management";
   const title = heading("h2", model.customTermManagement.heading);
   title.tabIndex = -1;
@@ -1208,13 +1209,20 @@ export function renderGameView(
   article.dataset.phase = model.phase;
   article.dataset.activeScreen = model.activeScreen;
 
-  const skipLink = element("a", "skip-link");
+  const skipLink = element(
+    "a",
+    "skip-link skip-link--inline logic-game__header-link",
+  );
   skipLink.href = "#main-content";
   skipLink.textContent = model.accessibility.skipToMain;
   skipLink.dataset.focusKey = "skip-link";
   const header = element("header", "logic-game__header");
   header.append(heading("h1", model.title));
-  const tutorialLink = element("a", "logic-game__tutorial-link");
+  const headerActions = element("div", "logic-game__header-actions");
+  const tutorialLink = element(
+    "a",
+    "logic-game__tutorial-link logic-game__header-link",
+  );
   tutorialLink.href = model.tutorialLink.href;
   tutorialLink.target = "_blank";
   tutorialLink.rel = "noopener";
@@ -1223,11 +1231,11 @@ export function renderGameView(
     `${model.tutorialLink.label}（${model.tutorialLink.opensInNewTabLabel}）`,
   );
   tutorialLink.textContent = model.tutorialLink.label;
-  header.append(tutorialLink);
+  headerActions.append(skipLink, tutorialLink);
+  header.append(headerActions);
 
   if (model.activeScreen === "custom-term-management") {
     article.append(
-      skipLink,
       header,
       createCustomTermManagementScreen(model, handlers),
     );
@@ -1252,7 +1260,6 @@ export function renderGameView(
   main.append(phaseHeading);
 
   article.append(
-    skipLink,
     header,
     createSettings(model, handlers),
     createCustomTermSummary(model, handlers),

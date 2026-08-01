@@ -52,6 +52,31 @@ function handlers(): GameEventHandlers {
 }
 
 describe("renderGameView", () => {
+  it("groups the inline skip link before the tutorial link in both screens", () => {
+    const container = createContainer();
+    const callbacks = handlers();
+
+    for (const screen of ["game", "custom-term-management"] as const) {
+      renderGameView(container, createGameViewModel({
+        ...createInitialAppState(),
+        screen,
+      }), callbacks);
+      const actions = container.querySelector(".logic-game__header-actions")!;
+      const links = [...actions.querySelectorAll<HTMLAnchorElement>("a")];
+      expect(links).toHaveLength(2);
+      expect(links[0]?.getAttribute("href")).toBe("#main-content");
+      expect(links[0]?.textContent).toBe("メインコンテンツへ移動");
+      expect(links[0]?.classList.contains("skip-link--inline")).toBe(true);
+      expect(links[1]?.getAttribute("href")).toBe("./tutorial.html");
+      expect(links.every((link) =>
+        link.classList.contains("logic-game__header-link")
+      )).toBe(true);
+      expect(container.querySelectorAll("main#main-content")).toHaveLength(1);
+      expect(container.querySelector("main#main-content")?.getAttribute("tabindex"))
+        .toBe("-1");
+    }
+  });
+
   it("renders a compact game entry and a separate management screen", () => {
     const terms = Array.from({ length: 100 }, (_, index) => ({
       id: `custom-term-${index + 1}` as const,

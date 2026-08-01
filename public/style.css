@@ -293,6 +293,12 @@ noscript {
   transform: translateY(0);
 }
 
+.skip-link--inline {
+  position: static;
+  inset: auto;
+  transform: none;
+}
+
 button,
 select,
 input,
@@ -673,7 +679,10 @@ body {
 .logic-game h1, .logic-game h2, .logic-game h3 { color: var(--alice-heading); }
 .logic-game h1 { font-family: Georgia, "Yu Mincho", "Hiragino Mincho ProN", serif; letter-spacing: .025em; }
 .logic-game__tutorial-link, .logic-game a { color: var(--alice-primary-active); text-underline-offset: .18em; }
-.logic-game__tutorial-link { display: inline-block; padding: .35rem .75rem; border: 1px solid var(--alice-border-strong); border-radius: 999px; background: rgba(255,255,255,.6); }
+.logic-game__header-actions { display: flex; align-items: center; flex-wrap: wrap; gap: .75rem; }
+.logic-game__header-link { display: inline-flex; align-items: center; padding: .35rem .75rem; border: 1px solid var(--alice-border-strong); border-radius: 999px; background: rgba(255,255,255,.6); color: var(--alice-primary-active); }
+.logic-game__header-link:hover { border-color: var(--alice-primary-hover); background: var(--alice-surface-soft); }
+.logic-game__header-link:focus-visible { outline: 3px solid var(--alice-focus); outline-offset: 3px; }
 
 button, select, input { color: var(--alice-text); border-color: var(--alice-border-strong); background-color: var(--alice-surface-solid); }
 button { padding: .55rem .9rem; border: 2px solid var(--alice-primary); border-radius: .4rem; cursor: pointer; }
