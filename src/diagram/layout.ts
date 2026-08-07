@@ -31,12 +31,17 @@ export interface ViewBoxGeometry {
   readonly height: number;
 }
 
+export type DiagramLabelRole = "S" | "s" | "M" | "m" | "P" | "p";
+
+export type DiagramLabelPositions = Readonly<Record<DiagramLabelRole, Point>>;
+
 export interface TriliteralDiagramLayout {
   readonly viewBox: ViewBoxGeometry;
   readonly outerRect: RectGeometry;
   readonly innerRect: RectGeometry;
   readonly dividerLines: readonly LineGeometry[];
   readonly counterRadius: number;
+  readonly labelPositions: DiagramLabelPositions;
 }
 
 export interface BiliteralDiagramLayout {
@@ -62,12 +67,25 @@ function createDividerLines(): readonly LineGeometry[] {
 }
 
 export function createTriliteralDiagramLayout(): TriliteralDiagramLayout {
+  const innerRect = { x: 120, y: 120, width: 160, height: 160 };
+  const middleLabelHorizontalOffset = 20;
+  const middleLabelVerticalGap = 20;
+  const middleLabelX = innerRect.x + innerRect.width / 2 - middleLabelHorizontalOffset;
+
   return {
     viewBox: createViewBox(),
     outerRect: createOuterRect(),
-    innerRect: { x: 120, y: 120, width: 160, height: 160 },
+    innerRect,
     dividerLines: createDividerLines(),
     counterRadius: 14,
+    labelPositions: {
+      S: { x: 200, y: 24 },
+      s: { x: 200, y: 390 },
+      P: { x: 16, y: 205 },
+      p: { x: 384, y: 205 },
+      M: { x: middleLabelX, y: innerRect.y + middleLabelVerticalGap },
+      m: { x: middleLabelX, y: innerRect.y - middleLabelVerticalGap },
+    },
   };
 }
 

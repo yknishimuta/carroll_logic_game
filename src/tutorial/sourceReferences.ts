@@ -1,5 +1,3 @@
-import type { Locale } from "../domain/locale";
-
 export type TutorialSourceRelation = "direct" | "derived" | "application";
 
 export type TutorialSourceId =
@@ -212,26 +210,4 @@ export function getTutorialSourceEntry(
     throw new Error(`Unknown tutorial source ID: "${sourceId}".`);
   }
   return entry;
-}
-
-export function getTutorialSourceWork(
-  workId: TutorialSourceWork,
-): TutorialSourceWorkEntry {
-  const work = TUTORIAL_SOURCE_WORKS.find(({ id }) => id === workId);
-  if (work === undefined) {
-    throw new Error(`Unknown tutorial source work: "${workId}".`);
-  }
-  return work;
-}
-
-export function tutorialSourceAnchorId(sourceId: TutorialSourceId): string {
-  return `source-${sourceId}`;
-}
-
-export function formatTutorialSourcePage(
-  page: number | null,
-  locale: Locale,
-): string | null {
-  if (page === null) return null;
-  return locale === "ja" ? `印刷ページ ${page}` : `Printed page ${page}`;
 }

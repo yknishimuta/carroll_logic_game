@@ -55,8 +55,8 @@ describe("SVG board structure", () => {
       'data-label-role="s" x="200" y="390"',
       'data-label-role="P" x="16" y="205"',
       'data-label-role="p" x="384" y="205"',
-      'data-label-role="M" x="200" y="112"',
-      'data-label-role="m" x="200" y="62"',
+      'data-label-role="M" x="180" y="140"',
+      'data-label-role="m" x="180" y="100"',
       ">S′</text>",
       ">P′</text>",
       ">M′</text>",
@@ -68,10 +68,39 @@ describe("SVG board structure", () => {
     expect(biliteral).toContain(">P′</text>");
     expect(biliteral).not.toContain(">M</text>");
     expect(biliteral).not.toContain(">M′</text>");
+    expect(triliteral.match(/data-label-role="M"/g)).toHaveLength(1);
+    expect(triliteral.match(/data-label-role="m"/g)).toHaveLength(1);
+    expect(triliteral).toContain('data-label-role="M" x="180" y="140" text-anchor="middle" dominant-baseline="middle" fill="currentColor">M</text>');
+    expect(triliteral).toContain('data-label-role="m" x="180" y="100" text-anchor="middle" dominant-baseline="middle" fill="currentColor">M′</text>');
   });
 });
 
 describe("SVG counters", () => {
+  it("moves only middle labels while preserving nearby counter coordinates and source IDs", () => {
+    const svg = renderTriliteralDiagramSvg({
+      emptinessCounters: [
+        { kind: "emptiness", anchor: { type: "cell", cell: "SMP" } },
+        { kind: "emptiness", anchor: { type: "cell", cell: "SMp" } },
+      ],
+      existenceCounters: [
+        { kind: "existence", sourceIds: ["p-boundary"], anchor: { type: "boundary", cells: ["SMP", "SMp"], partitionRole: "P" } },
+        { kind: "existence", sourceIds: ["m-boundary"], anchor: { type: "boundary", cells: ["SMP", "SmP"], partitionRole: "M" } },
+      ],
+    });
+
+    expect(svg).toContain('data-label-role="M" x="180" y="140"');
+    expect(svg).toContain('data-label-role="m" x="180" y="100"');
+    for (const counter of [
+      '<circle cx="160" cy="160" r="14"',
+      '<circle cx="240" cy="160" r="14"',
+      '<circle cx="200" cy="160" r="14"',
+      '<circle cx="120" cy="120" r="14"',
+    ]) expect(svg).toContain(counter);
+    expect(svg).toContain('data-source-ids="[&quot;p-boundary&quot;]"');
+    expect(svg).toContain('data-source-ids="[&quot;m-boundary&quot;]"');
+    expect(svg.indexOf('carroll-diagram__labels')).toBeLessThan(svg.indexOf('carroll-diagram__emptiness-counters'));
+  });
+
   it("renders emptiness before existence with symbols and sourceIds", () => {
     const svg = renderTriliteralDiagramSvg({
       emptinessCounters: [

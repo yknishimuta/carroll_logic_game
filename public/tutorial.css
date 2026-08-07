@@ -59,8 +59,9 @@ main { padding-block-end: 3rem; }
   padding: 1rem;
   border: 2px solid var(--border);
   background: var(--notice);
-  font-weight: 700;
 }
+.tutorial__notice p { margin-block: 0 1rem; }
+.tutorial__notice p:last-child { margin-block-end: 0; }
 .tutorial__table-scroll {
   max-width: 100%;
   overflow-x: auto;
@@ -69,6 +70,8 @@ main { padding-block-end: 3rem; }
 table { width: 100%; border-collapse: collapse; min-width: 36rem; }
 caption { text-align: start; font-weight: 700; padding-block: .5rem; }
 th, td { border: 1px solid var(--border); padding: .55rem; text-align: start; }
+.tutorial__table-scroll th,
+.tutorial__table-scroll td { overflow-wrap: normal; }
 .tutorial__diagram {
   width: min(100%, 32rem);
   margin: 1.5rem auto;
@@ -77,41 +80,14 @@ th, td { border: 1px solid var(--border); padding: .55rem; text-align: start; }
 }
 .tutorial__diagram svg { display: block; width: 100%; height: auto; aspect-ratio: 1; }
 .tutorial__diagram figcaption { margin-block-start: .5rem; }
-.tutorial__rule-sources {
-  margin-block-start: 1.5rem;
-  padding-block-start: 1rem;
+.tutorial__source-note {
+  margin-block-start: 1.25rem;
+  padding-block-start: .75rem;
   border-block-start: 1px solid var(--border);
-}
-.tutorial__rule-sources dl { margin: 0; }
-.tutorial__rule-sources dt { font-weight: 700; }
-.tutorial__rule-sources dd { margin: .25rem 0 .75rem 1rem; }
-.tutorial__citation {
   font-size: .9375rem;
-  text-decoration: underline;
-  text-underline-offset: .18em;
 }
-.tutorial__citation--derived::before { content: "↳ "; }
-.tutorial__citation--application {
-  text-decoration-style: dotted;
-  font-style: italic;
-}
-.tutorial__source-references {
-  background: var(--panel);
-  border: 2px solid var(--border);
-  border-radius: .5rem;
-  padding: clamp(1rem, 3vw, 2rem);
-  margin-block: 2rem;
-}
-.tutorial__source-references li {
-  padding: .75rem;
-  margin-block: .5rem;
-}
-.tutorial__source-references li:target {
-  outline: 3px solid Highlight;
-  outline-offset: 2px;
-}
-.tutorial__source-references h3,
-.tutorial__source-references p { margin-block: .35rem; }
+.tutorial__source-note-label { font-weight: 700; }
+.tutorial__locator { white-space: nowrap; }
 .carroll-diagram__outer,
 .carroll-diagram__inner,
 .carroll-diagram__divider { fill: none; stroke: currentColor; stroke-width: 2; }
@@ -139,9 +115,7 @@ th, td { border: 1px solid var(--border); padding: .55rem; text-align: start; }
 @media (forced-colors: active) {
   .tutorial__notice,
   .tutorial__diagram,
-  .tutorial__section,
-  .tutorial__source-references { border: 2px solid CanvasText; }
-  .tutorial__citation { color: LinkText; }
+  .tutorial__section { border: 2px solid CanvasText; }
   .carroll-diagram__counter--emptiness { fill: Canvas; stroke: CanvasText; }
   .carroll-diagram__counter--existence { fill: CanvasText; }
 }
@@ -187,7 +161,7 @@ a { color: var(--alice-primary-hover); text-underline-offset: .18em; }
 .tutorial__header h1 { font-family: Georgia, "Yu Mincho", "Hiragino Mincho ProN", serif; letter-spacing: .02em; }
 .tutorial__header a { padding: .35rem .75rem; border: 1px solid var(--alice-border-strong); border-radius: 999px; background: rgba(255,255,255,.75); }
 select { color: var(--alice-text); background: #fff; border: 2px solid var(--alice-border-strong); border-radius: .4rem; }
-.tutorial__contents, .tutorial__section, .tutorial__source-references {
+.tutorial__contents, .tutorial__section {
   background: rgba(255,255,255,.97);
   border-color: var(--alice-border);
   border-radius: .7rem;
@@ -198,14 +172,14 @@ select { color: var(--alice-text); background: #fff; border: 2px solid var(--ali
 .tutorial__diagram { background: #fff; border-color: var(--alice-border-strong); }
 .tutorial__table-scroll { border: 1px solid var(--alice-border); background: #fff; }
 th { color: var(--alice-heading); background: var(--alice-surface-soft); }
-th, td, .tutorial__rule-sources { border-color: var(--alice-border); }
+th, td { border-color: var(--alice-border); }
 .carroll-diagram { color: var(--alice-text); }
 
 @media (prefers-contrast: more) {
   :root { --alice-border: #547f96; --alice-surface-soft: #e3f2f8; }
-  .tutorial__contents, .tutorial__section, .tutorial__source-references { background: #fff; }
+  .tutorial__contents, .tutorial__section { background: #fff; }
 }
 @media print {
   html, body { background: #fff !important; color: #111; }
-  .tutorial__contents, .tutorial__section, .tutorial__source-references { background: #fff; color: #111; box-shadow: none; border-color: #777; }
+  .tutorial__contents, .tutorial__section { background: #fff; color: #111; box-shadow: none; border-color: #777; }
 }

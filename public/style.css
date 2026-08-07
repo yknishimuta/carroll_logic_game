@@ -46,6 +46,12 @@
   background: color-mix(in srgb, Highlight 22%, transparent);
 }
 
+.logic-game__counter-target--locked {
+  border-color: transparent;
+  background: transparent;
+  pointer-events: none;
+}
+
 .logic-game__counter-tools,
 .logic-game__counter-actions {
   display: flex;

@@ -642,6 +642,16 @@ describe("custom term view models", () => {
     expect(count(problem.diagram.svg, "data-counter-kind=")).toBe(0);
 
     const first = createGameViewModel({ ...base, phase: "first-premise" });
+    const automaticFirst = createGameViewModel({
+      ...createInitialAppState(), phase: "first-premise",
+    });
+    const automaticCombined = createGameViewModel({
+      ...createInitialAppState(), phase: "combined-premises",
+    });
+    for (const svg of [problem.diagram.svg, first.diagram.svg, automaticFirst.diagram.svg, automaticCombined.diagram.svg]) {
+      expect(svg).toContain('data-label-role="M" x="180" y="140"');
+      expect(svg).toContain('data-label-role="m" x="180" y="100"');
+    }
     expect(first.counterPracticePanel?.targets).toHaveLength(20);
     expect(first.counterPracticePanel?.tools.map(({ value }) => value)).toEqual(
       ["emptiness", "existence", "erase"],

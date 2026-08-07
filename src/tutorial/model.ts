@@ -11,16 +11,12 @@ import type { Locale } from "../domain/locale";
 import { computeProblem } from "../app/problemComputation";
 import {
   getTutorialContent,
+  type TutorialBlock,
+  type TutorialContent,
   type TutorialTable,
 } from "./content";
 import {
-  formatTutorialSourcePage,
   getTutorialSourceEntry,
-  getTutorialSourceWork,
-  tutorialSourceAnchorId,
-  type TutorialSourceId,
-  type TutorialSourceReference,
-  type TutorialSourceRelation,
 } from "./sourceReferences";
 
 export interface TutorialDiagramViewModel {
@@ -34,17 +30,9 @@ export interface TutorialDiagramViewModel {
     | BiliteralCounterPlacements;
 }
 
-export interface TutorialCitationViewModel {
-  readonly href: string | null;
-  readonly label: string;
-  readonly relation: TutorialSourceRelation;
-}
-
-export interface TutorialRuleSourceViewModel {
-  readonly id: string;
-  readonly label: string;
-  readonly citations: readonly TutorialCitationViewModel[];
-}
+export type TutorialViewBlock =
+  | Exclude<TutorialBlock, { readonly kind: "diagram" }>
+  | { readonly kind: "diagram"; readonly diagram: TutorialDiagramViewModel };
 
 export interface TutorialSectionViewModel {
   readonly id: string;
@@ -53,17 +41,8 @@ export interface TutorialSectionViewModel {
   readonly lists?: readonly (readonly string[])[];
   readonly diagrams: readonly TutorialDiagramViewModel[];
   readonly tables?: readonly TutorialTable[];
-  readonly ruleSources: readonly TutorialRuleSourceViewModel[];
-}
-
-export interface TutorialSourceEntryViewModel {
-  readonly id: string;
-  readonly workTitle: string;
-  readonly edition: string;
-  readonly locator: string;
-  readonly locationLabel: string;
-  readonly pageLabel: string | null;
-  readonly note: string | null;
+  readonly blocks?: readonly TutorialViewBlock[];
+  readonly locators: readonly string[];
 }
 
 export interface TutorialViewModel {
@@ -75,10 +54,11 @@ export interface TutorialViewModel {
   readonly languageLabel: string;
   readonly tableOfContentsLabel: string;
   readonly notice: string;
+  readonly bibliography: TutorialContent["bibliography"];
+  readonly bibliographyLabel: string;
+  readonly locatorExplanation: string;
+  readonly relatedPassagesLabel: string;
   readonly sections: readonly TutorialSectionViewModel[];
-  readonly sourceReferencesHeading: string;
-  readonly sourceReferencesDescription: string;
-  readonly sourceEntries: readonly TutorialSourceEntryViewModel[];
 }
 
 const emptyTriliteral: TriliteralCounterPlacements = {
@@ -104,37 +84,47 @@ const boundaryExample: TriliteralCounterPlacements = {
   }],
 };
 
+const boundaryWithOExample: TriliteralCounterPlacements = {
+  emptinessCounters: [{
+    kind: "emptiness",
+    anchor: { type: "cell", cell: "SMP" },
+  }],
+  existenceCounters: boundaryExample.existenceCounters,
+};
+
 const resolvedExample: TriliteralCounterPlacements = {
   emptinessCounters: [{
     kind: "emptiness",
-    anchor: { type: "cell", cell: "sMP" },
+    anchor: { type: "cell", cell: "SMP" },
   }],
   existenceCounters: [{
     kind: "existence",
     sourceIds: ["tutorial-resolved"],
-    anchor: { type: "cell", cell: "SMP" },
+    anchor: { type: "cell", cell: "sMP" },
   }],
 };
 
 type DiagramText = Readonly<Record<
-  "empty" | "boundary" | "resolved" | "projection" | "first" | "combined" | "conclusion",
+  "empty" | "boundary" | "additional" | "resolved" | "projection" | "first" | "combined" | "conclusion",
   readonly [string, string]
 >>;
 
 function diagramText(locale: Locale): DiagramText {
   return locale === "ja" ? {
-    empty: ["空の三文字図", "S・M・Pで分かれた8領域。駒はまだありません。"],
-    boundary: ["未確定の境界I", "IはSMPとsMPのどちらか一方に存在します。"],
-    resolved: ["片側が空になった後", "sMPがOで空になったため、IはSMPへ確定します。"],
-    projection: ["空の二文字結論図", "M／M′をまとめると、SとPによる4領域になります。"],
+    empty: ["空の三文字図", "S／S′、M／M′、P／P′の三つの二分によって作られる8領域です。駒はまだ置かれていません。"],
+    boundary: ["初期状態", "I駒はSMPとsMPの境界上にあります。"],
+    additional: ["追加情報", "SMPにO駒が置かれ、SMPが空であることが分かります。"],
+    resolved: ["確定後", "存在する対象はsMPにあると確定し、I駒はsMPのセル内にあります。"],
+    projection: ["空の二文字図", "小項Sと大項Pの関係を表す4領域です。駒はまだ置かれていません。"],
     first: ["Barbara：第一前提", "All M are Pを表す既存の第一前提計算結果です。"],
     combined: ["Barbara：統合前提", "二つの前提を反映した既存の統合計算結果です。"],
     conclusion: ["Barbara：結論", "Mを消去した既存の結論計算結果です。"],
   } : {
-    empty: ["Empty triliteral diagram", "Eight regions divided by S, M, and P, with no counters yet."],
-    boundary: ["Unresolved boundary I", "I exists in either SMP or sMP, but not yet a determined side."],
-    resolved: ["After one side becomes empty", "Because sMP has O, the I is fixed in SMP."],
-    projection: ["Empty biliteral conclusion diagram", "After merging M/M′, S and P form four regions."],
+    empty: ["Empty triliteral diagram", "Eight regions formed by the three divisions S/S′, M/M′, and P/P′. No counters have been placed yet."],
+    boundary: ["Initial state", "The I-counter is on the boundary between SMP and sMP."],
+    additional: ["Additional information", "An O-counter is placed in SMP, so SMP is known to be empty."],
+    resolved: ["Resolved state", "The existing object is resolved to sMP, and the I-counter is inside the sMP cell."],
+    projection: ["Empty biliteral diagram", "Four regions showing the relation between the minor term S and the major term P. No counters have been placed yet."],
     first: ["Barbara: first premise", "The existing computation for the first premise All M are P."],
     combined: ["Barbara: combined premises", "The existing computation after combining both premises."],
     conclusion: ["Barbara: conclusion", "The existing conclusion computation after eliminating M."],
@@ -159,49 +149,21 @@ function createDiagram(
   return { id, heading: text[0], description: text[1], svg, kind, placements };
 }
 
-function createCitation(
-  reference: TutorialSourceReference,
-  locale: Locale,
-): TutorialCitationViewModel {
-  if (reference.relation === "application") {
-    return {
-      href: null,
-      label: locale === "ja"
-        ? "（本アプリの操作仕様）"
-        : "(Application behavior)",
-      relation: reference.relation,
-    };
-  }
-  const entry = getTutorialSourceEntry(reference.sourceId);
-  const label = locale === "ja"
-    ? reference.relation === "direct"
-      ? `（Symbolic Logic ${entry.locator}）`
-      : `（Symbolic Logic ${entry.locator}に基づく整理）`
-    : reference.relation === "direct"
-      ? `(Source: Symbolic Logic ${entry.locator})`
-      : `(Derived from Symbolic Logic ${entry.locator})`;
-  return {
-    href: `#${tutorialSourceAnchorId(entry.id)}`,
-    label,
-    relation: reference.relation,
-  };
-}
-
 export function createTutorialViewModel(locale: Locale): TutorialViewModel {
   const content = getTutorialContent(locale);
   const text = diagramText(locale);
   const barbara = computeProblem(getBuiltInProblem("barbara-aaa1"));
-  const usedSourceIds = new Set<TutorialSourceId>();
   const diagrams = new Map<string, readonly TutorialDiagramViewModel[]>([
     ["eight-regions", [
       createDiagram("empty-triliteral", text.empty, "triliteral", emptyTriliteral),
     ]],
+    ["biliteral-diagram", [
+      createDiagram("empty-biliteral-basics", text.projection, "biliteral", emptyBiliteral),
+    ]],
     ["boundary-existence", [
       createDiagram("boundary-unresolved", text.boundary, "triliteral", boundaryExample),
+      createDiagram("boundary-with-o", text.additional, "triliteral", boundaryWithOExample),
       createDiagram("boundary-resolved", text.resolved, "triliteral", resolvedExample),
-    ]],
-    ["eliminate-middle", [
-      createDiagram("empty-biliteral", text.projection, "biliteral", emptyBiliteral),
     ]],
     ["barbara", [
       createDiagram("barbara-first", text.first, "triliteral", barbara.firstPremisePlacements),
@@ -209,35 +171,33 @@ export function createTutorialViewModel(locale: Locale): TutorialViewModel {
       createDiagram("barbara-conclusion", text.conclusion, "biliteral", barbara.conclusionPlacements),
     ]],
   ]);
-  const sections = content.sections.map((section) => ({
-    ...section,
-    diagrams: diagrams.get(section.id) ?? [],
-    ruleSources: section.ruleSources.map((rule) => {
-      rule.sourceReferences.forEach((reference) => {
-        if (reference.sourceId !== null) usedSourceIds.add(reference.sourceId);
-      });
-      return {
-        id: rule.id,
-        label: rule.label,
-        citations: rule.sourceReferences.map((reference) =>
-          createCitation(reference, locale)
-        ),
-      };
-    }),
-  }));
-  const sourceEntries = [...usedSourceIds].map((sourceId) => {
-    const entry = getTutorialSourceEntry(sourceId);
-    const work = getTutorialSourceWork(entry.work);
+  const sections = content.sections.map((section) => {
+    const { blocks: contentBlocks, ...sectionWithoutBlocks } = section;
+    const sectionDiagrams = diagrams.get(section.id) ?? [];
+    const blocks = contentBlocks?.map((block): TutorialViewBlock => {
+      if (block.kind !== "diagram") return block;
+      const diagram = sectionDiagrams.find(({ id }) => id === block.diagramId);
+      if (diagram === undefined) {
+        throw new Error(`Missing tutorial diagram: ${block.diagramId}`);
+      }
+      return { kind: "diagram", diagram };
+    });
+    const blockDiagramIds = new Set(
+      contentBlocks?.flatMap((block) => block.kind === "diagram" ? [block.diagramId] : []) ?? [],
+    );
     return {
-      id: tutorialSourceAnchorId(entry.id),
-      workTitle: work.title,
-      edition: work.edition[locale],
-      locator: entry.locator,
-      locationLabel: entry.labels[locale],
-      pageLabel: formatTutorialSourcePage(entry.page, locale),
-      note: entry.notes[locale],
-    };
-  });
+    ...sectionWithoutBlocks,
+    heading: section.heading.replace(/^\d+\.\s+/, ""),
+    ...(blocks === undefined ? {} : { blocks }),
+    diagrams: sectionDiagrams.filter(({ id }) => !blockDiagramIds.has(id)),
+    locators: [...new Set(section.ruleSources.flatMap((rule) =>
+      rule.sourceReferences.flatMap((reference) =>
+        reference.sourceId === null
+          ? []
+          : [`(${getTutorialSourceEntry(reference.sourceId).locator})`]
+      )
+    ))],
+  }});
   return {
     locale,
     title: content.title,
@@ -247,13 +207,14 @@ export function createTutorialViewModel(locale: Locale): TutorialViewModel {
     languageLabel: content.languageLabel,
     tableOfContentsLabel: content.contentsLabel,
     notice: content.notice,
+    bibliography: content.bibliography,
+    bibliographyLabel: locale === "ja" ? "参照文献：" : "Reference:",
+    locatorExplanation: locale === "ja"
+      ? "各節末の「原著の関連箇所」は、その説明に対応する原著の箇所を示します。"
+      : "The “Related passages in the original” shown at the end of each section indicate passages corresponding to that explanation.",
+    relatedPassagesLabel: locale === "ja"
+      ? "原著の関連箇所："
+      : "Related passages in the original:",
     sections,
-    sourceReferencesHeading: locale === "ja"
-      ? "原著参照"
-      : "Source References",
-    sourceReferencesDescription: locale === "ja"
-      ? "章節番号を主たる位置情報とし、確認できた印刷ページを補助情報として示します。"
-      : "Chapter locators are primary; verified printed pages are supplementary.",
-    sourceEntries,
   };
 }

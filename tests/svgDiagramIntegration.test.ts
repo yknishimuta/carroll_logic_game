@@ -71,6 +71,8 @@ describe("SVG diagram integration", () => {
     expect(carrollSvgs.triliteralSvg).toContain(
       'data-diagram-kind="triliteral"',
     );
+    expect(carrollSvgs.triliteralSvg).toContain('data-label-role="M" x="180" y="140"');
+    expect(carrollSvgs.triliteralSvg).toContain('data-label-role="m" x="180" y="100"');
     expect(carrollSvgs.conclusionSvg).toContain(
       'data-counter-kind="emptiness"><circle cx="280" cy="120"',
     );

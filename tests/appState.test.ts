@@ -597,6 +597,100 @@ describe("application state", () => {
     );
   });
 
+  it("inherits first-premise counters, locks O, keeps I editable, and resets to the inherited board", () => {
+    const inherited = [
+      { kind: "emptiness" as const, anchor: { type: "cell" as const, cell: "SMp" as const } },
+      { kind: "emptiness" as const, anchor: { type: "cell" as const, cell: "sMp" as const } },
+      {
+        kind: "existence" as const,
+        anchor: {
+          type: "boundary" as const,
+          partitionRole: "S" as const,
+          cells: ["SMP", "sMP"] as const,
+        },
+      },
+    ];
+    const first = {
+      ...initial,
+      phase: "first-premise" as const,
+      counterPractice: {
+        ...initial.counterPractice,
+        mode: "manual" as const,
+        firstPremise: { placements: inherited, check: { kind: "correct" as const } },
+      },
+    };
+    const combined = reduceAppState(first, {
+      type: "next",
+      firstPremisePlacements: inherited,
+    });
+    expect(combined.phase).toBe("combined-premises");
+    expect(combined.counterPractice.combinedPremises.placements).toEqual(inherited);
+
+    for (const tool of ["emptiness", "existence", "erase"] as const) {
+      const selected = reduceAppState(combined, { type: "set-counter-tool", tool });
+      expect(reduceAppState(selected, {
+        type: "apply-triliteral-counter-tool",
+        phase: "combined-premises",
+        anchor: { type: "cell", cell: "SMp" },
+      })).toBe(selected);
+    }
+
+    const erase = reduceAppState(combined, { type: "set-counter-tool", tool: "erase" });
+    const withoutI = reduceAppState(erase, {
+      type: "apply-triliteral-counter-tool",
+      phase: "combined-premises",
+      anchor: inherited[2]!.anchor,
+    });
+    expect(withoutI.counterPractice.combinedPremises.placements).toHaveLength(2);
+    const reset = reduceAppState(withoutI, {
+      type: "clear-counter-attempt",
+      phase: "combined-premises",
+    });
+    expect(reset.counterPractice.combinedPremises.placements).toEqual(inherited);
+  });
+
+  it.each([
+    {
+      name: "O only",
+      placement: {
+        kind: "emptiness" as const,
+        anchor: { type: "cell" as const, cell: "SMp" as const },
+      },
+      editable: false,
+    },
+    {
+      name: "I only",
+      placement: {
+        kind: "existence" as const,
+        anchor: { type: "cell" as const, cell: "SMP" as const },
+      },
+      editable: true,
+    },
+  ])("inherits $name first-premise boards with the expected editability", ({
+    placement,
+    editable,
+  }) => {
+    const inherited = [placement];
+    const combined = reduceAppState({
+      ...initial,
+      phase: "first-premise",
+      counterPractice: {
+        ...initial.counterPractice,
+        mode: "manual",
+        selectedTool: "erase",
+        firstPremise: { placements: inherited, check: { kind: "correct" } },
+      },
+    }, { type: "next", firstPremisePlacements: inherited });
+    const changed = reduceAppState(combined, {
+      type: "apply-triliteral-counter-tool",
+      phase: "combined-premises",
+      anchor: placement.anchor,
+    });
+    expect(changed.counterPractice.combinedPremises.placements).toHaveLength(
+      editable ? 0 : 1,
+    );
+  });
+
   it("keeps attempts across locale and previous but clears logical changes", () => {
     let state = reduceAppState(initial, {
       type: "set-counter-placement-mode",

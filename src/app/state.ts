@@ -40,10 +40,12 @@ import {
   applyBiliteralCounterTool,
   applyTriliteralCounterTool,
   createInitialCounterPracticeState,
+  isSameTriliteralCounterAnchor,
   type CounterAttemptValidationResult,
   type CounterPlacementMode,
   type CounterPracticeState,
   type CounterTool,
+  type UserTriliteralCounterPlacement,
 } from "./counterPractice";
 import {
   canEnterConclusion,
@@ -171,7 +173,11 @@ export interface InitialAppStateOptions {
 export type AppAction =
   | { readonly type: "open-custom-term-management" }
   | { readonly type: "close-custom-term-management" }
-  | { readonly type: "next" }
+  | {
+      readonly type: "next";
+      readonly firstPremisePlacements?:
+        readonly UserTriliteralCounterPlacement[];
+    }
   | { readonly type: "previous" }
   | { readonly type: "reset" }
   | { readonly type: "select-problem"; readonly problemId: BuiltInProblemId }
@@ -705,6 +711,13 @@ export function reduceAppState(
         ? "firstPremise"
         : "combinedPremises";
       const current = state.counterPractice[field];
+      if (
+        action.phase === "combined-premises" &&
+        state.counterPractice.firstPremise.placements.some((placement) =>
+          placement.kind === "emptiness" &&
+          isSameTriliteralCounterAnchor(placement.anchor, action.anchor)
+        )
+      ) return state;
       const placements = applyTriliteralCounterTool(
         current.placements,
         action.anchor,
@@ -801,12 +814,15 @@ export function reduceAppState(
         : action.phase === "combined-premises"
           ? "combinedPremises"
           : "conclusion";
+      const placements = action.phase === "combined-premises"
+        ? state.counterPractice.firstPremise.placements
+        : [];
       return {
         ...state,
         counterPractice: {
           ...state.counterPractice,
           [field]: {
-            placements: [],
+            placements,
             check: { kind: "not-checked" },
           },
         },
@@ -954,6 +970,28 @@ export function reduceAppState(
         state.phase === "first-premise" &&
         state.counterPractice.firstPremise.check.kind !== "correct"
       ) return state;
+      if (
+        state.counterPractice.mode === "manual" &&
+        state.phase === "first-premise"
+      ) {
+        const placements = action.firstPremisePlacements ??
+          state.counterPractice.firstPremise.placements;
+        return {
+          ...state,
+          phase: "combined-premises",
+          counterPractice: {
+            ...state.counterPractice,
+            firstPremise: {
+              placements,
+              check: { kind: "correct" },
+            },
+            combinedPremises: {
+              placements,
+              check: { kind: "not-checked" },
+            },
+          },
+        };
+      }
       if (
         state.phase === "combined-premises" &&
         !canEnterConclusion({

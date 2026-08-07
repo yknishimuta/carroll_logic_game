@@ -254,6 +254,7 @@ export interface CounterTargetViewModel {
   readonly leftPercent: number;
   readonly topPercent: number;
   readonly occupiedKind: CounterKind | null;
+  readonly locked: boolean;
 }
 
 export interface CounterToolOptionViewModel {
@@ -886,6 +887,7 @@ function counterPanel(
           leftPercent: target.position.x / 4,
           topPercent: target.position.y / 4,
           occupiedKind: kind,
+          locked: false,
         };
       })
     : createTriliteralCounterTargets().map((target) => {
@@ -893,12 +895,19 @@ function counterPanel(
           ? state.counterPractice.firstPremise.placements
           : state.counterPractice.combinedPremises.placements;
         const kind = occupiedKind(placements, target.anchor, triKey);
+        const locked = state.phase === "combined-premises" &&
+          occupiedKind(
+            state.counterPractice.firstPremise.placements,
+            target.anchor,
+            triKey,
+          ) === "emptiness";
         return {
           key: target.key,
           label: targetLabel(state.locale, messages, target.anchor, kind),
           leftPercent: target.position.x / 4,
           topPercent: target.position.y / 4,
           occupiedKind: kind,
+          locked,
         };
       });
   const instruction = state.phase === "first-premise"

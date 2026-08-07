@@ -124,6 +124,13 @@ function triliteralAnchorKey(anchor: TriliteralCounterAnchor): string {
   return `boundary:${anchor.partitionRole}:${cells[0]}:${cells[1]}`;
 }
 
+export function isSameTriliteralCounterAnchor(
+  left: TriliteralCounterAnchor,
+  right: TriliteralCounterAnchor,
+): boolean {
+  return triliteralAnchorKey(left) === triliteralAnchorKey(right);
+}
+
 function biliteralAnchorKey(anchor: BiliteralCounterAnchor): string {
   if (anchor.type === "cell") return `cell:${anchor.cell}`;
   const cells = orderedPair(anchor.cells, biliteralIndex);
@@ -294,6 +301,21 @@ export function createTriliteralAttemptPlacements(
       .filter(({ kind }) => kind === "existence")
       .map(({ anchor }) => ({ kind: "existence", anchor, sourceIds: [] })),
   };
+}
+
+export function createUserTriliteralCounterPlacements(
+  placements: TriliteralCounterPlacements,
+): readonly UserTriliteralCounterPlacement[] {
+  return [
+    ...placements.emptinessCounters.map(({ anchor }) => ({
+      kind: "emptiness" as const,
+      anchor,
+    })),
+    ...placements.existenceCounters.map(({ anchor }) => ({
+      kind: "existence" as const,
+      anchor,
+    })),
+  ].sort((left, right) => compareTriliteralAnchors(left.anchor, right.anchor));
 }
 
 export function createBiliteralAttemptPlacements(

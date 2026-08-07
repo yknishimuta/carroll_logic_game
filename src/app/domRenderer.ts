@@ -953,6 +953,18 @@ function createDiagramSection(
       "logic-game__counter-target-overlay",
     );
     panel.targets.forEach((target) => {
+      if (target.locked) {
+        const locked = element(
+          "span",
+          "logic-game__counter-target logic-game__counter-target--locked",
+        );
+        locked.dataset.counterTargetLocked = "true";
+        locked.setAttribute("aria-hidden", "true");
+        locked.style.left = `${target.leftPercent}%`;
+        locked.style.top = `${target.topPercent}%`;
+        overlay.append(locked);
+        return;
+      }
       const button = element("button", "logic-game__counter-target");
       button.type = "button";
       button.dataset.action = "counter-target";

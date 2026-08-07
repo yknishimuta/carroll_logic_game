@@ -20,6 +20,14 @@ describe("diagram layout defaults", () => {
         { x1: 40, y1: 200, x2: 360, y2: 200 },
       ],
       counterRadius: 14,
+      labelPositions: {
+        S: { x: 200, y: 24 },
+        s: { x: 200, y: 390 },
+        P: { x: 16, y: 205 },
+        p: { x: 384, y: 205 },
+        M: { x: 180, y: 140 },
+        m: { x: 180, y: 100 },
+      },
     });
   });
 
@@ -45,8 +53,31 @@ describe("diagram layout defaults", () => {
     expect(first).not.toBe(second);
     expect(first.viewBox).not.toBe(second.viewBox);
     expect(first.dividerLines).not.toBe(second.dividerLines);
+    expect(first.labelPositions).not.toBe(second.labelPositions);
+    expect(first.labelPositions.M).not.toBe(second.labelPositions.M);
+    expect(first.labelPositions.m).not.toBe(second.labelPositions.m);
     expect(first.dividerLines).toHaveLength(3);
     expect(second.dividerLines).toHaveLength(2);
+  });
+
+  it("places M inside and M prime outside without touching the inner top or vertical divider", () => {
+    const layout = createTriliteralDiagramLayout();
+    const middle = layout.labelPositions.M;
+    const middlePrime = layout.labelPositions.m;
+    const verticalDivider = layout.dividerLines.find(({ x1, x2 }) => x1 === x2);
+
+    expect(middle.y).toBeGreaterThan(layout.innerRect.y);
+    expect(middle.y).toBeLessThan(layout.innerRect.y + layout.innerRect.height);
+    expect(middlePrime.y).toBeLessThan(layout.innerRect.y);
+    expect(middlePrime.y).toBeGreaterThan(layout.outerRect.y);
+    expect(middle.x).toBe(middlePrime.x);
+    expect(Math.abs(middle.y - layout.innerRect.y)).toBeGreaterThanOrEqual(16);
+    expect(Math.abs(middlePrime.y - layout.innerRect.y)).toBeGreaterThanOrEqual(16);
+    expect(verticalDivider).toBeDefined();
+    if (verticalDivider !== undefined) {
+      expect(Math.abs(middle.x - verticalDivider.x1)).toBeGreaterThanOrEqual(16);
+      expect(Math.abs(middlePrime.x - verticalDivider.x1)).toBeGreaterThanOrEqual(16);
+    }
   });
 });
 

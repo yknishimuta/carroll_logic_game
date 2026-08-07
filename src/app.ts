@@ -21,6 +21,7 @@ import type { StringStorage } from "./storage/stringStorage";
 import {
   findBiliteralCounterTarget,
   findTriliteralCounterTarget,
+  createUserTriliteralCounterPlacements,
   validateBiliteralCounterAttempt,
   validateTriliteralCounterAttempt,
 } from "./app/counterPractice";
@@ -183,7 +184,22 @@ export function mountApp(
       onCustomTermManagementClose: () =>
         dispatch({ type: "close-custom-term-management" }),
       onPrevious: () => dispatch({ type: "previous" }),
-      onNext: () => dispatch({ type: "next" }),
+      onNext: () => {
+        if (
+          state.counterPractice.mode === "manual" &&
+          state.phase === "first-premise" &&
+          state.counterPractice.firstPremise.check.kind === "correct"
+        ) {
+          dispatch({
+            type: "next",
+            firstPremisePlacements: createUserTriliteralCounterPlacements(
+              currentComputation().firstPremisePlacements,
+            ),
+          });
+          return;
+        }
+        dispatch({ type: "next" });
+      },
       onReset: () => dispatch({ type: "reset" }),
       onProblemChange: (problemId) =>
         dispatch({ type: "select-problem", problemId }),

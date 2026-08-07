@@ -611,11 +611,10 @@ describe("mounted application interaction", () => {
     )!.click();
     button(container, "next").click();
     chooseCounterTool(container, "emptiness");
-    for (const cell of ["SMp", "sMp", "SmP", "Smp"]) {
+    for (const cell of ["SmP", "Smp"]) {
       activateCounterTarget(container, `triliteral:cell:${cell}`);
     }
     chooseCounterTool(container, "existence");
-    activateCounterTarget(container, "triliteral:boundary:S:SMP:sMP");
     activateCounterTarget(container, "triliteral:cell:SMP");
     container.querySelector<HTMLButtonElement>(
       '[data-action="check-counter-attempt"]',
@@ -627,7 +626,7 @@ describe("mounted application interaction", () => {
     expect(button(container, "next").disabled).toBe(true);
     expect(phase(container)).toBe("combined-premises");
     expect(container.querySelectorAll('[data-action="counter-target"]'))
-      .toHaveLength(20);
+      .toHaveLength(18);
     submitConclusion(container, "E");
     expect(button(container, "next").disabled).toBe(true);
     submitConclusion(container, "A");
@@ -858,16 +857,21 @@ describe("mounted application interaction", () => {
     expect(phase(container)).toBe("combined-premises");
     expect(container.querySelectorAll(
       '.carroll-diagram [data-counter-kind]',
-    )).toHaveLength(0);
+    )).toHaveLength(3);
+    expect(container.querySelectorAll(
+      '[data-counter-target-locked="true"]',
+    )).toHaveLength(2);
+    expect(container.querySelector(
+      '[data-action="counter-target"][data-target-key="triliteral:cell:SMp"]',
+    )).toBeNull();
+    expect(container.querySelector(
+      '[data-action="counter-target"][data-target-key="triliteral:boundary:S:SMP:sMP"]',
+    )).not.toBeNull();
     chooseCounterTool(container, "emptiness");
-    for (const cell of ["SMp", "sMp", "SmP", "Smp"]) {
+    for (const cell of ["SmP", "Smp"]) {
       activateCounterTarget(container, `triliteral:cell:${cell}`);
     }
     chooseCounterTool(container, "existence");
-    activateCounterTarget(
-      container,
-      "triliteral:boundary:S:SMP:sMP",
-    );
     activateCounterTarget(container, "triliteral:cell:SMP");
     container.querySelector<HTMLButtonElement>(
       '[data-action="check-counter-attempt"]',
@@ -1024,18 +1028,17 @@ describe("mounted application interaction", () => {
     )!.click();
     button(container, "next").click();
     chooseCounterTool(container, "emptiness");
-    for (const cell of ["SMp", "sMp", "SmP", "Smp"]) {
+    for (const cell of ["SmP", "Smp"]) {
       activateCounterTarget(container, `triliteral:cell:${cell}`);
     }
     chooseCounterTool(container, "existence");
-    activateCounterTarget(container, "triliteral:boundary:S:SMP:sMP");
     activateCounterTarget(container, "triliteral:cell:SMP");
     container.querySelector<HTMLButtonElement>(
       '[data-action="check-counter-attempt"]',
     )!.click();
     expect(container.querySelectorAll(
       '[data-action="counter-target"]',
-    )).toHaveLength(20);
+    )).toHaveLength(18);
     expect(button(container, "next").disabled).toBe(true);
     answerConclusion(container, "A");
     container.querySelector<HTMLButtonElement>(
@@ -1044,7 +1047,7 @@ describe("mounted application interaction", () => {
     expect(button(container, "next").disabled).toBe(false);
     expect(container.querySelectorAll(
       '[data-action="counter-target"]',
-    )).toHaveLength(20);
+    )).toHaveLength(18);
     button(container, "next").click();
     expect(container.querySelectorAll(
       '[data-action="counter-target"]',

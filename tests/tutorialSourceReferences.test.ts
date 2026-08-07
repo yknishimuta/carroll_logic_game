@@ -43,11 +43,11 @@ describe("tutorial source registry", () => {
   it("classifies all required rules without guessing sources for app behavior", () => {
     const byId = new Map(rules().map((rule) => [rule.id, rule]));
     for (const id of [
-      "complement-terms", "lowercase-cell-shorthand",
+      "complement-terms",
       "eight-triliteral-regions", "empty-counter", "existence-counter",
       "aeio-placement", "third-term-split", "boundary-existence-meaning",
-      "boundary-i-resolution", "combine-premises", "eliminate-middle",
-      "project-empty", "project-existence", "barbara-stages",
+      "boundary-i-resolution", "eliminate-middle",
+      "project-empty", "barbara-stages",
       "manual-placement-ui",
     ]) {
       expect(byId.has(id), id).toBe(true);
@@ -72,37 +72,33 @@ describe("tutorial source registry", () => {
     expect(shape(EN_TUTORIAL_CONTENT)).toEqual(shape(JA_TUTORIAL_CONTENT));
   });
 
-  it("creates localized direct, derived, and application citations", () => {
+  it("creates plain locator text and omits application-only references", () => {
     const ja = createTutorialViewModel("ja");
     const en = createTutorialViewModel("en");
-    const jaCitations = ja.sections.flatMap((section) =>
-      section.ruleSources.flatMap((rule) => rule.citations)
-    );
-    const enCitations = en.sections.flatMap((section) =>
-      section.ruleSources.flatMap((rule) => rule.citations)
-    );
-    expect(jaCitations.find(({ relation }) => relation === "direct")?.label)
-      .toContain("Symbolic Logic I.");
-    expect(jaCitations.find(({ relation }) => relation === "derived")?.label)
-      .toContain("に基づく整理");
-    expect(jaCitations.find(({ relation }) => relation === "application")?.label)
-      .toBe("（本アプリの操作仕様）");
-    expect(enCitations.find(({ relation }) => relation === "direct")?.label)
-      .toContain("Source: Symbolic Logic I.");
-    expect(enCitations.find(({ relation }) => relation === "derived")?.label)
-      .toContain("Derived from Symbolic Logic I.");
-    expect(enCitations.find(({ relation }) => relation === "application")?.label)
-      .toBe("(Application behavior)");
+    expect(ja.bibliographyLabel).toBe("参照文献：");
+    expect(ja.locatorExplanation).toContain("各節末の「原著の関連箇所」");
+    expect(ja.relatedPassagesLabel).toBe("原著の関連箇所：");
+    expect(en.bibliographyLabel).toBe("Reference:");
+    expect(en.locatorExplanation).toContain("Related passages in the original");
+    expect(en.relatedPassagesLabel).toBe("Related passages in the original:");
+    expect(en.sections.map(({ locators }) => locators))
+      .toEqual(ja.sections.map(({ locators }) => locators));
+    expect(ja.sections.flatMap(({ locators }) => locators))
+      .toContain("(I.III.III.2)");
+    expect(ja.sections.flatMap(({ locators }) => locators).every(
+      (locator) => /^\(I\.[IVX0-9.]+\)$/.test(locator),
+    )).toBe(true);
+    expect(ja.sections.find(({ id }) => id === "syllogism-basics")?.locators)
+      .toEqual([]);
   });
 
-  it("lists each used source once and preserves IDs and locators across locales", () => {
+  it("deduplicates locators within each section without changing the registry", () => {
     const ja = createTutorialViewModel("ja");
-    const en = createTutorialViewModel("en");
-    expect(new Set(ja.sourceEntries.map(({ id }) => id)).size)
-      .toBe(ja.sourceEntries.length);
-    expect(en.sourceEntries.map(({ id, locator }) => [id, locator]))
-      .toEqual(ja.sourceEntries.map(({ id, locator }) => [id, locator]));
-    expect(en.sourceEntries[0]?.edition).not.toBe(ja.sourceEntries[0]?.edition);
+    expect(ja.sections.every(({ locators }) =>
+      new Set(locators).size === locators.length
+    )).toBe(true);
+    expect(TUTORIAL_SOURCE_ENTRIES.map(({ locator }) => locator))
+      .toContain("I.III.III.2");
   });
 
   it("does not mutate the source registry or content", () => {

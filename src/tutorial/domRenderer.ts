@@ -2,8 +2,11 @@ import { isLocale, type Locale } from "../domain/locale";
 import { parseSafeSvgElement } from "../app/svgDom";
 import type {
   TutorialSectionViewModel,
+  TutorialDiagramViewModel,
+  TutorialViewBlock,
   TutorialViewModel,
 } from "./model";
+import type { TutorialTable } from "./content";
 
 export interface TutorialEventHandlers {
   readonly onLocaleChange: (locale: Locale) => void;
@@ -18,13 +21,78 @@ function el<K extends keyof HTMLElementTagNameMap>(
   return node;
 }
 
-function renderSection(section: TutorialSectionViewModel): HTMLElement {
+function renderTable(table: TutorialTable): HTMLElement {
+  const wrapper = el("div", "tutorial__table-scroll");
+  wrapper.tabIndex = 0;
+  const tableNode = el("table");
+  const caption = el("caption");
+  caption.textContent = table.caption;
+  const head = el("thead");
+  const headRow = el("tr");
+  table.headers.forEach((text) => {
+    const cell = el("th");
+    cell.scope = "col";
+    cell.textContent = text;
+    headRow.append(cell);
+  });
+  head.append(headRow);
+  const body = el("tbody");
+  table.rows.forEach((row) => {
+    const tr = el("tr");
+    row.forEach((text, index) => {
+      const cell = index === 0 ? el("th") : el("td");
+      if (cell instanceof HTMLTableCellElement && index === 0) cell.scope = "row";
+      cell.textContent = text;
+      tr.append(cell);
+    });
+    body.append(tr);
+  });
+  tableNode.append(caption, head, body);
+  wrapper.append(tableNode);
+  return wrapper;
+}
+
+function renderDiagram(diagram: TutorialDiagramViewModel): HTMLElement {
+  const figure = el("figure", "tutorial__diagram");
+  const diagramHeading = el("h3");
+  diagramHeading.textContent = diagram.heading;
+  const svg = parseSafeSvgElement(diagram.svg);
+  const caption = el("figcaption");
+  caption.textContent = diagram.description;
+  figure.append(diagramHeading, svg, caption);
+  return figure;
+}
+
+function renderBlock(block: TutorialViewBlock): HTMLElement {
+  if (block.kind === "paragraph") {
+    const paragraph = el("p");
+    paragraph.textContent = block.text;
+    return paragraph;
+  }
+  if (block.kind === "diagram") return renderDiagram(block.diagram);
+  if (block.kind === "table") return renderTable(block.table);
+  const list = el(block.ordered === true ? "ol" : "ul");
+  block.items.forEach((text) => {
+    const item = el("li");
+    item.textContent = text;
+    list.append(item);
+  });
+  return list;
+}
+
+function renderSection(
+  section: TutorialSectionViewModel,
+  sectionIndex: number,
+  relatedPassagesLabel: string,
+): HTMLElement {
   const node = el("section", "tutorial__section");
   node.id = section.id;
   const heading = el("h2");
-  heading.textContent = section.heading;
+  heading.textContent = `${sectionIndex + 1}. ${section.heading}`;
   node.append(heading);
-  section.paragraphs.forEach((text) => {
+  if (section.blocks !== undefined) {
+    node.append(...section.blocks.map(renderBlock));
+  } else section.paragraphs.forEach((text) => {
     const paragraph = el("p");
     paragraph.textContent = text;
     node.append(paragraph);
@@ -38,104 +106,22 @@ function renderSection(section: TutorialSectionViewModel): HTMLElement {
     });
     node.append(list);
   });
-  section.tables?.forEach((table) => {
-    const wrapper = el("div", "tutorial__table-scroll");
-    wrapper.tabIndex = 0;
-    const tableNode = el("table");
-    const caption = el("caption");
-    caption.textContent = table.caption;
-    const head = el("thead");
-    const headRow = el("tr");
-    table.headers.forEach((text) => {
-      const cell = el("th");
-      cell.scope = "col";
-      cell.textContent = text;
-      headRow.append(cell);
+  section.tables?.forEach((table) => node.append(renderTable(table)));
+  section.diagrams.forEach((diagram) => node.append(renderDiagram(diagram)));
+  if (section.locators.length > 0) {
+    const locators = el("aside", "tutorial__source-note tutorial__locators");
+    const label = el("span", "tutorial__source-note-label");
+    label.textContent = relatedPassagesLabel;
+    locators.append(label, document.createTextNode(" "));
+    section.locators.forEach((locator, index) => {
+      if (index > 0) locators.append(document.createTextNode(" "));
+      const item = el("span", "tutorial__locator");
+      item.textContent = locator;
+      locators.append(item);
     });
-    head.append(headRow);
-    const body = el("tbody");
-    table.rows.forEach((row) => {
-      const tr = el("tr");
-      row.forEach((text, index) => {
-        const cell = index === 0 ? el("th") : el("td");
-        if (cell instanceof HTMLTableCellElement && index === 0) {
-          cell.scope = "row";
-        }
-        cell.textContent = text;
-        tr.append(cell);
-      });
-      body.append(tr);
-    });
-    tableNode.append(caption, head, body);
-    wrapper.append(tableNode);
-    node.append(wrapper);
-  });
-  section.diagrams.forEach((diagram) => {
-    const figure = el("figure", "tutorial__diagram");
-    const diagramHeading = el("h3");
-    diagramHeading.textContent = diagram.heading;
-    const svg = parseSafeSvgElement(diagram.svg);
-    const caption = el("figcaption");
-    caption.textContent = diagram.description;
-    figure.append(diagramHeading, svg, caption);
-    node.append(figure);
-  });
-  const sources = el("div", "tutorial__rule-sources");
-  const sourceList = el("dl");
-  section.ruleSources.forEach((rule) => {
-    const term = el("dt");
-    term.id = `rule-${rule.id}`;
-    term.textContent = rule.label;
-    const definition = el("dd");
-    rule.citations.forEach((citation, index) => {
-      const citationNode = citation.href === null ? el("span") : el("a");
-      citationNode.className =
-        `tutorial__citation tutorial__citation--${citation.relation}`;
-      citationNode.textContent = citation.label;
-      if (citationNode instanceof HTMLAnchorElement) {
-        citationNode.href = citation.href ?? "";
-      }
-      if (index > 0) definition.append(document.createTextNode(" "));
-      definition.append(citationNode);
-    });
-    sourceList.append(term, definition);
-  });
-  sources.append(sourceList);
-  node.append(sources);
+    node.append(locators);
+  }
   return node;
-}
-
-function renderSourceReferences(model: TutorialViewModel): HTMLElement {
-  const aside = el("aside", "tutorial__source-references");
-  aside.id = "source-references";
-  aside.setAttribute("aria-labelledby", "source-references-heading");
-  const heading = el("h2");
-  heading.id = "source-references-heading";
-  heading.textContent = model.sourceReferencesHeading;
-  const description = el("p");
-  description.textContent = model.sourceReferencesDescription;
-  const list = el("ol");
-  model.sourceEntries.forEach((entry) => {
-    const item = el("li");
-    item.id = entry.id;
-    const title = el("h3");
-    title.textContent = `${entry.workTitle} — ${entry.locationLabel}`;
-    const edition = el("p");
-    edition.textContent = entry.edition;
-    const locator = el("p");
-    locator.textContent = entry.pageLabel === null
-      ? entry.locator
-      : `${entry.locator} · ${entry.pageLabel}`;
-    item.append(title, edition, locator);
-    if (entry.note !== null) {
-      const note = el("p");
-      note.textContent = entry.note;
-      item.append(note);
-    }
-    list.append(item);
-  });
-  aside.append(heading, description, list);
-  return aside;
 }
 
 export function renderTutorial(
@@ -194,12 +180,30 @@ export function renderTutorial(
   const main = el("main");
   main.id = "tutorial-main";
   main.tabIndex = -1;
-  const notice = el("p", "tutorial__notice");
-  notice.textContent = model.notice;
+  const notice = el("div", "tutorial__notice");
+  const introduction = el("p", "tutorial__notice-introduction");
+  const introductionText = el("strong");
+  introductionText.textContent = model.notice;
+  introduction.append(introductionText);
+  const bibliography = el("p", "tutorial__bibliography");
+  const bibliographyLabel = el("strong");
+  bibliographyLabel.textContent = model.bibliographyLabel;
+  bibliography.append(bibliographyLabel, document.createElement("br"));
+  bibliography.append(document.createTextNode(model.bibliography.author));
+  const bibliographyTitle = el("em");
+  bibliographyTitle.textContent = model.bibliography.title;
+  bibliography.append(
+    bibliographyTitle,
+    document.createTextNode(model.bibliography.publication),
+  );
+  const locatorExplanation = el("p", "tutorial__locator-explanation");
+  locatorExplanation.textContent = model.locatorExplanation;
+  notice.append(introduction, bibliography, locatorExplanation);
   main.append(
     notice,
-    ...model.sections.map(renderSection),
-    renderSourceReferences(model),
+    ...model.sections.map((section, index) =>
+      renderSection(section, index, model.relatedPassagesLabel)
+    ),
   );
   root.replaceChildren(skip, header, navigation, main);
 }
