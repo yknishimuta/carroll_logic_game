@@ -24,20 +24,20 @@ const content: DataBackupContent = {
     premises: {
       firstPremise: {
         form: "A",
-        subject: "custom-term-1",
-        predicate: "human",
+        subject: { termId: "custom-term-1", complemented: true },
+        predicate: { termId: "human", complemented: false },
       },
       secondPremise: {
         form: "A",
-        subject: "human",
-        predicate: "animal",
+        subject: { termId: "human", complemented: false },
+        predicate: { termId: "animal", complemented: false },
       },
     },
   }],
 };
 
 describe("data backup format", () => {
-  it("exports deterministic indented version 1 JSON with one trailing newline", () => {
+  it("exports deterministic indented version 3 JSON with one trailing newline", () => {
     const json = createDataBackupJson({ customTerms: [], savedCustomProblems: [] });
     expect(json).toBe(
       `{\n  "format": "${DATA_BACKUP_FORMAT}",\n  "version": ${DATA_BACKUP_VERSION},\n  "customTerms": [],\n  "savedCustomProblems": []\n}\n`,
@@ -49,6 +49,7 @@ describe("data backup format", () => {
   it("round trips terms and problems without UI state", () => {
     const json = createDataBackupJson(content);
     expect(parseDataBackupJson(json)).toEqual({ ok: true, content });
+    expect(json).toContain('"complemented": true');
     for (const forbidden of [
       "locale", "phase", "problemSource", "assignmentMode",
       "counterPractice", "conclusionQuiz", "SVG", "expectedConclusionForm",
@@ -61,7 +62,7 @@ describe("data backup format", () => {
     [JSON.stringify({ format: "other", version: 1 }), "unsupported-format"],
     [JSON.stringify({ format: DATA_BACKUP_FORMAT }), "unsupported-version"],
     [JSON.stringify({ format: DATA_BACKUP_FORMAT, version: "1" }), "unsupported-version"],
-    [JSON.stringify({ format: DATA_BACKUP_FORMAT, version: 3 }), "unsupported-version"],
+    [JSON.stringify({ format: DATA_BACKUP_FORMAT, version: 2 }), "unsupported-version"],
   ] as const)("rejects %s as %s", (json, reason) => {
     expect(parseDataBackupJson(json)).toEqual({ ok: false, reason });
   });

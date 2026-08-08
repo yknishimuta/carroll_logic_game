@@ -9,27 +9,35 @@ import {
   type LogicSettings,
 } from "../domain/logicSettings";
 import type { AbstractProposition } from "../domain/proposition";
-import type { TermRole } from "../domain/term";
+import type { AbstractTermOccurrence, TermRole } from "../domain/term";
 
 function belongsTo(cell: DiagramCellId, role: TermRole): boolean {
   return cell.includes(role);
 }
 
+function matchesOccurrence(
+  cell: DiagramCellId,
+  occurrence: AbstractTermOccurrence,
+): boolean {
+  const belongsToBaseTerm = belongsTo(cell, occurrence.role);
+  return occurrence.complemented ? !belongsToBaseTerm : belongsToBaseTerm;
+}
+
 function cellsMatching(
-  subject: TermRole,
+  subject: AbstractTermOccurrence,
   subjectValue: boolean,
-  predicate: TermRole,
+  predicate: AbstractTermOccurrence,
   predicateValue: boolean,
 ): readonly DiagramCellId[] {
   return DIAGRAM_CELL_IDS.filter(
     (cell) =>
-      belongsTo(cell, subject) === subjectValue &&
-      belongsTo(cell, predicate) === predicateValue,
+      matchesOccurrence(cell, subject) === subjectValue &&
+      matchesOccurrence(cell, predicate) === predicateValue,
   );
 }
 
 function ensureDistinctTerms(proposition: AbstractProposition): void {
-  if (proposition.subject === proposition.predicate) {
+  if (proposition.subject.role === proposition.predicate.role) {
     throw new Error(
       "A proposition constraint requires distinct subject and predicate terms.",
     );

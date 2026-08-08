@@ -14,6 +14,7 @@ export function isProblemSource(value: string): value is ProblemSource {
 
 export type CustomPremisePosition = "major" | "minor";
 export type CustomTermField = "subjectTermId" | "predicateTermId";
+export type CustomComplementField = "subjectComplemented" | "predicateComplemented";
 
 export function isCustomPremisePosition(
   value: string,
@@ -25,10 +26,18 @@ export function isCustomTermField(value: string): value is CustomTermField {
   return value === "subjectTermId" || value === "predicateTermId";
 }
 
+export function isCustomComplementField(
+  value: string,
+): value is CustomComplementField {
+  return value === "subjectComplemented" || value === "predicateComplemented";
+}
+
 export interface CustomPremiseDraft {
   readonly form: PropositionForm | null;
   readonly subjectTermId: TermId | null;
+  readonly subjectComplemented: boolean;
   readonly predicateTermId: TermId | null;
+  readonly predicateComplemented: boolean;
 }
 
 export interface CustomProblemDraft {
@@ -37,7 +46,13 @@ export interface CustomProblemDraft {
 }
 
 export function createEmptyCustomPremiseDraft(): CustomPremiseDraft {
-  return { form: null, subjectTermId: null, predicateTermId: null };
+  return {
+    form: null,
+    subjectTermId: null,
+    subjectComplemented: false,
+    predicateTermId: null,
+    predicateComplemented: false,
+  };
 }
 
 export function createEmptyCustomProblemDraft(): CustomProblemDraft {
@@ -63,7 +78,27 @@ export function updateCustomPremiseTerm(
   termId: TermId | null,
 ): CustomProblemDraft {
   const key = position === "major" ? "majorPremise" : "minorPremise";
-  return { ...draft, [key]: { ...draft[key], [field]: termId } };
+  const complementField = field === "subjectTermId"
+    ? "subjectComplemented"
+    : "predicateComplemented";
+  return {
+    ...draft,
+    [key]: {
+      ...draft[key],
+      [field]: termId,
+      ...(termId === null ? { [complementField]: false } : {}),
+    },
+  };
+}
+
+export function updateCustomPremiseComplement(
+  draft: CustomProblemDraft,
+  position: CustomPremisePosition,
+  field: CustomComplementField,
+  complemented: boolean,
+): CustomProblemDraft {
+  const key = position === "major" ? "majorPremise" : "minorPremise";
+  return { ...draft, [key]: { ...draft[key], [field]: complemented } };
 }
 
 export type CustomProblemValidationFailureReason =
@@ -98,8 +133,14 @@ function completeProposition(
   }
   return {
     form: draft.form,
-    subject: draft.subjectTermId,
-    predicate: draft.predicateTermId,
+    subject: {
+      termId: draft.subjectTermId,
+      complemented: draft.subjectComplemented,
+    },
+    predicate: {
+      termId: draft.predicateTermId,
+      complemented: draft.predicateComplemented,
+    },
   };
 }
 

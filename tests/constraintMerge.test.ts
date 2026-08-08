@@ -85,13 +85,13 @@ describe("syllogismToConstraints", () => {
       syllogismToConstraints({
         firstPremise: {
           form: "A",
-          subject: "M",
-          predicate: "P",
+          subject: { role: "M", complemented: false },
+          predicate: { role: "P", complemented: false },
         },
         secondPremise: {
           form: "A",
-          subject: "S",
-          predicate: "M",
+          subject: { role: "S", complemented: false },
+          predicate: { role: "M", complemented: false },
         },
       }),
     ).toEqual({
@@ -114,13 +114,13 @@ describe("syllogismToConstraints", () => {
       syllogismToConstraints({
         firstPremise: {
           form: "A",
-          subject: "M",
-          predicate: "P",
+          subject: { role: "M", complemented: false },
+          predicate: { role: "P", complemented: false },
         },
         secondPremise: {
           form: "I",
-          subject: "S",
-          predicate: "M",
+          subject: { role: "S", complemented: false },
+          predicate: { role: "M", complemented: false },
         },
       }),
     ).toEqual({

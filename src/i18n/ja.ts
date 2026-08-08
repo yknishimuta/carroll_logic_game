@@ -40,6 +40,7 @@ export const JA_MESSAGES = {
     formLabel: "命題形式",
     subjectLabel: "主語",
     predicateLabel: "述語",
+    complementLabel: "補項（′）",
     selectFormPlaceholder: "形式を選択してください",
     selectTermPlaceholder: "名詞を選択してください",
     createButton: "問題を作成",

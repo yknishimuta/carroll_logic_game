@@ -4,9 +4,11 @@ import {
   createEmptyCustomProblemDraft,
   isCustomPremisePosition,
   isCustomTermField,
+  isCustomComplementField,
   isProblemSource,
   updateCustomPremiseForm,
   updateCustomPremiseTerm,
+  updateCustomPremiseComplement,
   validateCustomProblemDraft,
   type CustomProblemDraft,
 } from "../src/app/customProblem";
@@ -15,13 +17,13 @@ import { computeProblem } from "../src/app/problemComputation";
 const barbara: CustomProblemDraft = {
   majorPremise: {
     form: "A",
-    subjectTermId: "animal",
-    predicateTermId: "mortal",
+    subjectTermId: "animal", subjectComplemented: false,
+    predicateTermId: "mortal", predicateComplemented: false,
   },
   minorPremise: {
     form: "A",
-    subjectTermId: "human",
-    predicateTermId: "animal",
+    subjectTermId: "human", subjectComplemented: false,
+    predicateTermId: "animal", predicateComplemented: false,
   },
 };
 
@@ -36,13 +38,16 @@ describe("custom problem drafts", () => {
     expect(isCustomTermField("subjectTermId")).toBe(true);
     expect(isCustomTermField("predicateTermId")).toBe(true);
     expect(isCustomTermField("form")).toBe(false);
+    expect(isCustomComplementField("subjectComplemented")).toBe(true);
+    expect(isCustomComplementField("predicateComplemented")).toBe(true);
+    expect(isCustomComplementField("subjectTermId")).toBe(false);
   });
 
   it("creates fresh empty premise and problem values", () => {
     expect(createEmptyCustomPremiseDraft()).toEqual({
       form: null,
-      subjectTermId: null,
-      predicateTermId: null,
+      subjectTermId: null, subjectComplemented: false,
+      predicateTermId: null, predicateComplemented: false,
     });
     const first = createEmptyCustomProblemDraft();
     const second = createEmptyCustomProblemDraft();
@@ -69,13 +74,13 @@ describe("custom problem drafts", () => {
     expect(withPredicate).toEqual({
       majorPremise: {
         form: "E",
-        subjectTermId: "mammal",
-        predicateTermId: null,
+        subjectTermId: "mammal", subjectComplemented: false,
+        predicateTermId: null, predicateComplemented: false,
       },
       minorPremise: {
         form: null,
-        subjectTermId: null,
-        predicateTermId: "bird",
+        subjectTermId: null, subjectComplemented: false,
+        predicateTermId: "bird", predicateComplemented: false,
       },
     });
     expect(empty).toEqual(createEmptyCustomProblemDraft());
@@ -90,6 +95,33 @@ describe("custom problem drafts", () => {
     expect(updateCustomPremiseForm(draft, "minor", "I").minorPremise.form)
       .toBe("I");
     expect(draft.minorPremise.form).toBe("A");
+  });
+
+  it("updates subject and predicate complements independently and clears them with the term", () => {
+    const subjectPrime = updateCustomPremiseComplement(
+      barbara,
+      "minor",
+      "subjectComplemented",
+      true,
+    );
+    const bothPrime = updateCustomPremiseComplement(
+      subjectPrime,
+      "minor",
+      "predicateComplemented",
+      true,
+    );
+    expect(bothPrime.minorPremise).toMatchObject({
+      subjectComplemented: true,
+      predicateComplemented: true,
+    });
+    const cleared = updateCustomPremiseTerm(
+      bothPrime,
+      "minor",
+      "subjectTermId",
+      null,
+    );
+    expect(cleared.minorPremise.subjectComplemented).toBe(false);
+    expect(cleared.minorPremise.predicateComplemented).toBe(true);
   });
 });
 
@@ -117,8 +149,8 @@ describe("custom problem validation", () => {
       ...barbara,
       majorPremise: {
         form: "A",
-        subjectTermId: "animal",
-        predicateTermId: "animal",
+        subjectTermId: "animal", subjectComplemented: false,
+        predicateTermId: "animal", predicateComplemented: false,
       },
     })).toEqual({
       ok: false,
@@ -128,8 +160,8 @@ describe("custom problem validation", () => {
       ...barbara,
       minorPremise: {
         form: "A",
-        subjectTermId: "human",
-        predicateTermId: "human",
+        subjectTermId: "human", subjectComplemented: false,
+        predicateTermId: "human", predicateComplemented: false,
       },
     })).toEqual({
       ok: false,
@@ -137,18 +169,44 @@ describe("custom problem validation", () => {
     });
   });
 
+  it("rejects the same base term even when one occurrence is complemented", () => {
+    expect(validateCustomProblemDraft({
+      ...barbara,
+      majorPremise: {
+        form: "A",
+        subjectTermId: "animal",
+        subjectComplemented: false,
+        predicateTermId: "animal",
+        predicateComplemented: true,
+      },
+    })).toEqual({ ok: false, reason: "same-term-within-major-premise" });
+  });
+
+  it("preserves complemented occurrences in validated premises", () => {
+    const result = validateCustomProblemDraft({
+      ...barbara,
+      minorPremise: { ...barbara.minorPremise, subjectComplemented: true },
+    });
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.premises.secondPremise.subject).toEqual({
+      termId: "human",
+      complemented: true,
+    });
+  });
+
   it.each([
     [
       {
-        majorPremise: { form: "A", subjectTermId: "cat", predicateTermId: "animal" },
-        minorPremise: { form: "A", subjectTermId: "animal", predicateTermId: "cat" },
+        majorPremise: { form: "A", subjectTermId: "cat", subjectComplemented: false, predicateTermId: "animal" , predicateComplemented: false },
+        minorPremise: { form: "A", subjectTermId: "animal", subjectComplemented: false, predicateTermId: "cat" , predicateComplemented: false },
       },
       "expected-one-common-term",
     ],
     [
       {
-        majorPremise: { form: "A", subjectTermId: "cat", predicateTermId: "animal" },
-        minorPremise: { form: "A", subjectTermId: "dog", predicateTermId: "bird" },
+        majorPremise: { form: "A", subjectTermId: "cat", subjectComplemented: false, predicateTermId: "animal" , predicateComplemented: false },
+        minorPremise: { form: "A", subjectTermId: "dog", subjectComplemented: false, predicateTermId: "bird" , predicateComplemented: false },
       },
       "expected-one-common-term",
     ],
@@ -161,24 +219,24 @@ describe("custom problem validation", () => {
     [
       "Figure 2",
       {
-        majorPremise: { form: "E", subjectTermId: "mammal", predicateTermId: "bird" },
-        minorPremise: { form: "A", subjectTermId: "sparrow", predicateTermId: "bird" },
+        majorPremise: { form: "E", subjectTermId: "mammal", subjectComplemented: false, predicateTermId: "bird" , predicateComplemented: false },
+        minorPremise: { form: "A", subjectTermId: "sparrow", subjectComplemented: false, predicateTermId: "bird" , predicateComplemented: false },
       },
       { S: "sparrow", M: "bird", P: "mammal" },
     ],
     [
       "Figure 3",
       {
-        majorPremise: { form: "A", subjectTermId: "bird", predicateTermId: "mammal" },
-        minorPremise: { form: "I", subjectTermId: "bird", predicateTermId: "pet" },
+        majorPremise: { form: "A", subjectTermId: "bird", subjectComplemented: false, predicateTermId: "mammal" , predicateComplemented: false },
+        minorPremise: { form: "I", subjectTermId: "bird", subjectComplemented: false, predicateTermId: "pet" , predicateComplemented: false },
       },
       { S: "pet", M: "bird", P: "mammal" },
     ],
     [
       "Figure 4",
       {
-        majorPremise: { form: "E", subjectTermId: "mammal", predicateTermId: "bird" },
-        minorPremise: { form: "I", subjectTermId: "bird", predicateTermId: "pet" },
+        majorPremise: { form: "E", subjectTermId: "mammal", subjectComplemented: false, predicateTermId: "bird" , predicateComplemented: false },
+        minorPremise: { form: "I", subjectTermId: "bird", subjectComplemented: false, predicateTermId: "pet" , predicateComplemented: false },
       },
       { S: "pet", M: "bird", P: "mammal" },
     ],
@@ -192,13 +250,13 @@ describe("custom problem validation", () => {
     const result = validateCustomProblemDraft({
       majorPremise: {
         form: "A",
-        subjectTermId: "cat",
-        predicateTermId: "animal",
+        subjectTermId: "cat", subjectComplemented: false,
+        predicateTermId: "animal", predicateComplemented: false,
       },
       minorPremise: {
         form: "A",
-        subjectTermId: "dog",
-        predicateTermId: "animal",
+        subjectTermId: "dog", subjectComplemented: false,
+        predicateTermId: "animal", predicateComplemented: false,
       },
     });
     expect(result.ok).toBe(true);
@@ -230,18 +288,21 @@ describe("custom problem validation", () => {
     const result = validateCustomProblemDraft({
       majorPremise: {
         form: "A",
-        subjectTermId: "human",
-        predicateTermId: "animal",
+        subjectTermId: "human", subjectComplemented: false,
+        predicateTermId: "animal", predicateComplemented: false,
       },
       minorPremise: {
         form: "A",
-        subjectTermId: "custom-term-1",
-        predicateTermId: "human",
+        subjectTermId: "custom-term-1", subjectComplemented: false,
+        predicateTermId: "human", predicateComplemented: false,
       },
     });
     expect(result.ok).toBe(true);
     if (!result.ok) return;
-    expect(result.premises.secondPremise.subject).toBe("custom-term-1");
+    expect(result.premises.secondPremise.subject).toEqual({
+      termId: "custom-term-1",
+      complemented: false,
+    });
     expect(result.assignment).toEqual({
       S: "custom-term-1",
       M: "human",

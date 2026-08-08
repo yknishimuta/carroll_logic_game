@@ -21,8 +21,8 @@ const problem: SavedCustomProblemDefinition = {
   id: "custom-problem-1",
   title: "Barbara",
   premises: {
-    firstPremise: { form: "A", subject: "animal", predicate: "mortal" },
-    secondPremise: { form: "A", subject: "human", predicate: "animal" },
+    firstPremise: { form: "A", subject: { termId: "animal", complemented: false }, predicate: { termId: "mortal", complemented: false } },
+    secondPremise: { form: "A", subject: { termId: "human", complemented: true }, predicate: { termId: "animal", complemented: false } },
   },
 };
 
@@ -50,7 +50,7 @@ describe("saved custom problem storage", () => {
     });
     const raw = storage.values.get(CUSTOM_PROBLEM_STORAGE_KEY)!;
     expect(JSON.parse(raw)).toEqual({
-      version: 1,
+      version: 2,
       problems: [problem, second],
     });
     for (const forbidden of [
@@ -66,15 +66,28 @@ describe("saved custom problem storage", () => {
   it.each([
     ["{", "invalid-json"],
     [JSON.stringify({ problems: [] }), "unsupported-version"],
-    [JSON.stringify({ version: 2, problems: [] }), "unsupported-version"],
-    [JSON.stringify({ version: 1, problems: {} }), "invalid-data"],
-    [JSON.stringify({ version: 1, problems: [{ ...problem, id: "bad" }] }), "invalid-data"],
-    [JSON.stringify({ version: 1, problems: [problem, problem] }), "invalid-data"],
-    [JSON.stringify({ version: 1, problems: [{ ...problem, title: " " }] }), "invalid-data"],
-    [JSON.stringify({ version: 1, problems: [{ ...problem, title: "x".repeat(101) }] }), "invalid-data"],
-    [JSON.stringify({ version: 1, problems: [{ ...problem, premises: null }] }), "invalid-data"],
+    [JSON.stringify({ version: 1, problems: [] }), "unsupported-version"],
+    [JSON.stringify({ version: 2, problems: {} }), "invalid-data"],
+    [JSON.stringify({ version: 2, problems: [{ ...problem, id: "bad" }] }), "invalid-data"],
+    [JSON.stringify({ version: 2, problems: [problem, problem] }), "invalid-data"],
+    [JSON.stringify({ version: 2, problems: [{ ...problem, title: " " }] }), "invalid-data"],
+    [JSON.stringify({ version: 2, problems: [{ ...problem, title: "x".repeat(101) }] }), "invalid-data"],
+    [JSON.stringify({ version: 2, problems: [{ ...problem, premises: null }] }), "invalid-data"],
     [JSON.stringify({
-      version: 1,
+      version: 2,
+      problems: [{
+        ...problem,
+        premises: {
+          ...problem.premises,
+          firstPremise: {
+            ...problem.premises.firstPremise,
+            subject: "animal",
+          },
+        },
+      }],
+    }), "invalid-data"],
+    [JSON.stringify({
+      version: 2,
       problems: [{
         ...problem,
         premises: {
@@ -84,7 +97,7 @@ describe("saved custom problem storage", () => {
       }],
     }), "invalid-data"],
     [JSON.stringify({
-      version: 1,
+      version: 2,
       problems: [{
         ...problem,
         premises: {
@@ -103,7 +116,7 @@ describe("saved custom problem storage", () => {
   it("rejects 101 items and normalized duplicate titles", () => {
     const storage = new MemoryStorage();
     storage.values.set(CUSTOM_PROBLEM_STORAGE_KEY, JSON.stringify({
-      version: 1,
+      version: 2,
       problems: Array.from({ length: 101 }, (_, index) => ({
         ...problem,
         id: `custom-problem-${index + 1}`,
@@ -115,7 +128,7 @@ describe("saved custom problem storage", () => {
       reason: "invalid-data",
     });
     storage.values.set(CUSTOM_PROBLEM_STORAGE_KEY, JSON.stringify({
-      version: 1,
+      version: 2,
       problems: [
         problem,
         { ...problem, id: "custom-problem-2", title: " barbara " },

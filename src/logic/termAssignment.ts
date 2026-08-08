@@ -11,18 +11,18 @@ export function assignTermRoles(
   syllogism: ConcreteSyllogism,
 ): TermAssignment {
   const { firstPremise, secondPremise } = syllogism;
-  const firstTerms = [firstPremise.subject, firstPremise.predicate] as const;
-  const secondTerms = [secondPremise.subject, secondPremise.predicate] as const;
+  const firstTerms = [firstPremise.subject.termId, firstPremise.predicate.termId] as const;
+  const secondTerms = [secondPremise.subject.termId, secondPremise.predicate.termId] as const;
 
   for (const term of [...firstTerms, ...secondTerms]) {
     validateTerm(term);
   }
 
-  if (firstPremise.subject === firstPremise.predicate) {
+  if (firstPremise.subject.termId === firstPremise.predicate.termId) {
     throw new Error("The first premise must contain two distinct terms.");
   }
 
-  if (secondPremise.subject === secondPremise.predicate) {
+  if (secondPremise.subject.termId === secondPremise.predicate.termId) {
     throw new Error("The second premise must contain two distinct terms.");
   }
 

@@ -14,8 +14,8 @@ const emptyState: BiliteralDiagramState = {
 function conclusion(form: "A" | "E" | "I" | "O") {
   return {
     form,
-    subjectRole: "S" as const,
-    predicateRole: "P" as const,
+    subject: { role: "S" as const, complemented: false },
+    predicate: { role: "P" as const, complemented: false },
   };
 }
 

@@ -385,6 +385,19 @@ input:focus-visible,
   font-weight: 700;
 }
 
+.logic-game__custom-problem fieldset .logic-game__complement-control {
+  display: flex;
+  align-items: center;
+  align-self: end;
+  min-height: 2.75rem;
+  gap: 0.5rem;
+}
+
+.logic-game__complement-control input {
+  inline-size: 1.25rem;
+  block-size: 1.25rem;
+}
+
 .logic-game__custom-problem select,
 .logic-game__custom-problem button {
   min-height: 2.75rem;

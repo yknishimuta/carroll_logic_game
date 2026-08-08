@@ -118,6 +118,20 @@ function fillCustomBarbara(container: HTMLElement): void {
   selectCustom(container, "custom-term", "minor", "animal", "predicateTermId");
 }
 
+function setCustomComplement(
+  container: HTMLElement,
+  position: "major" | "minor",
+  field: "subjectComplemented" | "predicateComplemented",
+  checked: boolean,
+): void {
+  const control = container.querySelector<HTMLInputElement>(
+    `[data-action="custom-complement"][data-premise-position="${position}"]` +
+    `[data-field="${field}"]`,
+  )!;
+  control.checked = checked;
+  control.dispatchEvent(new Event("change"));
+}
+
 function createCustom(container: HTMLElement): void {
   container.querySelector<HTMLButtonElement>(
     '[data-action="create-custom-problem"]',
@@ -210,11 +224,11 @@ beforeEach(() => {
         id: "custom-problem-1",
         title: "哲学者の問題",
         premises: {
-          firstPremise: { form: "A", subject: "human", predicate: "animal" },
+          firstPremise: { form: "A", subject: { termId: "human", complemented: false }, predicate: { termId: "animal", complemented: false } },
           secondPremise: {
             form: "A",
-            subject: "custom-term-1",
-            predicate: "human",
+            subject: { termId: "custom-term-1", complemented: true },
+            predicate: { termId: "human", complemented: false },
           },
         },
       }],
@@ -236,7 +250,7 @@ beforeEach(() => {
     expect(downloads[0]?.mimeType).toBe(DATA_BACKUP_MIME_TYPE);
     expect(JSON.parse(downloads[0]!.content)).toEqual({
       format: DATA_BACKUP_FORMAT,
-      version: 2,
+      version: 3,
       customTerms: [],
       savedCustomProblems: [],
     });
@@ -263,6 +277,14 @@ beforeEach(() => {
     select(container, "problem-source", "custom");
     expect(container.textContent).toContain("哲学者");
     expect(container.textContent).toContain("哲学者の問題");
+    container.querySelector<HTMLButtonElement>(
+      '[data-action="open-saved-custom-problem"]',
+    )!.click();
+    expect(container.querySelector<HTMLInputElement>(
+      '[data-action="custom-complement"]' +
+      '[data-premise-position="minor"]' +
+      '[data-field="subjectComplemented"]',
+    )?.checked).toBe(true);
   });
 
   it("rejects oversized and unreadable backup files without changing data", async () => {
@@ -1075,20 +1097,20 @@ describe("mounted application interaction", () => {
     expect(container.textContent).toContain("自由問題を保存しました。");
     expect(JSON.parse(storage.values.get(CUSTOM_PROBLEM_STORAGE_KEY)!))
       .toEqual({
-        version: 1,
+        version: 2,
         problems: [{
           id: "custom-problem-1",
           title: "Saved Barbara",
           premises: {
             firstPremise: {
               form: "A",
-              subject: "animal",
-              predicate: "mortal",
+              subject: { termId: "animal", complemented: false },
+              predicate: { termId: "mortal", complemented: false },
             },
             secondPremise: {
               form: "A",
-              subject: "human",
-              predicate: "animal",
+              subject: { termId: "human", complemented: false },
+              predicate: { termId: "animal", complemented: false },
             },
           },
         }],
@@ -1130,7 +1152,50 @@ describe("mounted application interaction", () => {
       '[data-saved-custom-problem-id]',
     )).toBeNull();
     expect(JSON.parse(storage.values.get(CUSTOM_PROBLEM_STORAGE_KEY)!))
-      .toEqual({ version: 1, problems: [] });
+      .toEqual({ version: 2, problems: [] });
+  });
+
+  it("creates, infers, saves, and restores a complemented custom subject", () => {
+    const storage = new MemoryStorage();
+    const container = mount(storage);
+    select(container, "problem-source", "custom");
+    fillCustomBarbara(container);
+    setCustomComplement(container, "minor", "subjectComplemented", true);
+    createCustom(container);
+    expect(container.textContent).toContain("すべての S′ は M である。");
+    saveCurrentProblem(container, "Prime Barbara");
+    const saved = JSON.parse(storage.values.get(CUSTOM_PROBLEM_STORAGE_KEY)!);
+    expect(saved.problems[0].premises.secondPremise.subject).toEqual({
+      termId: "human",
+      complemented: true,
+    });
+
+    const restored = mount(storage);
+    select(restored, "problem-source", "custom");
+    restored.querySelector<HTMLButtonElement>(
+      '[data-action="open-saved-custom-problem"]',
+    )!.click();
+    expect(restored.querySelector<HTMLInputElement>(
+      '[data-action="custom-complement"]' +
+      '[data-premise-position="minor"]' +
+      '[data-field="subjectComplemented"]',
+    )?.checked).toBe(true);
+    select(restored, "conclusion-answer-mode", "quiz");
+    button(restored, "next").click();
+    button(restored, "next").click();
+    expect(phase(restored)).toBe("combined-premises");
+    const answerOptions = [...restored.querySelectorAll<HTMLOptionElement>(
+      '[data-action="conclusion-answer"] option',
+    )].map(({ textContent }) => textContent);
+    expect(answerOptions).toContain("A — すべての人間′は死すべきものである。");
+    expect(answerOptions).toHaveLength(6);
+    submitConclusion(restored, "A");
+    button(restored, "next").click();
+    expect(restored.textContent).toContain("すべての人間′は死すべきものである。");
+    expect(restored.textContent).toContain("すべての S′ は P である。");
+    const svg = restored.querySelector(".carroll-diagram")?.outerHTML ?? "";
+    expect(svg).toContain('data-counter-kind="emptiness"><circle cx="280" cy="280"');
+    expect(svg).toContain('data-counter-kind="existence" data-source-ids="[&quot;second-premise&quot;]"><circle cx="120" cy="280"');
   });
 
   it("creates and edits saved problem titles with IME composition", () => {
@@ -1274,13 +1339,13 @@ describe("mounted application interaction", () => {
         premises: {
           firstPremise: {
             form: "A",
-            subject: "unknown-term",
-            predicate: "animal",
+            subject: { termId: "unknown-term", complemented: false },
+            predicate: { termId: "animal", complemented: false },
           },
           secondPremise: {
             form: "A",
-            subject: "human",
-            predicate: "unknown-term",
+            subject: { termId: "human", complemented: false },
+            predicate: { termId: "unknown-term", complemented: false },
           },
         },
       }],

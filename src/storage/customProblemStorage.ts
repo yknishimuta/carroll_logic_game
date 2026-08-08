@@ -9,7 +9,7 @@ import type { ConcreteProposition } from "../domain/proposition";
 import type { StringStorage } from "./stringStorage";
 
 export const CUSTOM_PROBLEM_STORAGE_KEY =
-  "carroll-logic-game.custom-problems.v1";
+  "carroll-logic-game.custom-problems.v2";
 
 export type CustomProblemStorageLoadFailureReason =
   | "storage-unavailable"
@@ -42,16 +42,26 @@ function record(value: unknown): Record<string, unknown> | null {
 
 function proposition(value: unknown): ConcreteProposition | null {
   const candidate = record(value);
+  const subject = record(candidate?.subject);
+  const predicate = record(candidate?.predicate);
   if (
     typeof candidate?.form !== "string" ||
     !isPropositionForm(candidate.form) ||
-    typeof candidate.subject !== "string" ||
-    typeof candidate.predicate !== "string"
+    typeof subject?.termId !== "string" ||
+    typeof subject.complemented !== "boolean" ||
+    typeof predicate?.termId !== "string" ||
+    typeof predicate.complemented !== "boolean"
   ) return null;
   return {
     form: candidate.form,
-    subject: candidate.subject,
-    predicate: candidate.predicate,
+    subject: {
+      termId: subject.termId,
+      complemented: subject.complemented,
+    },
+    predicate: {
+      termId: predicate.termId,
+      complemented: predicate.complemented,
+    },
   };
 }
 
@@ -120,7 +130,7 @@ export function loadSavedCustomProblems(
     return { ok: false, reason: "invalid-json" };
   }
   const root = record(parsed);
-  if (root === null || root.version !== 1) {
+  if (root === null || root.version !== 2) {
     return { ok: false, reason: "unsupported-version" };
   }
   const decoded = decodeSavedCustomProblemArray(root.problems);
@@ -136,7 +146,7 @@ export function saveSavedCustomProblems(
   try {
     storage.setItem(
       CUSTOM_PROBLEM_STORAGE_KEY,
-      JSON.stringify({ version: 1, problems }),
+      JSON.stringify({ version: 2, problems }),
     );
     return { ok: true };
   } catch {

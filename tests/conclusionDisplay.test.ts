@@ -93,6 +93,32 @@ describe("createConclusionDisplayState", () => {
     });
   });
 
+  it("uses sP and sp for a complemented conclusion subject", () => {
+    const state: BiliteralDiagramState = {
+      emptyCells: ["sp"],
+      existentials: [{ sourceId: "prime-subject", possibleCells: ["sP"] }],
+    };
+    expect(createConclusionDisplayState(
+      state,
+      ["A", "I"],
+      { role: "S", complemented: true },
+      { role: "P", complemented: false },
+    )).toEqual({ ok: true, state });
+  });
+
+  it("uses Sp and SP for a complemented conclusion predicate", () => {
+    const state: BiliteralDiagramState = {
+      emptyCells: ["SP"],
+      existentials: [{ sourceId: "prime-predicate", possibleCells: ["Sp"] }],
+    };
+    expect(createConclusionDisplayState(
+      state,
+      ["A", "I"],
+      { role: "S", complemented: false },
+      { role: "P", complemented: true },
+    )).toEqual({ ok: true, state });
+  });
+
   it.each([
     ["A", { emptyCells: [], existentials: [] }],
     ["E", { emptyCells: [], existentials: [] }],

@@ -25,7 +25,11 @@ describe("formatConcreteProposition", () => {
   ] as const)("formats Japanese %s", (form, subject, predicate, expected) => {
     expect(
       formatConcreteProposition(
-        { form, subject, predicate },
+        {
+          form,
+          subject: { termId: subject, complemented: false },
+          predicate: { termId: predicate, complemented: false },
+        },
         "ja",
         getBuiltInTerm,
       ),
@@ -40,7 +44,11 @@ describe("formatConcreteProposition", () => {
   ] as const)("formats English %s", (form, subject, predicate, expected) => {
     expect(
       formatConcreteProposition(
-        { form, subject, predicate },
+        {
+          form,
+          subject: { termId: subject, complemented: false },
+          predicate: { termId: predicate, complemented: false },
+        },
         "en",
         getBuiltInTerm,
       ),
@@ -50,7 +58,7 @@ describe("formatConcreteProposition", () => {
   it("uses adjective predicate phrases", () => {
     expect(
       formatConcreteProposition(
-        { form: "A", subject: "human", predicate: "warm-blooded" },
+        { form: "A", subject: { termId: "human", complemented: false }, predicate: { termId: "warm-blooded", complemented: false } },
         "en",
         getBuiltInTerm,
       ),
@@ -63,11 +71,11 @@ describe("formatConcreteProposition", () => {
       en: { subjectPlural: "mortal beings", predicatePhrase: "mortal" },
     } });
     const resolver = (id: string) => id === fallback.id ? fallback : getBuiltInTerm(id);
-    expect(formatConcreteProposition({ form: "A", subject: fallback.id,
-      predicate: "animal" }, "ja", resolver))
+    expect(formatConcreteProposition({ form: "A", subject: { termId: fallback.id, complemented: false },
+      predicate: { termId: "animal", complemented: false } }, "ja", resolver))
       .toBe("すべてのmortal beingsは動物である。");
-    expect(formatConcreteProposition({ form: "A", subject: "human",
-      predicate: fallback.id }, "ja", resolver))
+    expect(formatConcreteProposition({ form: "A", subject: { termId: "human", complemented: false },
+      predicate: { termId: fallback.id, complemented: false } }, "ja", resolver))
       .toBe("すべての人間はmortalである。");
   });
 
@@ -88,30 +96,46 @@ describe("formatConcreteProposition", () => {
       return getBuiltInTerm(termId);
     };
     expect(formatConcreteProposition(
-      { form: "A", subject: "custom-term-1", predicate: "human" },
+      { form: "A", subject: { termId: "custom-term-1", complemented: false }, predicate: { termId: "human", complemented: false } },
       "ja",
       resolver,
     )).toBe("すべての哲学者は人間である。");
     expect(formatConcreteProposition(
-      { form: "I", subject: "human", predicate: "custom-term-1" },
+      { form: "I", subject: { termId: "human", complemented: false }, predicate: { termId: "custom-term-1", complemented: false } },
       "ja",
       resolver,
     )).toBe("ある人間は哲学者である。");
     expect(formatConcreteProposition(
-      { form: "A", subject: "custom-term-1", predicate: "human" },
+      { form: "A", subject: { termId: "custom-term-1", complemented: false }, predicate: { termId: "human", complemented: false } },
       "en",
       resolver,
     )).toBe("All philosophers are humans.");
     expect(formatConcreteProposition(
-      { form: "A", subject: "human", predicate: "custom-term-1" },
+      { form: "A", subject: { termId: "human", complemented: false }, predicate: { termId: "custom-term-1", complemented: false } },
       "en",
       resolver,
     )).toBe("All humans are philosophers.");
     expect(() => formatConcreteProposition(
-      { form: "A", subject: "unknown", predicate: "human" },
+      { form: "A", subject: { termId: "unknown", complemented: false }, predicate: { termId: "human", complemented: false } },
       "en",
       resolver,
     )).toThrow('Unknown built-in term: "unknown".');
+  });
+
+  it("formats complemented concrete terms with Unicode prime", () => {
+    const ja = formatConcreteProposition({
+      form: "A",
+      subject: { termId: "animal", complemented: true },
+      predicate: { termId: "human", complemented: false },
+    }, "ja", getBuiltInTerm);
+    const en = formatConcreteProposition({
+      form: "A",
+      subject: { termId: "animal", complemented: true },
+      predicate: { termId: "human", complemented: false },
+    }, "en", getBuiltInTerm);
+    expect(ja).toContain("動物′");
+    expect(en).toContain("animals′");
+    expect(`${ja}${en}`).not.toContain("'");
   });
 });
 
@@ -130,7 +154,11 @@ describe("formatAbstractProposition", () => {
     (locale, form, subject, predicate, expected) => {
       expect(
         formatAbstractProposition(
-          { form, subject, predicate },
+          {
+            form,
+            subject: { role: subject, complemented: false },
+            predicate: { role: predicate, complemented: false },
+          },
           locale,
         ),
       ).toBe(expected);
@@ -140,12 +168,24 @@ describe("formatAbstractProposition", () => {
   it("is non-destructive and deterministic", () => {
     const proposition = Object.freeze({
       form: "A" as const,
-      subject: "S" as const,
-      predicate: "P" as const,
+      subject: { role: "S", complemented: false } as const,
+      predicate: { role: "P", complemented: false } as const,
     });
     expect(formatAbstractProposition(proposition, "en")).toBe(
       formatAbstractProposition(proposition, "en"),
     );
-    expect(proposition).toEqual({ form: "A", subject: "S", predicate: "P" });
+    expect(proposition).toEqual({ form: "A", subject: { role: "S", complemented: false }, predicate: { role: "P", complemented: false } });
+  });
+
+  it("formats S′, M′, and P′ with Unicode prime", () => {
+    for (const role of ["S", "M", "P"] as const) {
+      const text = formatAbstractProposition({
+        form: "I",
+        subject: { role, complemented: true },
+        predicate: { role: role === "P" ? "S" : "P", complemented: false },
+      }, "en");
+      expect(text).toContain(`${role}′`);
+      expect(text).not.toContain(`${role}'`);
+    }
   });
 });

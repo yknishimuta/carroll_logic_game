@@ -232,25 +232,25 @@ describe("custom problem view models", () => {
   const premises = {
     firstPremise: {
       form: "A" as const,
-      subject: "animal",
-      predicate: "mortal",
+      subject: { termId: "animal", complemented: false },
+      predicate: { termId: "mortal", complemented: false },
     },
     secondPremise: {
       form: "A" as const,
-      subject: "human",
-      predicate: "animal",
+      subject: { termId: "human", complemented: false },
+      predicate: { termId: "animal", complemented: false },
     },
   };
   const draft = {
     majorPremise: {
       form: "A" as const,
-      subjectTermId: "animal" as const,
-      predicateTermId: "mortal" as const,
+      subjectTermId: "animal" as const, subjectComplemented: false,
+      predicateTermId: "mortal" as const, predicateComplemented: false,
     },
     minorPremise: {
       form: "A" as const,
-      subjectTermId: "human" as const,
-      predicateTermId: "animal" as const,
+      subjectTermId: "human" as const, subjectComplemented: false,
+      predicateTermId: "animal" as const, predicateComplemented: false,
     },
   };
   const ready = {
@@ -409,8 +409,8 @@ describe("custom problem view models", () => {
       ...ready,
       phase: "conclusion",
       customPremises: {
-        firstPremise: { form: "A", subject: "cat", predicate: "animal" },
-        secondPremise: { form: "A", subject: "dog", predicate: "animal" },
+        firstPremise: { form: "A", subject: { termId: "cat", complemented: false }, predicate: { termId: "animal", complemented: false } },
+        secondPremise: { form: "A", subject: { termId: "dog", complemented: false }, predicate: { termId: "animal", complemented: false } },
       },
     });
     expect(model.concreteConclusion).toBeNull();
@@ -480,8 +480,8 @@ describe("custom term view models", () => {
       phase: "first-premise",
       customProblemStatus: "ready",
       customPremises: {
-        firstPremise: { form: "A", subject: "animal", predicate: "mortal" },
-        secondPremise: { form: "A", subject: "human", predicate: "animal" },
+        firstPremise: { form: "A", subject: { termId: "animal", complemented: false }, predicate: { termId: "mortal", complemented: false } },
+        secondPremise: { form: "A", subject: { termId: "human", complemented: false }, predicate: { termId: "animal", complemented: false } },
       },
     }).customTermManager).not.toBeNull();
     expect(model.activeScreen).toBe("custom-term-management");
@@ -570,13 +570,13 @@ describe("custom term view models", () => {
     const premises = {
       firstPremise: {
         form: "A" as const,
-        subject: "custom-term-1",
-        predicate: "human",
+        subject: { termId: "custom-term-1", complemented: false },
+        predicate: { termId: "human", complemented: false },
       },
       secondPremise: {
         form: "A" as const,
-        subject: "animal",
-        predicate: "human",
+        subject: { termId: "animal", complemented: false },
+        predicate: { termId: "human", complemented: false },
       },
     };
     const state = {
@@ -584,13 +584,13 @@ describe("custom term view models", () => {
       customProblemDraft: {
         majorPremise: {
           form: "A" as const,
-          subjectTermId: "custom-term-1",
-          predicateTermId: "human",
+          subjectTermId: "custom-term-1", subjectComplemented: false,
+          predicateTermId: "human", predicateComplemented: false,
         },
         minorPremise: {
           form: "A" as const,
-          subjectTermId: "animal",
-          predicateTermId: "human",
+          subjectTermId: "animal", subjectComplemented: false,
+          predicateTermId: "human", predicateComplemented: false,
         },
       },
       customPremises: premises,
@@ -807,13 +807,13 @@ describe("custom term view models", () => {
     const premises = {
       firstPremise: {
         form: "A" as const,
-        subject: "human",
-        predicate: "animal",
+        subject: { termId: "human", complemented: false },
+        predicate: { termId: "animal", complemented: false },
       },
       secondPremise: {
         form: "A" as const,
-        subject: "custom-term-1",
-        predicate: "human",
+        subject: { termId: "custom-term-1", complemented: false },
+        predicate: { termId: "human", complemented: false },
       },
     };
     const base = {
@@ -844,13 +844,13 @@ describe("custom term view models", () => {
       premises: {
         firstPremise: {
           form: "A" as const,
-          subject: "human",
-          predicate: "animal",
+          subject: { termId: "human", complemented: false },
+          predicate: { termId: "animal", complemented: false },
         },
         secondPremise: {
           form: "A" as const,
-          subject: "custom-term-1",
-          predicate: "human",
+          subject: { termId: "custom-term-1", complemented: false },
+          predicate: { termId: "human", complemented: false },
         },
       },
     };

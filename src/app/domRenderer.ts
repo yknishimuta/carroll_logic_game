@@ -15,10 +15,12 @@ import {
 import type { TermId } from "../domain/term";
 import {
   isCustomPremisePosition,
+  isCustomComplementField,
   isCustomTermField,
   isProblemSource,
   type CustomPremisePosition,
   type CustomTermField,
+  type CustomComplementField,
   type ProblemSource,
 } from "./customProblem";
 import type { GameViewModel } from "./viewModel";
@@ -62,6 +64,11 @@ export interface GameEventHandlers {
     position: CustomPremisePosition,
     field: CustomTermField,
     termId: TermId | null,
+  ) => void;
+  readonly onCustomPremiseComplementChange: (
+    position: CustomPremisePosition,
+    field: CustomComplementField,
+    complemented: boolean,
   ) => void;
   readonly onCustomProblemSubmit: () => void;
   readonly onCustomProblemClear: () => void;
@@ -611,11 +618,11 @@ function createCustomProblemSection(
     legend.textContent = premise.heading;
     fieldset.append(legend);
     const definitions = [
-      ["custom-form", undefined, premise.formSelector],
-      ["custom-term", "subjectTermId", premise.subjectSelector],
-      ["custom-term", "predicateTermId", premise.predicateSelector],
+      ["custom-form", undefined, premise.formSelector, undefined],
+      ["custom-term", "subjectTermId", premise.subjectSelector, premise.subjectComplement],
+      ["custom-term", "predicateTermId", premise.predicateSelector, premise.predicateComplement],
     ] as const;
-    definitions.forEach(([action, field, selector]) => {
+    definitions.forEach(([action, field, selector, complement]) => {
       const label = element("label");
       const span = element("span");
       span.textContent = selector.label;
@@ -668,6 +675,37 @@ function createCustomProblemSection(
       });
       label.append(span, select);
       fieldset.append(label);
+      if (field !== undefined && complement !== undefined) {
+        const complementLabel = element("label", "logic-game__complement-control");
+        const checkbox = element("input");
+        checkbox.type = "checkbox";
+        checkbox.checked = complement.checked;
+        checkbox.disabled = complement.disabled;
+        checkbox.dataset.action = "custom-complement";
+        checkbox.dataset.premisePosition = premise.position;
+        checkbox.dataset.field = field === "subjectTermId"
+          ? "subjectComplemented"
+          : "predicateComplemented";
+        const complementText = element("span");
+        complementText.textContent = complement.label;
+        checkbox.addEventListener("change", () => {
+          const position = checkbox.dataset.premisePosition;
+          const complementField = checkbox.dataset.field;
+          if (position === undefined || !isCustomPremisePosition(position)) {
+            throw new Error(`Unknown custom premise position: "${position ?? ""}".`);
+          }
+          if (complementField === undefined || !isCustomComplementField(complementField)) {
+            throw new Error(`Unknown custom complement field: "${complementField ?? ""}".`);
+          }
+          handlers.onCustomPremiseComplementChange(
+            position,
+            complementField,
+            checkbox.checked,
+          );
+        });
+        complementLabel.append(checkbox, complementText);
+        fieldset.append(complementLabel);
+      }
     });
     section.append(fieldset);
   });

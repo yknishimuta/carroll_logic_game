@@ -11,7 +11,10 @@ import {
 } from "../domain/logicSettings";
 import type { PropositionForm } from "../domain/proposition";
 import type { AbstractSyllogism } from "../domain/syllogism";
+import { abstractTerm, type AbstractTermOccurrence } from "../domain/term";
+import { conclusionTermOccurrences } from "./abstraction";
 import { projectToBiliteralDiagram } from "./biliteralProjection";
+import { conclusionCells } from "./conclusionCells";
 import { mergeConstraints } from "./constraintMerge";
 import { propositionToConstraints } from "./propositionConstraints";
 
@@ -34,34 +37,37 @@ export function isConclusionEntailed(
   settings: LogicSettings = DEFAULT_LOGIC_SETTINGS,
 ): boolean {
   const emptyCells = new Set(state.emptyCells);
+  const cells = conclusionCells(conclusion.subject, conclusion.predicate);
 
   switch (conclusion.form) {
     case "A":
       return (
-        emptyCells.has("Sp") &&
+        emptyCells.has(cells.negative) &&
         (settings.existentialImport === "modern" ||
-          hasCertainExistence(state, "SP"))
+          hasCertainExistence(state, cells.positive))
       );
     case "E":
-      return emptyCells.has("SP");
+      return emptyCells.has(cells.positive);
     case "I":
-      return hasCertainExistence(state, "SP");
+      return hasCertainExistence(state, cells.positive);
     case "O":
-      return hasCertainExistence(state, "Sp");
+      return hasCertainExistence(state, cells.negative);
   }
 }
 
 export function inferConclusionForms(
   state: BiliteralDiagramState,
   settings: LogicSettings = DEFAULT_LOGIC_SETTINGS,
+  subject: AbstractTermOccurrence = abstractTerm("S"),
+  predicate: AbstractTermOccurrence = abstractTerm("P"),
 ): readonly PropositionForm[] {
   return CONCLUSION_FORM_ORDER.filter((form) =>
     isConclusionEntailed(
       state,
       {
         form,
-        subjectRole: "S",
-        predicateRole: "P",
+        subject,
+        predicate,
       },
       settings,
     ),
@@ -120,9 +126,12 @@ export function inferSyllogismConclusion(
       secondConstraints,
     ]);
     const biliteralState = projectToBiliteralDiagram(triliteralState);
+    const conclusionTerms = conclusionTermOccurrences(premises);
     const entailedForms = inferConclusionForms(
       biliteralState,
       settings,
+      conclusionTerms.subject,
+      conclusionTerms.predicate,
     );
 
     return {

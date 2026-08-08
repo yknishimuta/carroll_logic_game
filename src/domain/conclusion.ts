@@ -3,6 +3,7 @@ import type {
   TriliteralDiagramState,
 } from "./diagram";
 import type { PropositionForm } from "./proposition";
+import type { AbstractTermOccurrence } from "./term";
 
 export const BILITERAL_CELLS = ["SP", "Sp", "sP", "sp"] as const;
 
@@ -20,8 +21,8 @@ export interface BiliteralDiagramState {
 
 export interface SyllogismConclusion {
   readonly form: PropositionForm;
-  readonly subjectRole: "S";
-  readonly predicateRole: "P";
+  readonly subject: AbstractTermOccurrence;
+  readonly predicate: AbstractTermOccurrence;
 }
 
 export type SyllogismConclusionResult =

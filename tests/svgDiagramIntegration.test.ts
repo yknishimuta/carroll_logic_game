@@ -14,24 +14,24 @@ const modern: LogicSettings = { existentialImport: "modern" };
 
 const syllogisms = {
   barbara: {
-    firstPremise: { form: "A", subject: "M", predicate: "P" },
-    secondPremise: { form: "A", subject: "S", predicate: "M" },
+    firstPremise: { form: "A", subject: { role: "M", complemented: false }, predicate: { role: "P", complemented: false } },
+    secondPremise: { form: "A", subject: { role: "S", complemented: false }, predicate: { role: "M", complemented: false } },
   },
   celarent: {
-    firstPremise: { form: "E", subject: "M", predicate: "P" },
-    secondPremise: { form: "A", subject: "S", predicate: "M" },
+    firstPremise: { form: "E", subject: { role: "M", complemented: false }, predicate: { role: "P", complemented: false } },
+    secondPremise: { form: "A", subject: { role: "S", complemented: false }, predicate: { role: "M", complemented: false } },
   },
   darii: {
-    firstPremise: { form: "A", subject: "M", predicate: "P" },
-    secondPremise: { form: "I", subject: "S", predicate: "M" },
+    firstPremise: { form: "A", subject: { role: "M", complemented: false }, predicate: { role: "P", complemented: false } },
+    secondPremise: { form: "I", subject: { role: "S", complemented: false }, predicate: { role: "M", complemented: false } },
   },
   ferio: {
-    firstPremise: { form: "E", subject: "M", predicate: "P" },
-    secondPremise: { form: "I", subject: "S", predicate: "M" },
+    firstPremise: { form: "E", subject: { role: "M", complemented: false }, predicate: { role: "P", complemented: false } },
+    secondPremise: { form: "I", subject: { role: "S", complemented: false }, predicate: { role: "M", complemented: false } },
   },
   invalid: {
-    firstPremise: { form: "A", subject: "P", predicate: "M" },
-    secondPremise: { form: "A", subject: "S", predicate: "M" },
+    firstPremise: { form: "A", subject: { role: "P", complemented: false }, predicate: { role: "M", complemented: false } },
+    secondPremise: { form: "A", subject: { role: "S", complemented: false }, predicate: { role: "M", complemented: false } },
   },
 } as const satisfies Record<string, AbstractSyllogism>;
 

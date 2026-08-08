@@ -42,6 +42,7 @@ export interface UiMessages {
     readonly formLabel: string;
     readonly subjectLabel: string;
     readonly predicateLabel: string;
+    readonly complementLabel: string;
     readonly selectFormPlaceholder: string;
     readonly selectTermPlaceholder: string;
     readonly createButton: string;

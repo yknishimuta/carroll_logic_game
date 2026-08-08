@@ -8,7 +8,9 @@ import type {
   ConclusionDisplayStateResult,
 } from "../domain/counterPlacement";
 import type { PropositionForm } from "../domain/proposition";
+import { abstractTerm, type AbstractTermOccurrence } from "../domain/term";
 import { createBiliteralCounterPlacements } from "./counterPlacements";
+import { conclusionCells } from "./conclusionCells";
 
 function hasExactExistence(
   state: BiliteralDiagramState,
@@ -24,34 +26,37 @@ function hasExactExistence(
 export function createConclusionDisplayState(
   state: BiliteralDiagramState,
   entailedForms: readonly PropositionForm[],
+  subject: AbstractTermOccurrence = abstractTerm("S"),
+  predicate: AbstractTermOccurrence = abstractTerm("P"),
 ): ConclusionDisplayStateResult {
   const forms = new Set(entailedForms);
   const sourceEmptyCells = new Set(state.emptyCells);
   const requiredEmptyCells = new Set<BiliteralCell>();
+  const cells = conclusionCells(subject, predicate);
 
   if (forms.has("A")) {
-    if (!sourceEmptyCells.has("Sp")) {
+    if (!sourceEmptyCells.has(cells.negative)) {
       return {
         ok: false,
         reason: "entailed-form-not-supported-by-state",
         form: "A",
       };
     }
-    requiredEmptyCells.add("Sp");
+    requiredEmptyCells.add(cells.negative);
   }
 
   if (forms.has("E")) {
-    if (!sourceEmptyCells.has("SP")) {
+    if (!sourceEmptyCells.has(cells.positive)) {
       return {
         ok: false,
         reason: "entailed-form-not-supported-by-state",
         form: "E",
       };
     }
-    requiredEmptyCells.add("SP");
+    requiredEmptyCells.add(cells.positive);
   }
 
-  if (forms.has("I") && !hasExactExistence(state, "SP")) {
+  if (forms.has("I") && !hasExactExistence(state, cells.positive)) {
     return {
       ok: false,
       reason: "entailed-form-not-supported-by-state",
@@ -59,7 +64,7 @@ export function createConclusionDisplayState(
     };
   }
 
-  if (forms.has("O") && !hasExactExistence(state, "Sp")) {
+  if (forms.has("O") && !hasExactExistence(state, cells.negative)) {
     return {
       ok: false,
       reason: "entailed-form-not-supported-by-state",
@@ -69,10 +74,10 @@ export function createConclusionDisplayState(
 
   const displayCells = new Set<BiliteralCell>();
   if (forms.has("I")) {
-    displayCells.add("SP");
+    displayCells.add(cells.positive);
   }
   if (forms.has("O")) {
-    displayCells.add("Sp");
+    displayCells.add(cells.negative);
   }
 
   return {
@@ -98,10 +103,14 @@ export function createConclusionDisplayState(
 export function createConclusionCounterPlacements(
   state: BiliteralDiagramState,
   entailedForms: readonly PropositionForm[],
+  subject: AbstractTermOccurrence = abstractTerm("S"),
+  predicate: AbstractTermOccurrence = abstractTerm("P"),
 ): ConclusionCounterPlacementResult {
   const displayResult = createConclusionDisplayState(
     state,
     entailedForms,
+    subject,
+    predicate,
   );
 
   if (!displayResult.ok) {

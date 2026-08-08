@@ -1,4 +1,7 @@
-import type { TermId, TermRole } from "./term";
+import type {
+  AbstractTermOccurrence,
+  ConcreteTermOccurrence,
+} from "./term";
 
 export type PropositionForm = "A" | "E" | "I" | "O";
 
@@ -8,12 +11,12 @@ export function isPropositionForm(value: string): value is PropositionForm {
 
 export interface ConcreteProposition {
   readonly form: PropositionForm;
-  readonly subject: TermId;
-  readonly predicate: TermId;
+  readonly subject: ConcreteTermOccurrence;
+  readonly predicate: ConcreteTermOccurrence;
 }
 
 export interface AbstractProposition {
   readonly form: PropositionForm;
-  readonly subject: TermRole;
-  readonly predicate: TermRole;
+  readonly subject: AbstractTermOccurrence;
+  readonly predicate: AbstractTermOccurrence;
 }

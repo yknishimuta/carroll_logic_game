@@ -2,6 +2,30 @@ export type TermId = string;
 
 export type TermRole = "S" | "M" | "P";
 
+export interface ConcreteTermOccurrence {
+  readonly termId: TermId;
+  readonly complemented: boolean;
+}
+
+export interface AbstractTermOccurrence {
+  readonly role: TermRole;
+  readonly complemented: boolean;
+}
+
+export function concreteTerm(
+  termId: TermId,
+  complemented = false,
+): ConcreteTermOccurrence {
+  return { termId, complemented };
+}
+
+export function abstractTerm(
+  role: TermRole,
+  complemented = false,
+): AbstractTermOccurrence {
+  return { role, complemented };
+}
+
 export function isTermRole(value: string): value is TermRole {
   return value === "S" || value === "M" || value === "P";
 }

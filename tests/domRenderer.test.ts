@@ -23,6 +23,7 @@ function handlers(): GameEventHandlers {
     onProblemSourceChange: vi.fn(),
     onCustomPremiseFormChange: vi.fn(),
     onCustomPremiseTermChange: vi.fn(),
+    onCustomPremiseComplementChange: vi.fn(),
     onCustomProblemSubmit: vi.fn(),
     onCustomProblemClear: vi.fn(),
     onCustomTermDraftChange: vi.fn(),
@@ -405,6 +406,11 @@ describe("renderGameView", () => {
       .toHaveLength(2);
     expect(container.querySelectorAll('[data-action="custom-term"]'))
       .toHaveLength(4);
+    const complements = container.querySelectorAll<HTMLInputElement>(
+      '[data-action="custom-complement"]',
+    );
+    expect(complements).toHaveLength(4);
+    expect([...complements].every(({ disabled }) => disabled)).toBe(true);
   });
 
   it("dispatches custom field, submit, clear, and null changes", () => {
@@ -444,6 +450,18 @@ describe("renderGameView", () => {
     term.dispatchEvent(new Event("change"));
     expect(callbacks.onCustomPremiseTermChange)
       .toHaveBeenLastCalledWith("minor", "subjectTermId", null);
+
+    const complement = container.querySelector<HTMLInputElement>(
+      '[data-action="custom-complement"]' +
+      '[data-premise-position="minor"]' +
+      '[data-field="subjectComplemented"]',
+    )!;
+    expect(complement.getAttribute("type")).toBe("checkbox");
+    complement.disabled = false;
+    complement.checked = true;
+    complement.dispatchEvent(new Event("change"));
+    expect(callbacks.onCustomPremiseComplementChange)
+      .toHaveBeenCalledWith("minor", "subjectComplemented", true);
 
     container.querySelector<HTMLButtonElement>(
       '[data-action="create-custom-problem"]',
@@ -578,8 +596,8 @@ describe("renderGameView", () => {
       customProblemStatus: "ready",
       phase: "conclusion",
       customPremises: {
-        firstPremise: { form: "A", subject: "animal", predicate: "mortal" },
-        secondPremise: { form: "A", subject: "human", predicate: "animal" },
+        firstPremise: { form: "A", subject: { termId: "animal", complemented: false }, predicate: { termId: "mortal", complemented: false } },
+        secondPremise: { form: "A", subject: { termId: "human", complemented: false }, predicate: { termId: "animal", complemented: false } },
       },
     }), handlers());
 
@@ -745,13 +763,13 @@ describe("renderGameView", () => {
       premises: {
         firstPremise: {
           form: "A" as const,
-          subject: "animal",
-          predicate: "mortal",
+          subject: { termId: "animal", complemented: false },
+          predicate: { termId: "mortal", complemented: false },
         },
         secondPremise: {
           form: "A" as const,
-          subject: "human",
-          predicate: "animal",
+          subject: { termId: "human", complemented: false },
+          predicate: { termId: "animal", complemented: false },
         },
       },
     };

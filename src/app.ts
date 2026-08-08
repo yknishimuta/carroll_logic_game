@@ -294,6 +294,13 @@ export function mountApp(
           field,
           termId,
         }),
+      onCustomPremiseComplementChange: (position, field, complemented) =>
+        dispatch({
+          type: "update-custom-premise-complement",
+          position,
+          field,
+          complemented,
+        }),
       onCustomProblemSubmit: () =>
         dispatch({
           type: "submit-custom-problem",

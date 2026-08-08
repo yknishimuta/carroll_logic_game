@@ -1,12 +1,13 @@
 import type { SyllogismProblemDefinition } from "../domain/syllogism";
+import { concreteTerm } from "../domain/term";
 
 export const BUILT_IN_PROBLEMS = [
   {
     id: "barbara-aaa1",
     title: { ja: "Barbara（AAA-1）", en: "Barbara (AAA-1)" },
     premises: {
-      firstPremise: { form: "A", subject: "animal", predicate: "mortal" },
-      secondPremise: { form: "A", subject: "human", predicate: "animal" },
+      firstPremise: { form: "A", subject: concreteTerm("animal"), predicate: concreteTerm("mortal") },
+      secondPremise: { form: "A", subject: concreteTerm("human"), predicate: concreteTerm("animal") },
     },
     expectedConclusionForm: "A",
   },
@@ -14,8 +15,8 @@ export const BUILT_IN_PROBLEMS = [
     id: "celarent-eae1",
     title: { ja: "Celarent（EAE-1）", en: "Celarent (EAE-1)" },
     premises: {
-      firstPremise: { form: "E", subject: "reptile", predicate: "warm-blooded" },
-      secondPremise: { form: "A", subject: "snake", predicate: "reptile" },
+      firstPremise: { form: "E", subject: concreteTerm("reptile"), predicate: concreteTerm("warm-blooded") },
+      secondPremise: { form: "A", subject: concreteTerm("snake"), predicate: concreteTerm("reptile") },
     },
     expectedConclusionForm: "E",
   },
@@ -23,8 +24,8 @@ export const BUILT_IN_PROBLEMS = [
     id: "darii-aii1",
     title: { ja: "Darii（AII-1）", en: "Darii (AII-1)" },
     premises: {
-      firstPremise: { form: "A", subject: "poet", predicate: "writer" },
-      secondPremise: { form: "I", subject: "student", predicate: "poet" },
+      firstPremise: { form: "A", subject: concreteTerm("poet"), predicate: concreteTerm("writer") },
+      secondPremise: { form: "I", subject: concreteTerm("student"), predicate: concreteTerm("poet") },
     },
     expectedConclusionForm: "I",
   },
@@ -32,8 +33,8 @@ export const BUILT_IN_PROBLEMS = [
     id: "ferio-eio1",
     title: { ja: "Ferio（EIO-1）", en: "Ferio (EIO-1)" },
     premises: {
-      firstPremise: { form: "E", subject: "bird", predicate: "mammal" },
-      secondPremise: { form: "I", subject: "pet", predicate: "bird" },
+      firstPremise: { form: "E", subject: concreteTerm("bird"), predicate: concreteTerm("mammal") },
+      secondPremise: { form: "I", subject: concreteTerm("pet"), predicate: concreteTerm("bird") },
     },
     expectedConclusionForm: "O",
   },
@@ -41,8 +42,8 @@ export const BUILT_IN_PROBLEMS = [
     id: "cesare-eae2",
     title: { ja: "Cesare（EAE-2）", en: "Cesare (EAE-2)" },
     premises: {
-      firstPremise: { form: "E", subject: "mammal", predicate: "bird" },
-      secondPremise: { form: "A", subject: "sparrow", predicate: "bird" },
+      firstPremise: { form: "E", subject: concreteTerm("mammal"), predicate: concreteTerm("bird") },
+      secondPremise: { form: "A", subject: concreteTerm("sparrow"), predicate: concreteTerm("bird") },
     },
     expectedConclusionForm: "E",
   },
@@ -53,8 +54,8 @@ export const BUILT_IN_PROBLEMS = [
       en: "Undistributed middle",
     },
     premises: {
-      firstPremise: { form: "A", subject: "cat", predicate: "animal" },
-      secondPremise: { form: "A", subject: "dog", predicate: "animal" },
+      firstPremise: { form: "A", subject: concreteTerm("cat"), predicate: concreteTerm("animal") },
+      secondPremise: { form: "A", subject: concreteTerm("dog"), predicate: concreteTerm("animal") },
     },
     expectedConclusionForm: null,
   },

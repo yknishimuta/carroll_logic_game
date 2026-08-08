@@ -13,9 +13,15 @@ import type {
   AbstractSyllogism,
   ConcreteSyllogism,
 } from "../domain/syllogism";
-import type { TermAssignment } from "../domain/term";
+import type {
+  AbstractTermOccurrence,
+  TermAssignment,
+} from "../domain/term";
 import type { TriliteralDiagramState } from "../domain/diagram";
-import { abstractSyllogism } from "../logic/abstraction";
+import {
+  abstractSyllogism,
+  conclusionTermOccurrences,
+} from "../logic/abstraction";
 import { createConclusionCounterPlacements } from "../logic/conclusionDisplay";
 import { inferSyllogismConclusion } from "../logic/conclusionInference";
 import { mergeConstraints } from "../logic/constraintMerge";
@@ -27,6 +33,10 @@ export interface ProblemComputation {
   readonly problem: ComputableProblem;
   readonly assignment: TermAssignment;
   readonly abstractPremises: AbstractSyllogism;
+  readonly conclusionTerms: {
+    readonly subject: AbstractTermOccurrence;
+    readonly predicate: AbstractTermOccurrence;
+  };
   readonly abstractConclusion: AbstractProposition | null;
   readonly concreteConclusion: ConcreteProposition | null;
   readonly firstPremiseState: TriliteralDiagramState;
@@ -46,11 +56,13 @@ export interface ComputableProblem {
 export function createConcreteConclusion(
   form: PropositionForm,
   assignment: TermAssignment,
+  subject: AbstractTermOccurrence = { role: "S", complemented: false },
+  predicate: AbstractTermOccurrence = { role: "P", complemented: false },
 ): ConcreteProposition {
   return {
     form,
-    subject: assignment.S,
-    predicate: assignment.P,
+    subject: { termId: assignment[subject.role], complemented: subject.complemented },
+    predicate: { termId: assignment[predicate.role], complemented: predicate.complemented },
   };
 }
 
@@ -60,6 +72,7 @@ export function computeProblem(
 ): ProblemComputation {
   const assignment = assignTermRoles(problem.premises);
   const abstractPremises = abstractSyllogism(problem.premises);
+  const conclusionTerms = conclusionTermOccurrences(abstractPremises);
   const firstPremiseState = mergeConstraints([
     propositionToConstraints(
       abstractPremises.firstPremise,
@@ -93,6 +106,8 @@ export function computeProblem(
   const conclusionPlacements = createConclusionCounterPlacements(
     inference.biliteralState,
     inference.entailedForms,
+    conclusionTerms.subject,
+    conclusionTerms.predicate,
   );
   if (!conclusionPlacements.ok) {
     throw new Error(
@@ -107,16 +122,22 @@ export function computeProblem(
   const abstractConclusion =
     conclusionForm === undefined
       ? null
-      : { form: conclusionForm, subject: "S" as const, predicate: "P" as const };
+      : { form: conclusionForm, ...conclusionTerms };
   const concreteConclusion =
     conclusionForm === undefined
       ? null
-      : createConcreteConclusion(conclusionForm, assignment);
+      : createConcreteConclusion(
+        conclusionForm,
+        assignment,
+        conclusionTerms.subject,
+        conclusionTerms.predicate,
+      );
 
   return {
     problem,
     assignment,
     abstractPremises,
+    conclusionTerms,
     abstractConclusion,
     concreteConclusion,
     firstPremiseState,

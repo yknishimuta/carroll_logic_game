@@ -40,6 +40,7 @@ export const EN_MESSAGES = {
     formLabel: "Form",
     subjectLabel: "Subject",
     predicateLabel: "Predicate",
+    complementLabel: "Complement (′)",
     selectFormPlaceholder: "Select a form",
     selectTermPlaceholder: "Select a term",
     createButton: "Create Problem",

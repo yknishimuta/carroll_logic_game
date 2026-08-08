@@ -18,7 +18,9 @@ import type {
 import {
   createEmptyCustomProblemDraft,
   updateCustomPremiseForm,
+  updateCustomPremiseComplement,
   updateCustomPremiseTerm,
+  type CustomComplementField,
   type CustomPremisePosition,
   type CustomProblemDraft,
   type CustomProblemValidationFailureReason,
@@ -193,6 +195,12 @@ export type AppAction =
       readonly position: CustomPremisePosition;
       readonly field: CustomTermField;
       readonly termId: TermId | null;
+    }
+  | {
+      readonly type: "update-custom-premise-complement";
+      readonly position: CustomPremisePosition;
+      readonly field: CustomComplementField;
+      readonly complemented: boolean;
     }
   | {
       readonly type: "submit-custom-problem";
@@ -394,6 +402,10 @@ function draftWithoutTerm(
       premise.subjectTermId === termId ? null : premise.subjectTermId,
     predicateTermId:
       premise.predicateTermId === termId ? null : premise.predicateTermId,
+    subjectComplemented:
+      premise.subjectTermId === termId ? false : premise.subjectComplemented,
+    predicateComplemented:
+      premise.predicateTermId === termId ? false : premise.predicateComplemented,
   });
   return {
     majorPremise: clear(draft.majorPremise),
@@ -410,7 +422,7 @@ function premisesUseTerm(
     premises.firstPremise.predicate,
     premises.secondPremise.subject,
     premises.secondPremise.predicate,
-  ].includes(termId);
+  ].some((occurrence) => occurrence.termId === termId);
 }
 
 export function reduceAppState(
@@ -475,6 +487,22 @@ export function reduceAppState(
         ),
         customPremises: null,
         customProblemStatus: "editing",
+        counterPractice: resetCounterPractice(state),
+        conclusionQuiz: resetConclusionQuiz(state),
+      };
+    case "update-custom-premise-complement":
+      if (state.problemSource === "built-in") return state;
+      return {
+        ...state,
+        phase: "problem",
+        customProblemDraft: updateCustomPremiseComplement(
+          state.customProblemDraft,
+          action.position,
+          action.field,
+          action.complemented,
+        ),
+        customProblemStatus: "editing",
+        customPremises: null,
         counterPractice: resetCounterPractice(state),
         conclusionQuiz: resetConclusionQuiz(state),
       };

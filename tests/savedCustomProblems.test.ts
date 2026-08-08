@@ -16,8 +16,8 @@ import {
 } from "../src/app/savedCustomProblems";
 
 const barbaraPremises = {
-  firstPremise: { form: "A" as const, subject: "animal", predicate: "mortal" },
-  secondPremise: { form: "A" as const, subject: "human", predicate: "animal" },
+  firstPremise: { form: "A" as const, subject: { termId: "animal", complemented: false }, predicate: { termId: "mortal", complemented: false } },
+  secondPremise: { form: "A" as const, subject: { termId: "human", complemented: false }, predicate: { termId: "animal", complemented: false } },
 };
 const barbara: SavedCustomProblemDefinition = {
   id: "custom-problem-1",
@@ -130,8 +130,8 @@ describe("saved custom problems", () => {
       premises: barbaraPremises,
     });
     const newPremises = {
-      firstPremise: { form: "E" as const, subject: "bird", predicate: "mammal" },
-      secondPremise: { form: "I" as const, subject: "pet", predicate: "bird" },
+      firstPremise: { form: "E" as const, subject: { termId: "bird", complemented: false }, predicate: { termId: "mammal", complemented: false } },
+      secondPremise: { form: "I" as const, subject: { termId: "pet", complemented: false }, predicate: { termId: "bird", complemented: false } },
     };
     const updated = updateSavedCustomProblem(
       "custom-problem-2",
@@ -167,16 +167,31 @@ describe("saved custom problems", () => {
     expect(draft).toEqual({
       majorPremise: {
         form: "A",
-        subjectTermId: "animal",
-        predicateTermId: "mortal",
+        subjectTermId: "animal", subjectComplemented: false,
+        predicateTermId: "mortal", predicateComplemented: false,
       },
       minorPremise: {
         form: "A",
-        subjectTermId: "human",
-        predicateTermId: "animal",
+        subjectTermId: "human", subjectComplemented: false,
+        predicateTermId: "animal", predicateComplemented: false,
       },
     });
     expect(draft.majorPremise).not.toBe(barbara.premises.firstPremise);
+  });
+
+  it("restores complemented controls from a saved problem", () => {
+    const draft = createCustomProblemDraftFromSavedProblem({
+      ...barbara,
+      premises: {
+        ...barbara.premises,
+        secondPremise: {
+          ...barbara.premises.secondPremise,
+          subject: { termId: "human", complemented: true },
+        },
+      },
+    });
+    expect(draft.minorPremise.subjectComplemented).toBe(true);
+    expect(draft.minorPremise.predicateComplemented).toBe(false);
   });
 
   it("finds term references in all four positions and definition order", () => {
@@ -188,6 +203,20 @@ describe("saved custom problems", () => {
       barbara,
       { ...barbara, id: "custom-problem-2", title: "Second" },
     ])).toEqual(["custom-problem-1", "custom-problem-2"]);
+  });
+
+  it("finds a base-term reference through a complemented occurrence", () => {
+    const primeProblem = {
+      ...barbara,
+      premises: {
+        ...barbara.premises,
+        firstPremise: {
+          ...barbara.premises.firstPremise,
+          subject: { termId: "animal", complemented: true },
+        },
+      },
+    };
+    expect(savedCustomProblemUsesTerm(primeProblem, "animal")).toBe(true);
   });
 
   it("validates catalog IDs, titles, terms, and premise structure", () => {
@@ -205,15 +234,15 @@ describe("saved custom problems", () => {
         ...barbara.premises,
         firstPremise: {
           ...barbara.premises.firstPremise,
-          subject: "unknown",
+          subject: { termId: "unknown", complemented: false },
         },
       },
     }], [])).toEqual({ ok: false, reason: "unknown-term" });
     expect(validateSavedCustomProblemCatalog([{
       ...barbara,
       premises: {
-        firstPremise: { form: "A", subject: "animal", predicate: "mortal" },
-        secondPremise: { form: "A", subject: "cat", predicate: "dog" },
+        firstPremise: { form: "A", subject: { termId: "animal", complemented: false }, predicate: { termId: "mortal", complemented: false } },
+        secondPremise: { form: "A", subject: { termId: "cat", complemented: false }, predicate: { termId: "dog", complemented: false } },
       },
     }], [])).toEqual({ ok: false, reason: "invalid-premises" });
   });
@@ -223,8 +252,8 @@ describe("saved custom problems", () => {
       id: "custom-problem-1",
       title: "Undistributed middle",
       premises: {
-        firstPremise: { form: "A", subject: "cat", predicate: "animal" },
-        secondPremise: { form: "A", subject: "dog", predicate: "animal" },
+        firstPremise: { form: "A", subject: { termId: "cat", complemented: false }, predicate: { termId: "animal", complemented: false } },
+        secondPremise: { form: "A", subject: { termId: "dog", complemented: false }, predicate: { termId: "animal", complemented: false } },
       },
     }], [])).toEqual({ ok: true });
   });

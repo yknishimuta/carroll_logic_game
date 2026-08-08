@@ -12,8 +12,8 @@ const invalidSyllogism: DataBackupContent = {
     id: "custom-problem-1",
     title: "Undistributed middle",
     premises: {
-      firstPremise: { form: "A", subject: "cat", predicate: "animal" },
-      secondPremise: { form: "A", subject: "dog", predicate: "animal" },
+      firstPremise: { form: "A", subject: { termId: "cat", complemented: false }, predicate: { termId: "animal", complemented: false } },
+      secondPremise: { form: "A", subject: { termId: "dog", complemented: false }, predicate: { termId: "animal", complemented: false } },
     },
   }],
 };
@@ -42,8 +42,8 @@ describe("data backup semantic validation", () => {
         id: "custom-problem-1",
         title: "Philosophers",
         premises: {
-          firstPremise: { form: "A", subject: "custom-term-1", predicate: "human" },
-          secondPremise: { form: "A", subject: "human", predicate: "animal" },
+          firstPremise: { form: "A", subject: { termId: "custom-term-1", complemented: false }, predicate: { termId: "human", complemented: false } },
+          secondPremise: { form: "A", subject: { termId: "human", complemented: false }, predicate: { termId: "animal", complemented: false } },
         },
       }],
     };
@@ -61,8 +61,8 @@ describe("data backup semantic validation", () => {
         id: "custom-problem-1",
         title: "Unknown",
         premises: {
-          firstPremise: { form: "A", subject: "missing", predicate: "human" },
-          secondPremise: { form: "A", subject: "human", predicate: "animal" },
+          firstPremise: { form: "A", subject: { termId: "missing", complemented: false }, predicate: { termId: "human", complemented: false } },
+          secondPremise: { form: "A", subject: { termId: "human", complemented: false }, predicate: { termId: "animal", complemented: false } },
         },
       }],
     }, "invalid-problem-catalog"],
@@ -72,8 +72,8 @@ describe("data backup semantic validation", () => {
         id: "custom-problem-1",
         title: "Only two terms",
         premises: {
-          firstPremise: { form: "A", subject: "human", predicate: "animal" },
-          secondPremise: { form: "A", subject: "animal", predicate: "human" },
+          firstPremise: { form: "A", subject: { termId: "human", complemented: false }, predicate: { termId: "animal", complemented: false } },
+          secondPremise: { form: "A", subject: { termId: "animal", complemented: false }, predicate: { termId: "human", complemented: false } },
         },
       }],
     }, "invalid-problem-catalog"],

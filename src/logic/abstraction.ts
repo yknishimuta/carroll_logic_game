@@ -6,7 +6,12 @@ import type {
   AbstractSyllogism,
   ConcreteSyllogism,
 } from "../domain/syllogism";
-import type { TermAssignment, TermRole } from "../domain/term";
+import type {
+  AbstractTermOccurrence,
+  ConcreteTermOccurrence,
+  TermAssignment,
+  TermRole,
+} from "../domain/term";
 import { assignTermRoles } from "./termAssignment";
 
 function roleForTerm(
@@ -28,15 +33,42 @@ function roleForTerm(
   throw new Error(`Term "${term}" is not present in the term assignment.`);
 }
 
+function abstractOccurrence(
+  occurrence: ConcreteTermOccurrence,
+  assignment: TermAssignment,
+): AbstractTermOccurrence {
+  return {
+    role: roleForTerm(occurrence.termId, assignment),
+    complemented: occurrence.complemented,
+  };
+}
+
 export function abstractProposition(
   proposition: ConcreteProposition,
   assignment: TermAssignment,
 ): AbstractProposition {
   return {
     form: proposition.form,
-    subject: roleForTerm(proposition.subject, assignment),
-    predicate: roleForTerm(proposition.predicate, assignment),
+    subject: abstractOccurrence(proposition.subject, assignment),
+    predicate: abstractOccurrence(proposition.predicate, assignment),
   };
+}
+
+
+export function conclusionTermOccurrences(
+  premises: AbstractSyllogism,
+): {
+  readonly subject: AbstractTermOccurrence;
+  readonly predicate: AbstractTermOccurrence;
+} {
+  const subject = [premises.secondPremise.subject, premises.secondPremise.predicate]
+    .find(({ role }) => role !== "M");
+  const predicate = [premises.firstPremise.subject, premises.firstPremise.predicate]
+    .find(({ role }) => role !== "M");
+  if (subject?.role !== "S" || predicate?.role !== "P") {
+    throw new Error("The conclusion term occurrences could not be determined.");
+  }
+  return { subject, predicate };
 }
 
 export function abstractSyllogism(

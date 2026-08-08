@@ -185,8 +185,10 @@ export function createCustomProblemDraftFromSavedProblem(
 ): CustomProblemDraft {
   const copy = (premise: ConcreteSyllogism["firstPremise"]) => ({
     form: premise.form,
-    subjectTermId: premise.subject,
-    predicateTermId: premise.predicate,
+    subjectTermId: premise.subject.termId,
+    subjectComplemented: premise.subject.complemented,
+    predicateTermId: premise.predicate.termId,
+    predicateComplemented: premise.predicate.complemented,
   });
   return {
     majorPremise: copy(problem.premises.firstPremise),
@@ -203,7 +205,7 @@ export function savedCustomProblemUsesTerm(
     problem.premises.firstPremise.predicate,
     problem.premises.secondPremise.subject,
     problem.premises.secondPremise.predicate,
-  ].includes(termId);
+  ].some((occurrence) => occurrence.termId === termId);
 }
 
 export function findSavedCustomProblemsUsingTerm(
@@ -249,7 +251,7 @@ export function validateSavedCustomProblemCatalog(
         problem.premises.firstPremise.predicate,
         problem.premises.secondPremise.subject,
         problem.premises.secondPremise.predicate,
-      ].some((termId) => !termIds.has(termId))
+      ].some((occurrence) => !termIds.has(occurrence.termId))
     ) return { ok: false, reason: "unknown-term" };
     const validation = validateCustomProblemDraft(
       createCustomProblemDraftFromSavedProblem(problem),

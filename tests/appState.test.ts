@@ -121,13 +121,13 @@ describe("application state", () => {
     expect(initial.customProblemDraft).toEqual({
       majorPremise: {
         form: null,
-        subjectTermId: null,
-        predicateTermId: null,
+        subjectTermId: null, subjectComplemented: false,
+        predicateTermId: null, predicateComplemented: false,
       },
       minorPremise: {
         form: null,
-        subjectTermId: null,
-        predicateTermId: null,
+        subjectTermId: null, subjectComplemented: false,
+        predicateTermId: null, predicateComplemented: false,
       },
     });
     expect(initial.customPremises).toBeNull();
@@ -142,8 +142,8 @@ describe("application state", () => {
         ...initial.customProblemDraft,
         majorPremise: {
           form: "A" as const,
-          subjectTermId: "animal" as const,
-          predicateTermId: null,
+          subjectTermId: "animal" as const, subjectComplemented: false,
+          predicateTermId: null, predicateComplemented: false,
         },
       },
     };
@@ -179,13 +179,21 @@ describe("application state", () => {
     });
     expect(state.customProblemDraft.majorPremise.form).toBe("A");
     expect(state.customProblemDraft.minorPremise.subjectTermId).toBe("human");
+    state = reduceAppState(state, {
+      type: "update-custom-premise-complement",
+      position: "minor",
+      field: "subjectComplemented",
+      complemented: true,
+    });
+    expect(state.customProblemDraft.minorPremise.subjectComplemented).toBe(true);
+    expect(state.customProblemDraft.minorPremise.predicateComplemented).toBe(false);
     expect(state.customProblemStatus).toBe("editing");
   });
 
   it("stores successful custom premises and blocks or allows next", () => {
     const premises = {
-      firstPremise: { form: "A" as const, subject: "animal", predicate: "mortal" },
-      secondPremise: { form: "A" as const, subject: "human", predicate: "animal" },
+      firstPremise: { form: "A" as const, subject: { termId: "animal", complemented: false }, predicate: { termId: "mortal", complemented: false } },
+      secondPremise: { form: "A" as const, subject: { termId: "human", complemented: false }, predicate: { termId: "animal", complemented: false } },
     };
     const editing = {
       ...initial,
@@ -229,8 +237,8 @@ describe("application state", () => {
 
   it("invalidates a created problem after editing and clears explicitly", () => {
     const premises = {
-      firstPremise: { form: "A" as const, subject: "animal", predicate: "mortal" },
-      secondPremise: { form: "A" as const, subject: "human", predicate: "animal" },
+      firstPremise: { form: "A" as const, subject: { termId: "animal", complemented: false }, predicate: { termId: "mortal", complemented: false } },
+      secondPremise: { form: "A" as const, subject: { termId: "human", complemented: false }, predicate: { termId: "animal", complemented: false } },
     };
     const ready: AppState = {
       ...initial,
@@ -255,8 +263,8 @@ describe("application state", () => {
       ...initial,
       problemSource: "custom",
       customPremises: {
-        firstPremise: { form: "A", subject: "animal", predicate: "mortal" },
-        secondPremise: { form: "A", subject: "human", predicate: "animal" },
+        firstPremise: { form: "A", subject: { termId: "animal", complemented: false }, predicate: { termId: "mortal", complemented: false } },
+        secondPremise: { form: "A", subject: { termId: "human", complemented: false }, predicate: { termId: "animal", complemented: false } },
       },
       customProblemStatus: "ready",
     };
@@ -391,25 +399,25 @@ describe("application state", () => {
       customProblemDraft: {
         majorPremise: {
           form: "A" as const,
-          subjectTermId: "custom-term-1",
-          predicateTermId: "human",
+          subjectTermId: "custom-term-1", subjectComplemented: false,
+          predicateTermId: "human", predicateComplemented: false,
         },
         minorPremise: {
           form: "A" as const,
-          subjectTermId: "human",
-          predicateTermId: "animal",
+          subjectTermId: "human", subjectComplemented: false,
+          predicateTermId: "animal", predicateComplemented: false,
         },
       },
       customPremises: {
         firstPremise: {
           form: "A" as const,
-          subject: "custom-term-1",
-          predicate: "human",
+          subject: { termId: "custom-term-1", complemented: false },
+          predicate: { termId: "human", complemented: false },
         },
         secondPremise: {
           form: "A" as const,
-          subject: "human",
-          predicate: "animal",
+          subject: { termId: "human", complemented: false },
+          predicate: { termId: "animal", complemented: false },
         },
       },
       customProblemStatus: "ready" as const,
@@ -450,22 +458,22 @@ describe("application state", () => {
       customProblemDraft: {
         majorPremise: {
           form: "A",
-          subjectTermId: "custom-term-1",
-          predicateTermId: "human",
+          subjectTermId: "custom-term-1", subjectComplemented: false,
+          predicateTermId: "human", predicateComplemented: false,
         },
         minorPremise: {
           form: "A",
-          subjectTermId: "human",
-          predicateTermId: "animal",
+          subjectTermId: "human", subjectComplemented: false,
+          predicateTermId: "animal", predicateComplemented: false,
         },
       },
       customPremises: {
         firstPremise: {
           form: "A",
-          subject: "custom-term-1",
-          predicate: "human",
+          subject: { termId: "custom-term-1", complemented: false },
+          predicate: { termId: "human", complemented: false },
         },
-        secondPremise: { form: "A", subject: "human", predicate: "animal" },
+        secondPremise: { form: "A", subject: { termId: "human", complemented: false }, predicate: { termId: "animal", complemented: false } },
       },
       customProblemStatus: "ready",
     };
@@ -487,8 +495,8 @@ describe("application state", () => {
 
   it("does not invalidate a problem for an unrelated deletion", () => {
     const premises = {
-      firstPremise: { form: "A" as const, subject: "animal", predicate: "mortal" },
-      secondPremise: { form: "A" as const, subject: "human", predicate: "animal" },
+      firstPremise: { form: "A" as const, subject: { termId: "animal", complemented: false }, predicate: { termId: "mortal", complemented: false } },
+      secondPremise: { form: "A" as const, subject: { termId: "human", complemented: false }, predicate: { termId: "animal", complemented: false } },
     };
     const state: AppState = {
       ...initial,
@@ -915,13 +923,13 @@ describe("application state", () => {
       premises: {
         firstPremise: {
           form: "A" as const,
-          subject: "animal",
-          predicate: "mortal",
+          subject: { termId: "animal", complemented: false },
+          predicate: { termId: "mortal", complemented: false },
         },
         secondPremise: {
           form: "A" as const,
-          subject: "human",
-          predicate: "animal",
+          subject: { termId: "human", complemented: false },
+          predicate: { termId: "animal", complemented: false },
         },
       },
     };
@@ -944,8 +952,8 @@ describe("application state", () => {
     expect(state.customProblemStatus).toBe("ready");
     expect(state.customProblemDraft.majorPremise).toEqual({
       form: "A",
-      subjectTermId: "animal",
-      predicateTermId: "mortal",
+      subjectTermId: "animal", subjectComplemented: false,
+      predicateTermId: "mortal", predicateComplemented: false,
     });
     state = reduceAppState(state, {
       type: "start-edit-saved-custom-problem",
@@ -981,13 +989,13 @@ describe("application state", () => {
       premises: {
         firstPremise: {
           form: "A" as const,
-          subject: "animal",
-          predicate: "mortal",
+          subject: { termId: "animal", complemented: false },
+          predicate: { termId: "mortal", complemented: false },
         },
         secondPremise: {
           form: "A" as const,
-          subject: "human",
-          predicate: "animal",
+          subject: { termId: "human", complemented: false },
+          predicate: { termId: "animal", complemented: false },
         },
       },
     };
@@ -1038,8 +1046,8 @@ describe("application state", () => {
         id: "custom-problem-1" as const,
         title: "Imported",
         premises: {
-          firstPremise: { form: "A" as const, subject: "human", predicate: "animal" },
-          secondPremise: { form: "A" as const, subject: "custom-term-1", predicate: "human" },
+          firstPremise: { form: "A" as const, subject: { termId: "human", complemented: false }, predicate: { termId: "animal", complemented: false } },
+          secondPremise: { form: "A" as const, subject: { termId: "custom-term-1", complemented: false }, predicate: { termId: "human", complemented: false } },
         },
       }],
     };

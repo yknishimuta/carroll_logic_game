@@ -103,7 +103,15 @@ export interface CustomPremiseEditorViewModel {
   readonly heading: string;
   readonly formSelector: SelectorViewModel;
   readonly subjectSelector: SelectorViewModel;
+  readonly subjectComplement: ComplementControlViewModel;
   readonly predicateSelector: SelectorViewModel;
+  readonly predicateComplement: ComplementControlViewModel;
+}
+
+export interface ComplementControlViewModel {
+  readonly label: string;
+  readonly checked: boolean;
+  readonly disabled: boolean;
 }
 
 export interface CustomProblemEditorViewModel {
@@ -441,11 +449,21 @@ function createCustomEditor(
       placeholder: messages.customProblem.selectTermPlaceholder,
       options: termOptions,
     },
+    subjectComplement: {
+      label: messages.customProblem.complementLabel,
+      checked: premise.subjectComplemented,
+      disabled: premise.subjectTermId === null,
+    },
     predicateSelector: {
       label: messages.customProblem.predicateLabel,
       selectedValue: premise.predicateTermId ?? "",
       placeholder: messages.customProblem.selectTermPlaceholder,
       options: termOptions,
+    },
+    predicateComplement: {
+      label: messages.customProblem.complementLabel,
+      checked: premise.predicateComplemented,
+      disabled: premise.predicateTermId === null,
     },
   });
   const feedback = state.customProblemStatus === "editing"
@@ -960,7 +978,12 @@ function conclusionQuizViewModel(
       value: form,
       label: `${messages.conclusionQuiz.options[form]} — ${
         formatConcreteProposition(
-          createConcreteConclusion(form, computation.assignment),
+          createConcreteConclusion(
+            form,
+            computation.assignment,
+            computation.conclusionTerms.subject,
+            computation.conclusionTerms.predicate,
+          ),
           state.locale,
           resolveTerm,
         )
@@ -1002,10 +1025,10 @@ function assignmentPanel(
 
 function problemTermIds(premises: ConcreteSyllogism): readonly TermId[] {
   return [...new Set([
-    premises.firstPremise.subject,
-    premises.firstPremise.predicate,
-    premises.secondPremise.subject,
-    premises.secondPremise.predicate,
+    premises.firstPremise.subject.termId,
+    premises.firstPremise.predicate.termId,
+    premises.secondPremise.subject.termId,
+    premises.secondPremise.predicate.termId,
   ])];
 }
 

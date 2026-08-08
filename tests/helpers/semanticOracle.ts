@@ -4,7 +4,7 @@ import type {
   PropositionForm,
 } from "../../src/domain/proposition";
 import type { AbstractSyllogism } from "../../src/domain/syllogism";
-import type { TermRole } from "../../src/domain/term";
+import type { AbstractTermOccurrence } from "../../src/domain/term";
 
 interface SemanticCell {
   readonly S: boolean;
@@ -42,8 +42,12 @@ function hasObject(
   );
 }
 
-function belongs(cell: SemanticCell, role: TermRole): boolean {
-  return cell[role];
+function belongs(
+  cell: SemanticCell,
+  occurrence: AbstractProposition["subject"],
+): boolean {
+  const base = cell[occurrence.role];
+  return occurrence.complemented ? !base : base;
 }
 
 export function oraclePropositionIsTrue(
@@ -89,6 +93,18 @@ export function oracleEntailedForms(
   }
 
   const forms = ["A", "E", "I", "O"] as const;
+  const subject = [
+    premises.secondPremise.subject,
+    premises.secondPremise.predicate,
+  ].find((occurrence) => occurrence.role !== "M");
+  const predicate = [
+    premises.firstPremise.subject,
+    premises.firstPremise.predicate,
+  ].find((occurrence) => occurrence.role !== "M");
+
+  if (subject === undefined || predicate === undefined) {
+    throw new Error("The semantic oracle requires one non-middle occurrence in each premise.");
+  }
 
   return forms.filter((form) =>
     satisfyingModels.every((model) =>
@@ -96,8 +112,8 @@ export function oracleEntailedForms(
         model,
         {
           form,
-          subject: "S",
-          predicate: "P",
+          subject: subject satisfies AbstractTermOccurrence,
+          predicate: predicate satisfies AbstractTermOccurrence,
         },
         settings,
       ),

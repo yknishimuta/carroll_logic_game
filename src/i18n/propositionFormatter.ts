@@ -33,12 +33,20 @@ export function formatConcreteProposition(
   locale: Locale,
   resolveTerm: TermResolver,
 ): string {
-  const subject = resolveTerm(proposition.subject);
-  const predicate = resolveTerm(proposition.predicate);
+  const subject = resolveTerm(proposition.subject.termId);
+  const predicate = resolveTerm(proposition.predicate.termId);
+  const complement = (text: string, complemented: boolean): string =>
+    complemented ? `${text}′` : text;
 
   if (locale === "ja") {
-    const subjectText = usageText(subject, locale, "subject");
-    const predicateText = usageText(predicate, locale, "predicate");
+    const subjectText = complement(
+      usageText(subject, locale, "subject"),
+      proposition.subject.complemented,
+    );
+    const predicateText = complement(
+      usageText(predicate, locale, "predicate"),
+      proposition.predicate.complemented,
+    );
     switch (proposition.form) {
       case "A": return `すべての${subjectText}は${predicateText}である。`;
       case "E": return `いかなる${subjectText}も${predicateText}ではない。`;
@@ -47,8 +55,14 @@ export function formatConcreteProposition(
     }
   }
 
-  const subjectText = usageText(subject, locale, "subject");
-  const predicateText = usageText(predicate, locale, "predicate");
+  const subjectText = complement(
+    usageText(subject, locale, "subject"),
+    proposition.subject.complemented,
+  );
+  const predicateText = complement(
+    usageText(predicate, locale, "predicate"),
+    proposition.predicate.complemented,
+  );
   switch (proposition.form) {
     case "A": return `All ${subjectText} are ${predicateText}.`;
     case "E": return `No ${subjectText} are ${predicateText}.`;
@@ -61,7 +75,10 @@ export function formatAbstractProposition(
   proposition: AbstractProposition,
   locale: Locale,
 ): string {
-  const { subject, predicate } = proposition;
+  const occurrenceText = ({ role, complemented }: AbstractProposition["subject"]): string =>
+    complemented ? `${role}′` : role;
+  const subject = occurrenceText(proposition.subject);
+  const predicate = occurrenceText(proposition.predicate);
 
   if (locale === "ja") {
     switch (proposition.form) {

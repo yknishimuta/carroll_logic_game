@@ -32,8 +32,8 @@ describe("built-in problem catalog", () => {
   it("references only known terms", () => {
     for (const { premises } of BUILT_IN_PROBLEMS) {
       for (const premise of [premises.firstPremise, premises.secondPremise]) {
-        expect(getBuiltInTerm(premise.subject).id).toBe(premise.subject);
-        expect(getBuiltInTerm(premise.predicate).id).toBe(premise.predicate);
+        expect(getBuiltInTerm(premise.subject.termId).id).toBe(premise.subject.termId);
+        expect(getBuiltInTerm(premise.predicate.termId).id).toBe(premise.predicate.termId);
       }
     }
   });

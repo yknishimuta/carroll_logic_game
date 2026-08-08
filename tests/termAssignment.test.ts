@@ -7,13 +7,13 @@ describe("assignTermRoles", () => {
     const syllogism: ConcreteSyllogism = {
       firstPremise: {
         form: "A",
-        subject: "動物",
-        predicate: "死すべきもの",
+        subject: { termId: "動物", complemented: false },
+        predicate: { termId: "死すべきもの", complemented: false },
       },
       secondPremise: {
         form: "A",
-        subject: "人間",
-        predicate: "動物",
+        subject: { termId: "人間", complemented: false },
+        predicate: { termId: "動物", complemented: false },
       },
     };
 
@@ -28,13 +28,13 @@ describe("assignTermRoles", () => {
     const syllogism: ConcreteSyllogism = {
       firstPremise: {
         form: "E",
-        subject: "P-term",
-        predicate: "M-term",
+        subject: { termId: "P-term", complemented: false },
+        predicate: { termId: "M-term", complemented: false },
       },
       secondPremise: {
         form: "I",
-        subject: "M-term",
-        predicate: "S-term",
+        subject: { termId: "M-term", complemented: false },
+        predicate: { termId: "S-term", complemented: false },
       },
     };
 
@@ -47,8 +47,8 @@ describe("assignTermRoles", () => {
 
   it("rejects premises with no shared term", () => {
     const syllogism: ConcreteSyllogism = {
-      firstPremise: { form: "A", subject: "a", predicate: "b" },
-      secondPremise: { form: "A", subject: "c", predicate: "d" },
+      firstPremise: { form: "A", subject: { termId: "a", complemented: false }, predicate: { termId: "b", complemented: false } },
+      secondPremise: { form: "A", subject: { termId: "c", complemented: false }, predicate: { termId: "d", complemented: false } },
     };
 
     expect(() => assignTermRoles(syllogism)).toThrow(
@@ -58,12 +58,42 @@ describe("assignTermRoles", () => {
 
   it("rejects a structure containing fewer than three distinct terms", () => {
     const syllogism: ConcreteSyllogism = {
-      firstPremise: { form: "A", subject: "a", predicate: "b" },
-      secondPremise: { form: "A", subject: "a", predicate: "b" },
+      firstPremise: { form: "A", subject: { termId: "a", complemented: false }, predicate: { termId: "b", complemented: false } },
+      secondPremise: { form: "A", subject: { termId: "a", complemented: false }, predicate: { termId: "b", complemented: false } },
     };
 
     expect(() => assignTermRoles(syllogism)).toThrow(
       "exactly one term shared",
     );
+  });
+
+  it("treats a term and its complement as the same base middle term", () => {
+    expect(assignTermRoles({
+      firstPremise: {
+        form: "A",
+        subject: { termId: "animal", complemented: true },
+        predicate: { termId: "mortal", complemented: false },
+      },
+      secondPremise: {
+        form: "A",
+        subject: { termId: "human", complemented: false },
+        predicate: { termId: "animal", complemented: false },
+      },
+    })).toEqual({ M: "animal", S: "human", P: "mortal" });
+  });
+
+  it("does not count normal and complemented occurrences as distinct terms", () => {
+    expect(() => assignTermRoles({
+      firstPremise: {
+        form: "A",
+        subject: { termId: "animal", complemented: false },
+        predicate: { termId: "animal", complemented: true },
+      },
+      secondPremise: {
+        form: "A",
+        subject: { termId: "human", complemented: false },
+        predicate: { termId: "animal", complemented: false },
+      },
+    })).toThrow("distinct terms");
   });
 });

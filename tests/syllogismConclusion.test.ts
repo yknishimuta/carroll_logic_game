@@ -23,13 +23,13 @@ function premises(
   return {
     firstPremise: {
       form: firstForm,
-      subject: firstSubject,
-      predicate: firstPredicate,
+      subject: { role: firstSubject, complemented: false },
+      predicate: { role: firstPredicate, complemented: false },
     },
     secondPremise: {
       form: secondForm,
-      subject: secondSubject,
-      predicate: secondPredicate,
+      subject: { role: secondSubject, complemented: false },
+      predicate: { role: secondPredicate, complemented: false },
     },
   };
 }
@@ -169,13 +169,13 @@ describe("independent semantic verification", () => {
           for (const secondForm of forms) {
             const first: AbstractProposition = {
               form: firstForm,
-              subject: figure[0][0],
-              predicate: figure[0][1],
+              subject: { role: figure[0][0], complemented: false },
+              predicate: { role: figure[0][1], complemented: false },
             };
             const second: AbstractProposition = {
               form: secondForm,
-              subject: figure[1][0],
-              predicate: figure[1][1],
+              subject: { role: figure[1][0], complemented: false },
+              predicate: { role: figure[1][1], complemented: false },
             };
             const syllogism: AbstractSyllogism = {
               firstPremise: first,

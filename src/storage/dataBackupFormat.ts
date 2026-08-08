@@ -4,8 +4,8 @@ import { decodeCustomTermArray } from "./customTermStorage";
 import { decodeSavedCustomProblemArray } from "./customProblemStorage";
 
 export const DATA_BACKUP_FORMAT = "carroll-logic-game-data";
-export const DATA_BACKUP_VERSION = 2;
-export const DATA_BACKUP_FILENAME = "carroll-logic-game-data-v2.json";
+export const DATA_BACKUP_VERSION = 3;
+export const DATA_BACKUP_FILENAME = "carroll-logic-game-data-v3.json";
 export const DATA_BACKUP_MIME_TYPE = "application/json";
 export const DATA_BACKUP_MAX_FILE_BYTES = 1_048_576;
 
@@ -14,9 +14,9 @@ export interface DataBackupContent {
   readonly savedCustomProblems: readonly SavedCustomProblemDefinition[];
 }
 
-export interface DataBackupV2 extends DataBackupContent {
+export interface DataBackupV3 extends DataBackupContent {
   readonly format: typeof DATA_BACKUP_FORMAT;
-  readonly version: 2;
+  readonly version: 3;
 }
 
 export type DataBackupParseFailureReason =
@@ -36,7 +36,7 @@ function record(value: unknown): Record<string, unknown> | null {
 }
 
 export function createDataBackupJson(content: DataBackupContent): string {
-  const backup: DataBackupV2 = {
+  const backup: DataBackupV3 = {
     format: DATA_BACKUP_FORMAT,
     version: DATA_BACKUP_VERSION,
     customTerms: content.customTerms,
@@ -56,10 +56,10 @@ export function parseDataBackupJson(jsonText: string): ParseDataBackupResult {
   if (root === null || root.format !== DATA_BACKUP_FORMAT) {
     return { ok: false, reason: "unsupported-format" };
   }
-  if (root.version !== 1 && root.version !== DATA_BACKUP_VERSION) {
+  if (root.version !== DATA_BACKUP_VERSION) {
     return { ok: false, reason: "unsupported-version" };
   }
-  const terms = decodeCustomTermArray(root.customTerms, root.version);
+  const terms = decodeCustomTermArray(root.customTerms, 2);
   const problems = decodeSavedCustomProblemArray(root.savedCustomProblems);
   return terms.ok && problems.ok
     ? {
