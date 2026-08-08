@@ -12,13 +12,47 @@ import {
 import type { PropositionForm } from "../domain/proposition";
 import type { AbstractSyllogism } from "../domain/syllogism";
 import { abstractTerm, type AbstractTermOccurrence } from "../domain/term";
-import { conclusionTermOccurrences } from "./abstraction";
 import { projectToBiliteralDiagram } from "./biliteralProjection";
 import { conclusionCells } from "./conclusionCells";
 import { mergeConstraints } from "./constraintMerge";
 import { propositionToConstraints } from "./propositionConstraints";
 
 const CONCLUSION_FORM_ORDER = ["A", "E", "I", "O"] as const;
+const CONCLUSION_TERM_PAIRS: readonly {
+  readonly subject: AbstractTermOccurrence;
+  readonly predicate: AbstractTermOccurrence;
+}[] = [
+  { subject: abstractTerm("S"), predicate: abstractTerm("P") },
+  {
+    subject: abstractTerm("S", true),
+    predicate: abstractTerm("P"),
+  },
+  {
+    subject: abstractTerm("S"),
+    predicate: abstractTerm("P", true),
+  },
+  {
+    subject: abstractTerm("S", true),
+    predicate: abstractTerm("P", true),
+  },
+];
+
+function preferredConclusionTerms(
+  premises: AbstractSyllogism,
+): (typeof CONCLUSION_TERM_PAIRS)[number] {
+  const subject = [
+    premises.secondPremise.subject,
+    premises.secondPremise.predicate,
+  ].find(({ role }) => role === "S");
+  const predicate = [
+    premises.firstPremise.subject,
+    premises.firstPremise.predicate,
+  ].find(({ role }) => role === "P");
+  if (subject === undefined || predicate === undefined) {
+    throw new Error("The retained conclusion terms could not be determined.");
+  }
+  return { subject, predicate };
+}
 
 function hasCertainExistence(
   state: BiliteralDiagramState,
@@ -90,6 +124,48 @@ export function removeRedundantConclusionForms(
   return CONCLUSION_FORM_ORDER.filter((form) => uniqueForms.has(form));
 }
 
+export function inferConclusionFromBiliteralState(
+  state: BiliteralDiagramState,
+  settings: LogicSettings = DEFAULT_LOGIC_SETTINGS,
+  preferredTerms?: (typeof CONCLUSION_TERM_PAIRS)[number],
+): {
+  readonly conclusion: SyllogismConclusion | null;
+  readonly entailedForms: readonly PropositionForm[];
+  readonly conclusionForms: readonly PropositionForm[];
+} {
+  const termPairs = preferredTerms === undefined
+    ? CONCLUSION_TERM_PAIRS
+    : [
+        preferredTerms,
+        ...CONCLUSION_TERM_PAIRS.filter((terms) =>
+          terms.subject.complemented !== preferredTerms.subject.complemented ||
+          terms.predicate.complemented !== preferredTerms.predicate.complemented
+        ),
+      ];
+  for (const terms of termPairs) {
+    for (const form of CONCLUSION_FORM_ORDER) {
+      const candidate: SyllogismConclusion = { form, ...terms };
+      if (!isConclusionEntailed(state, candidate, settings)) continue;
+      const entailedForms = inferConclusionForms(
+        state,
+        settings,
+        terms.subject,
+        terms.predicate,
+      );
+      const conclusionForms = removeRedundantConclusionForms(entailedForms);
+      const conclusionForm = conclusionForms[0];
+      return {
+        conclusion: conclusionForm === undefined
+          ? null
+          : { form: conclusionForm, ...terms },
+        entailedForms,
+        conclusionForms,
+      };
+    }
+  }
+  return { conclusion: null, entailedForms: [], conclusionForms: [] };
+}
+
 function errorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
 }
@@ -126,20 +202,17 @@ export function inferSyllogismConclusion(
       secondConstraints,
     ]);
     const biliteralState = projectToBiliteralDiagram(triliteralState);
-    const conclusionTerms = conclusionTermOccurrences(premises);
-    const entailedForms = inferConclusionForms(
+    const inference = inferConclusionFromBiliteralState(
       biliteralState,
       settings,
-      conclusionTerms.subject,
-      conclusionTerms.predicate,
+      preferredConclusionTerms(premises),
     );
 
     return {
       ok: true,
       triliteralState,
       biliteralState,
-      entailedForms,
-      conclusionForms: removeRedundantConclusionForms(entailedForms),
+      ...inference,
     };
   } catch (error: unknown) {
     return {

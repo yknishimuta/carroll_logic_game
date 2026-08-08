@@ -17,11 +17,9 @@ import type {
   AbstractTermOccurrence,
   TermAssignment,
 } from "../domain/term";
+import { abstractTerm } from "../domain/term";
 import type { TriliteralDiagramState } from "../domain/diagram";
-import {
-  abstractSyllogism,
-  conclusionTermOccurrences,
-} from "../logic/abstraction";
+import { abstractSyllogism } from "../logic/abstraction";
 import { createConclusionCounterPlacements } from "../logic/conclusionDisplay";
 import { inferSyllogismConclusion } from "../logic/conclusionInference";
 import { mergeConstraints } from "../logic/constraintMerge";
@@ -72,7 +70,6 @@ export function computeProblem(
 ): ProblemComputation {
   const assignment = assignTermRoles(problem.premises);
   const abstractPremises = abstractSyllogism(problem.premises);
-  const conclusionTerms = conclusionTermOccurrences(abstractPremises);
   const firstPremiseState = mergeConstraints([
     propositionToConstraints(
       abstractPremises.firstPremise,
@@ -95,6 +92,12 @@ export function computeProblem(
       `Failed to infer problem "${problem.id}": ${inference.reason}.`,
     );
   }
+  const conclusionTerms = inference.conclusion === null
+    ? { subject: abstractTerm("S"), predicate: abstractTerm("P") }
+    : {
+        subject: inference.conclusion.subject,
+        predicate: inference.conclusion.predicate,
+      };
   const combinedPlacements = createTriliteralCounterPlacements(
     inference.triliteralState,
   );
@@ -118,7 +121,7 @@ export function computeProblem(
   if (inference.conclusionForms.length > 1) {
     throw new Error(`Problem "${problem.id}" has multiple complete conclusions.`);
   }
-  const conclusionForm = inference.conclusionForms[0];
+  const conclusionForm = inference.conclusion?.form;
   const abstractConclusion =
     conclusionForm === undefined
       ? null

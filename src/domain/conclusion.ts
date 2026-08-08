@@ -30,6 +30,7 @@ export type SyllogismConclusionResult =
       readonly ok: true;
       readonly triliteralState: TriliteralDiagramState;
       readonly biliteralState: BiliteralDiagramState;
+      readonly conclusion: SyllogismConclusion | null;
       readonly entailedForms: readonly PropositionForm[];
       readonly conclusionForms: readonly PropositionForm[];
     }

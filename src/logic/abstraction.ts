@@ -55,22 +55,6 @@ export function abstractProposition(
 }
 
 
-export function conclusionTermOccurrences(
-  premises: AbstractSyllogism,
-): {
-  readonly subject: AbstractTermOccurrence;
-  readonly predicate: AbstractTermOccurrence;
-} {
-  const subject = [premises.secondPremise.subject, premises.secondPremise.predicate]
-    .find(({ role }) => role !== "M");
-  const predicate = [premises.firstPremise.subject, premises.firstPremise.predicate]
-    .find(({ role }) => role !== "M");
-  if (subject?.role !== "S" || predicate?.role !== "P") {
-    throw new Error("The conclusion term occurrences could not be determined.");
-  }
-  return { subject, predicate };
-}
-
 export function abstractSyllogism(
   syllogism: ConcreteSyllogism,
 ): AbstractSyllogism {

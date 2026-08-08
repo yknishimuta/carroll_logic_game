@@ -1198,6 +1198,40 @@ describe("mounted application interaction", () => {
     expect(svg).toContain('data-counter-kind="existence" data-source-ids="[&quot;second-premise&quot;]"><circle cx="120" cy="280"');
   });
 
+  it.each(["automatic", "quiz"] as const)(
+    "shows Some S are P and an SP I-counter for the complemented E regression in %s mode",
+    (mode) => {
+      const container = mount();
+      select(container, "problem-source", "custom");
+      selectCustom(container, "custom-form", "major", "I");
+      selectCustom(container, "custom-term", "major", "animal", "subjectTermId");
+      selectCustom(container, "custom-term", "major", "student", "predicateTermId");
+      selectCustom(container, "custom-form", "minor", "E");
+      selectCustom(container, "custom-term", "minor", "animal", "subjectTermId");
+      selectCustom(container, "custom-term", "minor", "human", "predicateTermId");
+      setCustomComplement(container, "minor", "predicateComplemented", true);
+      createCustom(container);
+      select(container, "conclusion-answer-mode", mode);
+      button(container, "next").click();
+      button(container, "next").click();
+      if (mode === "quiz") {
+        expect(container.querySelector<HTMLSelectElement>(
+          '[data-action="conclusion-answer"]',
+        )?.textContent).toContain("I — ある人間は学生である。");
+        submitConclusion(container, "I");
+        expect(container.textContent).toContain("正解です。");
+      }
+      button(container, "next").click();
+      expect(phase(container)).toBe("conclusion");
+      expect(container.textContent).toContain("ある人間は学生である。");
+      expect(container.textContent).toContain("ある S は P である。");
+      const svg = container.querySelector(".carroll-diagram")?.outerHTML ?? "";
+      expect(svg).toContain(
+        'data-counter-kind="existence" data-source-ids="[&quot;first-premise&quot;]"><circle cx="120" cy="120"',
+      );
+    },
+  );
+
   it("creates and edits saved problem titles with IME composition", () => {
     const storage = new MemoryStorage();
     const container = mount(storage);
