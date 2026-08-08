@@ -1,16 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { SyllogismConclusion } from "../src/domain/conclusion";
 import type { LogicSettings } from "../src/domain/logicSettings";
-import type {
-  AbstractProposition,
-  PropositionForm,
-} from "../src/domain/proposition";
-import type { AbstractSyllogism } from "../src/domain/syllogism";
-import {
-  abstractTerm,
-  type AbstractTermOccurrence,
-  type TermRole,
-} from "../src/domain/term";
+import type { AbstractTermOccurrence } from "../src/domain/term";
 import {
   inferSyllogismConclusion,
   isConclusionEntailed,
@@ -21,71 +12,36 @@ import {
   oraclePropositionIsTrue,
   oracleSatisfyingModels,
 } from "./helpers/semanticOracle";
-
-const FORMS = ["A", "E", "I", "O"] as const;
-const COMPLEMENTED = [false, true] as const;
-
-function generateRelationVariants(
-  firstRole: TermRole,
-  secondRole: TermRole,
-): readonly AbstractProposition[] {
-  const orientations = [
-    [firstRole, secondRole],
-    [secondRole, firstRole],
-  ] as const;
-  return FORMS.flatMap((form) =>
-    orientations.flatMap(([subjectRole, predicateRole]) =>
-      COMPLEMENTED.flatMap((subjectComplemented) =>
-        COMPLEMENTED.map((predicateComplemented) => ({
-          form,
-          subject: abstractTerm(subjectRole, subjectComplemented),
-          predicate: abstractTerm(predicateRole, predicateComplemented),
-        }))
-      )
-    )
-  );
-}
-
-const MP_VARIANTS = generateRelationVariants("M", "P");
-const SM_VARIANTS = generateRelationVariants("S", "M");
-const PREMISE_PAIRS: readonly AbstractSyllogism[] = MP_VARIANTS.flatMap(
-  (firstPremise) => SM_VARIANTS.map((secondPremise) => ({
-    firstPremise,
-    secondPremise,
-  })),
-);
-
-const CONCLUSION_CANDIDATES: readonly SyllogismConclusion[] = FORMS.flatMap(
-  (form) => COMPLEMENTED.flatMap((subjectComplemented) =>
-    COMPLEMENTED.map((predicateComplemented) => ({
-      form,
-      subject: abstractTerm("S", subjectComplemented),
-      predicate: abstractTerm("P", predicateComplemented),
-    }))
-  ),
-);
-
-function occurrenceText(occurrence: AbstractTermOccurrence): string {
-  return `${occurrence.role}${occurrence.complemented ? "′" : ""}`;
-}
-
-function propositionText(proposition: AbstractProposition): string {
-  return `${proposition.form}(${occurrenceText(proposition.subject)},${occurrenceText(proposition.predicate)})`;
-}
-
-function pairText(premises: AbstractSyllogism): string {
-  return `${propositionText(premises.firstPremise)} + ${propositionText(premises.secondPremise)}`;
-}
+import {
+  ABSTRACT_PREMISE_PAIRS,
+  MP_VARIANTS,
+  premisePairId,
+  propositionId,
+  SIGNED_RETINEND_CANDIDATES,
+  SM_VARIANTS,
+} from "./helpers/abstractSyllogismUniverse";
 
 function conclusionRequirements(
   conclusion: SyllogismConclusion,
   settings: LogicSettings,
 ): readonly string[] {
-  const subjectSymbol = conclusion.subject.complemented ? "s" : "S";
-  const predicateSymbol = conclusion.predicate.complemented ? "p" : "P";
-  const oppositePredicateSymbol = conclusion.predicate.complemented ? "P" : "p";
-  const positive = `${subjectSymbol}${predicateSymbol}`;
-  const negative = `${subjectSymbol}${oppositePredicateSymbol}`;
+  const cells = ["SP", "Sp", "sP", "sp"] as const;
+  const matches = (
+    cell: (typeof cells)[number],
+    occurrence: AbstractTermOccurrence,
+  ): boolean => {
+    const base = occurrence.role === "S" ? cell[0] === "S" : cell[1] === "P";
+    return occurrence.complemented ? !base : base;
+  };
+  const positive = cells.find((cell) =>
+    matches(cell, conclusion.subject) && matches(cell, conclusion.predicate)
+  );
+  const negative = cells.find((cell) =>
+    matches(cell, conclusion.subject) && !matches(cell, conclusion.predicate)
+  );
+  if (positive === undefined || negative === undefined) {
+    throw new Error("Oracle conclusion cells could not be determined.");
+  }
   switch (conclusion.form) {
     case "A":
       return settings.existentialImport === "carroll"
@@ -126,8 +82,8 @@ function compareMode(settings: LogicSettings): {
   const rawMismatches: string[] = [];
   const inferenceMismatches: string[] = [];
 
-  for (const premises of PREMISE_PAIRS) {
-    const label = pairText(premises);
+  for (const premises of ABSTRACT_PREMISE_PAIRS) {
+    const label = premisePairId(premises);
     const satisfyingModels = oracleSatisfyingModels(premises, settings);
     const production = inferSyllogismConclusion(premises, settings);
 
@@ -150,7 +106,7 @@ function compareMode(settings: LogicSettings): {
     }
 
     const oracleEntailedCandidates: SyllogismConclusion[] = [];
-    for (const candidate of CONCLUSION_CANDIDATES) {
+    for (const candidate of SIGNED_RETINEND_CANDIDATES) {
       candidateComparisons += 1;
       const oracle = satisfyingModels.every((model) =>
         oraclePropositionIsTrue(model, candidate, settings)
@@ -170,7 +126,7 @@ function compareMode(settings: LogicSettings): {
         [
           `mode=${settings.existentialImport}`,
           `premises=${label}`,
-          `candidate=${propositionText(candidate)}`,
+          `candidate=${propositionId(candidate)}`,
           `oracle=${oracle}`,
           `production=${actual}`,
           countermodel === null
@@ -189,32 +145,38 @@ function compareMode(settings: LogicSettings): {
         )
       );
 
-    if (production.conclusion === null) {
+    if (production.completeConclusion === null) {
       if (maximalOracleRequirements.length > 0) {
         inferenceMismatches.push(
           `mode=${settings.existentialImport}; premises=${label}; oracle has a complete signed conclusion; production canonical=null`,
         );
       }
     } else {
-      if (!satisfyingModels.every((model) =>
-        oraclePropositionIsTrue(model, production.conclusion!, settings)
-      )) {
-        inferenceMismatches.push(
-          `mode=${settings.existentialImport}; premises=${label}; production canonical=${propositionText(production.conclusion)} is not oracle-entailed`,
-        );
+      for (const conclusion of production.completeConclusion.propositions) {
+        if (!satisfyingModels.every((model) =>
+          oraclePropositionIsTrue(model, conclusion, settings)
+        )) {
+          inferenceMismatches.push(
+            `mode=${settings.existentialImport}; premises=${label}; production complete proposition=${propositionId(conclusion)} is not oracle-entailed`,
+          );
+        }
       }
-      const productionRequirements = conclusionRequirements(
-        production.conclusion,
-        settings,
-      );
-      if (!maximalOracleRequirements.some((oracleRequirements) =>
-        oracleRequirements.length === productionRequirements.length &&
-          oracleRequirements.every((value, index) =>
-            value === productionRequirements[index]
-          )
-      )) {
+      const productionRequirements = [...new Set(
+        production.completeConclusion.propositions.flatMap((conclusion) =>
+          conclusionRequirements(conclusion, settings)
+        ),
+      )].sort();
+      const oracleRequirements = [...new Set(
+        maximalOracleRequirements.flatMap((requirements) => requirements),
+      )].sort();
+      if (
+        productionRequirements.length !== oracleRequirements.length ||
+        productionRequirements.some((value, index) =>
+          value !== oracleRequirements[index]
+        )
+      ) {
         inferenceMismatches.push(
-          `mode=${settings.existentialImport}; premises=${label}; production canonical=${propositionText(production.conclusion)} requirements=${productionRequirements.join("+")}; oracle maximal=${maximalOracleRequirements.map((requirements) => requirements.join("+")).join("|")}`,
+          `mode=${settings.existentialImport}; premises=${label}; production complete requirements=${productionRequirements.join("+")}; oracle complete=${oracleRequirements.join("+")}`,
         );
       }
     }
@@ -236,9 +198,9 @@ describe("exhaustive complemented abstract-premise differential oracle", () => {
   it("generates exactly 32 M/P variants, 32 S/M variants, and 1024 pairs", () => {
     expect(MP_VARIANTS).toHaveLength(32);
     expect(SM_VARIANTS).toHaveLength(32);
-    expect(PREMISE_PAIRS).toHaveLength(1024);
-    expect(new Set(MP_VARIANTS.map(propositionText)).size).toBe(32);
-    expect(new Set(SM_VARIANTS.map(propositionText)).size).toBe(32);
+    expect(ABSTRACT_PREMISE_PAIRS).toHaveLength(1024);
+    expect(new Set(MP_VARIANTS.map(propositionId)).size).toBe(32);
+    expect(new Set(SM_VARIANTS.map(propositionId)).size).toBe(32);
   });
 
   const SETTINGS = [
@@ -266,7 +228,7 @@ describe("exhaustive complemented abstract-premise differential oracle", () => {
       mode: settings.existentialImport,
       satisfiablePairs: 1024,
       inconsistentPairs: 0,
-      candidateComparisons: 16384,
+      candidateComparisons: 32768,
     });
   });
 });

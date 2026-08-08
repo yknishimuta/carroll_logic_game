@@ -24,6 +24,8 @@ export const EN_MESSAGES = {
   secondPremiseLabel: "Second Premise",
   concreteConclusionLabel: "Concrete Conclusion",
   abstractConclusionLabel: "Abstract Conclusion",
+  concreteConclusionsLabel: "Concrete Conclusions",
+  abstractConclusionsLabel: "Abstract Conclusions",
   noConclusion: "No determinate conclusion follows from these premises.",
   progressAriaLabel: "Progress",
   controlsAriaLabel: "Game controls",
@@ -252,6 +254,8 @@ export const EN_MESSAGES = {
   derivedConclusion: {
     heading: "Derived result",
     explanation: "This result follows from the form of the premises you entered.",
+    multipleIntroduction: "In this problem, the complete conclusion contains multiple propositions in order to express all the definite information in the biliteral diagram.",
+    multipleExplanation: "These results follow from the forms of the entered premises.",
   },
   phases: {
     problem: "Problem",

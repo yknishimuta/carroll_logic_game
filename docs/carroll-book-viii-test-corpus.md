@@ -27,6 +27,13 @@ therefore be recorded separately without silently changing this baseline.
   begins on printed page 136.
 - Book VIII, Chapter III, Method of Subscripts, Solutions for §4: begins on
   printed page 146.
+- Book VIII, Chapter I, §5 Examples: printed pages 101–106, Nos. 1–101.
+- Book VIII, Chapter II, Answers to §5: printed pages 128–130.
+- Book VIII, Chapter III, Method of Diagrams, Solutions for §5 Nos. 1–12:
+  begins on printed page 138.
+- Book VIII, Chapter III, Method of Subscripts, Solutions for §5 Nos. 13–24:
+  begins on printed page 147. Nos. 25–101 have no worked solutions in Book
+  VIII and were checked twice against the Examples and Answers.
 - Book VIII, Chapter I, §6 Examples: printed pages 106–107, Nos. 1–40.
 - Book VIII, Chapter II, Answers to §6: printed pages 130–131.
 - Book VIII, Chapter III, Method of Diagrams, Solutions for §6 Nos. 1–10:
@@ -81,11 +88,19 @@ test-only metadata. The current production result is required to contain no
 signed conclusion, and the independent oracle checks both S/P and P/S
 orientations.
 
-The biliteral state entails every golden §4 answer. A separate measured
-baseline records cases 10, 12, 16, 24, 26, 27, 35, and 40, where the
-current single canonical conclusion contains only part of Carroll's complete
-answer. This is intentionally documented rather than repaired as part of the
-corpus-introduction task.
+The biliteral state and `CompleteConclusion` preserve every part of every
+golden §4 answer, including answers requiring multiple signed propositions.
+
+For §5, all 101 concrete-premise examples retain Carroll's English premises,
+answer prose, Universe/Dictionary metadata, structured concrete propositions,
+and a separately fixed human abstraction. No natural-language parser is used.
+Production is checked through structured concrete term assignment,
+abstraction, `CompleteConclusion`, and conversion back to concrete signed
+propositions. The primary comparison is semantic closure, not exact prose:
+Carroll's wording remains immutable source metadata while representative
+formatter cases are checked separately. Nos. 1–12 were cross-checked against
+the Diagram Solutions, Nos. 13–24 against the Subscript Solutions, and the
+remaining 77 abstractions received a second source-reading pass.
 
 For §6, the first two propositions are premises and the third is a proposed
 conclusion. The source premise order is normalized by its base roles (ignoring
@@ -96,9 +111,9 @@ conclusion. The no-conclusion metadata records five cases of like eliminands
 not asserted to exist (2, 6, 16, 28, 38) and two cases of unlike eliminands
 with an entity-premiss (7, 34). There are no incomplete cases in §6.
 
-The §6 tests compare the complete empty/occupied biliteral information, rather
-than requiring the app's single canonical conclusion to use Carroll's exact
-word order. They independently check the proposed and correct conclusions
+The §6 tests compare the complete empty/occupied biliteral information rather
+than requiring the app's canonical propositions to use Carroll's exact word
+order. They independently check the proposed and correct conclusions
 against the semantic oracle. The Diagram Solutions for Nos. 1–10 and the
 Method-of-Subscripts Solutions for all 40 were used to cross-check primes,
 premise order, proposed conclusions, and answer numbering.
@@ -138,22 +153,30 @@ The suites deliberately cover different segments of the pipeline. A corpus
 answer being entailed by a projected diagram does not by itself prove that the
 app selects, preserves, and displays that signed conclusion.
 
+The validation has three independent layers: Carroll's golden corpus checks
+historical answers, the exhaustive semantic differential checks production
+entailment against all 256 models, and the CompleteConclusion invariant suite
+checks soundness, semantic closure equivalence, irredundancy, middle-term
+elimination, and deterministic ordering across all 1,024 premise pairs in
+both supported semantic modes.
+
 | Suite | constraints | merge | projection | raw entailment | signed inference / canonicalization | `ProblemComputation` | conclusion placements |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
 | Book VIII §2 | yes | yes | no | no | no | no | triliteral only |
 | Book VIII §3 | no | no | yes | no | no | no | no |
 | Book VIII §4 | yes | yes | yes | yes | yes | no | no |
+| Book VIII §5 | yes | yes | yes | yes | yes | yes | yes |
 | Book VIII §6 | yes | yes | yes | yes | yes | no | no |
 | Exhaustive oracle Stage A | yes | yes | yes | yes | no | no | no |
 | Exhaustive oracle Stage B | yes | yes | yes | yes | yes | no | no |
 | No. 25 sentinel | yes | yes | yes | yes | yes | yes | yes, including DOM |
 
-Stage A compares every signed S/P candidate returned by the raw production
+Stage A compares all 32 signed S/P and P/S candidates returned by the raw production
 entailment evaluator with the independent 256-model oracle. Stage B separately
-requires the actual `inferSyllogismConclusion` result to be non-null whenever
-the oracle finds a conclusion, oracle-valid, and signed-equivalent to an oracle
-candidate. This separation prevents a correct raw evaluator from masking a
-canonicalization failure.
+requires the actual `inferSyllogismConclusion` complete conclusion to preserve
+the union of all maximal oracle information. Each selected proposition must
+also be oracle-valid. This separation prevents a correct raw evaluator from
+masking a canonicalization failure.
 
 The No. 25 sentinel (`All M are P; No S are M′`) asserts the combined
 triliteral emptiness, `Sp` projection, signed `E(S,P′)` inference,
@@ -161,16 +184,10 @@ triliteral emptiness, `Sp` projection, signed `E(S,P′)` inference,
 DOM text. An artificial `null`, `E(S,P)`, or O-counter at `SP` therefore fails
 an ordinary `npm test` run.
 
-The audit also exposes a broader current model limitation rather than hiding
-it behind raw entailment checks. `SyllogismConclusionResult` has one signed
-canonical proposition plus forms for that single signed term pair. It cannot
-represent every complete conclusion that requires two independent signed
-propositions or Carroll's reverse P-to-S orientation. Exact production-path
-comparison currently reports incomplete information for Book VIII §4 Nos.
-10, 12, 16, 24, 26, 27, 35, and 40, and Book VIII §6 Nos. 8, 13, 26, 33, and
-36. Fixing that requires a deliberate multi-proposition complete-conclusion
-model; the golden fixtures and assertions remain unchanged so this limitation
-cannot silently pass. The exhaustive Stage B audit independently reports 24
-Carroll-mode premise pairs where the selected canonical proposition is
-oracle-valid but omits a stronger maximal signed information set. Stage A has
-zero raw entailment mismatches, and modern mode has zero Stage B mismatches.
+`SyllogismConclusionResult.completeConclusion` is the sole authoritative
+conclusion result. It
+retains the projected biliteral state and a deterministic set of signed
+propositions, including P-to-S propositions when a single S-to-P proposition
+cannot express all certain empty and occupied quarters. Text, diagrams,
+manual expected placements, and quiz questions are derived from this result;
+there is no parallel single-conclusion or form-array result.

@@ -76,12 +76,12 @@ export interface CarrollSourceMetadata {
   readonly year: typeof CARROLL_BOOK_VIII_SOURCE.year;
   readonly book: typeof CARROLL_BOOK_VIII_SOURCE.book;
   readonly chapter: typeof CARROLL_BOOK_VIII_SOURCE.chapter;
-  readonly section: 2 | 3 | 4 | 6;
+  readonly section: 2 | 3 | 4 | 5 | 6;
   readonly example: number;
 }
 
 export function carrollSource(
-  section: 2 | 3 | 4 | 6,
+  section: 2 | 3 | 4 | 5 | 6,
   example: number,
 ): CarrollSourceMetadata {
   return { ...CARROLL_BOOK_VIII_SOURCE, section, example };

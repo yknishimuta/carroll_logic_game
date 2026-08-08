@@ -1,13 +1,12 @@
 import { describe, expect, it } from "vitest";
 import type { LogicSettings } from "../src/domain/logicSettings";
-import type {
-  AbstractProposition,
-  PropositionForm,
-} from "../src/domain/proposition";
+import type { PropositionForm } from "../src/domain/proposition";
 import type { AbstractSyllogism } from "../src/domain/syllogism";
 import type { TermRole } from "../src/domain/term";
-import { inferSyllogismConclusion } from "../src/logic/conclusionInference";
-import { oracleEntailedForms } from "./helpers/semanticOracle";
+import {
+  inferAllEntailedSignedPropositions,
+  inferSyllogismConclusion,
+} from "../src/logic/conclusionInference";
 
 const carroll: LogicSettings = { existentialImport: "carroll" };
 const modern: LogicSettings = { existentialImport: "modern" };
@@ -38,7 +37,6 @@ function expectForms(
   syllogism: AbstractSyllogism,
   settings: LogicSettings,
   entailedForms: readonly PropositionForm[],
-  conclusionForms: readonly PropositionForm[],
 ): void {
   const result = inferSyllogismConclusion(syllogism, settings);
 
@@ -47,8 +45,14 @@ function expectForms(
     return;
   }
 
-  expect(result.entailedForms).toEqual(entailedForms);
-  expect(result.conclusionForms).toEqual(conclusionForms);
+  expect(inferAllEntailedSignedPropositions(
+    result.biliteralState,
+    settings,
+  ).filter(({ subject, predicate }) =>
+    subject.role === "S" && !subject.complemented &&
+    predicate.role === "P" && !predicate.complemented
+  ).map(({ form }) => form)).toEqual(entailedForms);
+  expect(result.completeConclusion === null).toBe(entailedForms.length === 0);
 }
 
 describe("valid first-figure syllogisms", () => {
@@ -75,25 +79,27 @@ describe("valid first-figure syllogisms", () => {
         },
       ]);
       expect(carrollResult.biliteralState.emptyCells).toEqual(["Sp"]);
-      expect(carrollResult.entailedForms).toEqual(["A", "I"]);
-      expect(carrollResult.conclusionForms).toEqual(["A"]);
+      expect(carrollResult.completeConclusion?.propositions).toContainEqual({
+        form: "A",
+        subject: { role: "S", complemented: false },
+        predicate: { role: "P", complemented: false },
+      });
     }
 
-    expectForms(barbara, modern, ["A"], ["A"]);
+    expectForms(barbara, modern, ["A"]);
   });
 
   it("infers Celarent EAE-1 in Carroll and modern modes", () => {
     const celarent = premises("E", "M", "P", "A", "S", "M");
 
-    expectForms(celarent, carroll, ["E", "O"], ["E"]);
-    expectForms(celarent, modern, ["E"], ["E"]);
+    expectForms(celarent, carroll, ["E", "O"]);
+    expectForms(celarent, modern, ["E"]);
   });
 
   it("infers Darii AII-1", () => {
     expectForms(
       premises("A", "M", "P", "I", "S", "M"),
       carroll,
-      ["I"],
       ["I"],
     );
   });
@@ -102,7 +108,6 @@ describe("valid first-figure syllogisms", () => {
     expectForms(
       premises("E", "M", "P", "I", "S", "M"),
       carroll,
-      ["O"],
       ["O"],
     );
   });
@@ -113,7 +118,6 @@ describe("invalid syllogisms", () => {
     expectForms(
       premises("A", "P", "M", "A", "S", "M"),
       carroll,
-      [],
       [],
     );
   });
@@ -126,8 +130,7 @@ describe("invalid syllogisms", () => {
 
     expect(result.ok).toBe(true);
     if (result.ok) {
-      expect(result.entailedForms).toEqual([]);
-      expect(result.conclusionForms).toEqual([]);
+      expect(result.completeConclusion).toBeNull();
       expect(result.biliteralState.existentials).toHaveLength(2);
       expect(result.biliteralState.existentials.map(({ sourceId }) => sourceId))
         .toEqual(["first-premise", "second-premise"]);
@@ -144,66 +147,5 @@ describe("invalid syllogisms", () => {
       ok: false,
       stage: "constraint-merge",
     });
-  });
-});
-
-describe("independent semantic verification", () => {
-  const forms = ["A", "E", "I", "O"] as const;
-  const figures: readonly [
-    readonly [TermRole, TermRole],
-    readonly [TermRole, TermRole],
-  ][] = [
-    [["M", "P"], ["S", "M"]],
-    [["P", "M"], ["S", "M"]],
-    [["M", "P"], ["M", "S"]],
-    [["P", "M"], ["M", "S"]],
-  ];
-  const settingsCases = [carroll, modern] as const;
-
-  it("matches all 128 form, figure, and settings combinations", () => {
-    let checkedCases = 0;
-
-    for (const settings of settingsCases) {
-      for (const figure of figures) {
-        for (const firstForm of forms) {
-          for (const secondForm of forms) {
-            const first: AbstractProposition = {
-              form: firstForm,
-              subject: { role: figure[0][0], complemented: false },
-              predicate: { role: figure[0][1], complemented: false },
-            };
-            const second: AbstractProposition = {
-              form: secondForm,
-              subject: { role: figure[1][0], complemented: false },
-              predicate: { role: figure[1][1], complemented: false },
-            };
-            const syllogism: AbstractSyllogism = {
-              firstPremise: first,
-              secondPremise: second,
-            };
-            const expected = oracleEntailedForms(syllogism, settings);
-            const actual = inferSyllogismConclusion(syllogism, settings);
-
-            checkedCases += 1;
-
-            if (expected === null) {
-              expect(actual.ok, JSON.stringify({ settings, figure, firstForm, secondForm }))
-                .toBe(false);
-            } else {
-              expect(actual.ok, JSON.stringify({ settings, figure, firstForm, secondForm }))
-                .toBe(true);
-              if (actual.ok) {
-                expect(
-                  actual.entailedForms,
-                  JSON.stringify({ settings, figure, firstForm, secondForm }),
-                ).toEqual(expected);
-              }
-            }
-          }
-        }
-      }
-    }
-
-    expect(checkedCases).toBe(128);
   });
 });

@@ -26,6 +26,8 @@ export interface UiMessages {
   readonly secondPremiseLabel: string;
   readonly concreteConclusionLabel: string;
   readonly abstractConclusionLabel: string;
+  readonly concreteConclusionsLabel: string;
+  readonly abstractConclusionsLabel: string;
   readonly noConclusion: string;
   readonly progressAriaLabel: string;
   readonly controlsAriaLabel: string;
@@ -254,6 +256,8 @@ export interface UiMessages {
   readonly derivedConclusion: {
     readonly heading: string;
     readonly explanation: string;
+    readonly multipleIntroduction: string;
+    readonly multipleExplanation: string;
   };
   readonly phases: {
     readonly problem: string;

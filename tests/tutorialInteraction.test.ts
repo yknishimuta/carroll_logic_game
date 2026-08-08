@@ -68,19 +68,22 @@ describe("mountTutorial", () => {
     expect(biliteralSection?.querySelectorAll("table")).toHaveLength(1);
     expect(biliteralSection?.querySelector("caption")?.textContent).toBe("中項Mを消去する対応");
     expect(biliteralSection?.querySelectorAll("tbody tr")).toHaveLength(4);
-    expect(biliteralSection?.querySelector("ol")?.children).toHaveLength(4);
+    const orderedList = [...biliteralSection?.querySelectorAll("ol") ?? []]
+      .find(({ children }) => children.length === 4) ?? document.body;
+    expect(orderedList.children).toHaveLength(4);
     const biliteralChildren = [...biliteralSection?.children ?? []];
     const figure = biliteralSection?.querySelector("figure") ?? document.body;
     const correspondenceTable = biliteralSection?.querySelector(".tutorial__table-scroll") ?? document.body;
     const emptyRule = [...biliteralSection?.querySelectorAll("p") ?? []].find(({ textContent }) => textContent?.includes("両方とも空")) ?? document.body;
-    const orderedList = biliteralSection?.querySelector("ol") ?? document.body;
     const locators = biliteralSection?.querySelector(".tutorial__locators") ?? document.body;
     expect(biliteralChildren.indexOf(figure)).toBeLessThan(biliteralChildren.indexOf(correspondenceTable));
     expect(biliteralChildren.indexOf(correspondenceTable)).toBeLessThan(biliteralChildren.indexOf(emptyRule));
     expect(biliteralChildren.indexOf(emptyRule)).toBeLessThan(biliteralChildren.indexOf(orderedList));
     expect(biliteralChildren.indexOf(orderedList)).toBeLessThan(biliteralChildren.indexOf(locators));
     expect(biliteralSection?.lastElementChild).toBe(locators);
-    expect(locators.textContent).toBe("原著の関連箇所： (I.V.I) (I.IV.IV)");
+    expect(locators.textContent).toBe(
+      "原著の関連箇所： (I.V.I) (I.IV.IV) (I.V.II.2) (I.V.II.3)",
+    );
     expect(locators.querySelector("a")).toBeNull();
     expect(countersSection?.querySelector("h2")?.textContent).toBe("5. O駒とI駒");
     const counterParagraphs = [...countersSection?.querySelectorAll("p:not(.tutorial__locators)") ?? []];
@@ -250,13 +253,14 @@ describe("mountTutorial", () => {
     expect(englishBiliteral?.querySelectorAll("table")).toHaveLength(1);
     expect(englishBiliteral?.querySelector("caption")?.textContent).toBe("Eliminating the Middle Term M");
     expect(englishBiliteral?.querySelectorAll("tbody tr")).toHaveLength(4);
-    expect(englishBiliteral?.querySelector("ol")?.children).toHaveLength(4);
+    const englishFlow = [...englishBiliteral?.querySelectorAll("ol") ?? []]
+      .find(({ children }) => children.length === 4) ?? document.body;
+    expect(englishFlow.children).toHaveLength(4);
     const englishBiliteralChildren = [...englishBiliteral?.children ?? []];
     const englishFigure = englishBiliteral?.querySelector("figure") ?? document.body;
     const englishTable = englishBiliteral?.querySelector(".tutorial__table-scroll") ?? document.body;
     const englishEmptyRule = [...englishBiliteral?.querySelectorAll("p") ?? []]
       .find(({ textContent }) => textContent?.includes("both corresponding cells")) ?? document.body;
-    const englishFlow = englishBiliteral?.querySelector("ol") ?? document.body;
     expect(englishBiliteralChildren.indexOf(englishFigure)).toBeLessThan(englishBiliteralChildren.indexOf(englishTable));
     expect(englishBiliteralChildren.indexOf(englishTable)).toBeLessThan(englishBiliteralChildren.indexOf(englishEmptyRule));
     expect(englishBiliteralChildren.indexOf(englishEmptyRule)).toBeLessThan(englishBiliteralChildren.indexOf(englishFlow));

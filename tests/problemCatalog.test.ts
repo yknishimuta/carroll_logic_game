@@ -6,6 +6,17 @@ import {
 } from "../src/data/problems";
 import { getBuiltInTerm } from "../src/data/terms";
 import { computeProblem } from "../src/app/problemComputation";
+import { inferAllEntailedSignedPropositions } from "../src/logic/conclusionInference";
+import type { PropositionForm } from "../src/domain/proposition";
+
+const EXPECTED_TRADITIONAL_FORMS: Readonly<Record<string, PropositionForm | null>> = {
+  "barbara-aaa1": "A",
+  "celarent-eae1": "E",
+  "darii-aii1": "I",
+  "ferio-eio1": "O",
+  "cesare-eae2": "E",
+  "invalid-undistributed-middle": null,
+};
 import { assignTermRoles } from "../src/logic/termAssignment";
 
 describe("built-in problem catalog", () => {
@@ -51,26 +62,45 @@ describe("built-in problem catalog", () => {
     "infers the catalog expectation for $id",
     (problem) => {
       const result = computeProblem(problem);
-      const expected =
-        problem.expectedConclusionForm === null
-          ? []
-          : [problem.expectedConclusionForm];
-      expect(result.conclusionForms).toEqual(expected);
+      const expectedConclusionForm = EXPECTED_TRADITIONAL_FORMS[problem.id];
+      if (expectedConclusionForm === undefined) {
+        throw new Error(`Missing traditional expectation for ${problem.id}.`);
+      }
+      if (expectedConclusionForm === null) {
+        expect(result.completeConclusion).toBeNull();
+        expect(result.concreteConclusions).toEqual([]);
+      } else {
+        expect(result.completeConclusion).not.toBeNull();
+        expect(inferAllEntailedSignedPropositions(
+          result.completeConclusion!.biliteralState,
+        )).toContainEqual({
+          form: expectedConclusionForm,
+          subject: { role: "S", complemented: false },
+          predicate: { role: "P", complemented: false },
+        });
+        expect(result.completeConclusion!.propositions.length).toBeGreaterThan(0);
+        expect(result.concreteConclusions).toHaveLength(
+          result.completeConclusion!.propositions.length,
+        );
+      }
     },
   );
 
   it("infers E for the second-figure Cesare problem", () => {
-    expect(
-      computeProblem(getBuiltInProblem("cesare-eae2")).conclusionForms,
-    ).toEqual(["E"]);
+    const result = computeProblem(getBuiltInProblem("cesare-eae2"));
+    expect(inferAllEntailedSignedPropositions(
+      result.completeConclusion!.biliteralState,
+    )).toContainEqual({
+      form: "E",
+      subject: { role: "S", complemented: false },
+      predicate: { role: "P", complemented: false },
+    });
   });
 
   it("infers no conclusion for the undistributed-middle problem", () => {
-    expect(
-      computeProblem(
-        getBuiltInProblem("invalid-undistributed-middle"),
-      ).conclusionForms,
-    ).toEqual([]);
+    expect(computeProblem(
+      getBuiltInProblem("invalid-undistributed-middle"),
+    ).completeConclusion).toBeNull();
   });
 
   it("guards and retrieves problem IDs", () => {

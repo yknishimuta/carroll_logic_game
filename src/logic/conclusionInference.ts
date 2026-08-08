@@ -1,6 +1,7 @@
 import type {
   BiliteralCell,
   BiliteralDiagramState,
+  CompleteConclusion,
   SyllogismConclusion,
   SyllogismConclusionResult,
 } from "../domain/conclusion";
@@ -9,7 +10,6 @@ import {
   DEFAULT_LOGIC_SETTINGS,
   type LogicSettings,
 } from "../domain/logicSettings";
-import type { PropositionForm } from "../domain/proposition";
 import type { AbstractSyllogism } from "../domain/syllogism";
 import { abstractTerm, type AbstractTermOccurrence } from "../domain/term";
 import { projectToBiliteralDiagram } from "./biliteralProjection";
@@ -18,40 +18,109 @@ import { mergeConstraints } from "./constraintMerge";
 import { propositionToConstraints } from "./propositionConstraints";
 
 const CONCLUSION_FORM_ORDER = ["A", "E", "I", "O"] as const;
-const CONCLUSION_TERM_PAIRS: readonly {
+const ALL_SIGNED_CONCLUSION_TERM_PAIRS: readonly {
   readonly subject: AbstractTermOccurrence;
   readonly predicate: AbstractTermOccurrence;
-}[] = [
-  { subject: abstractTerm("S"), predicate: abstractTerm("P") },
-  {
-    subject: abstractTerm("S", true),
-    predicate: abstractTerm("P"),
-  },
-  {
-    subject: abstractTerm("S"),
-    predicate: abstractTerm("P", true),
-  },
-  {
-    subject: abstractTerm("S", true),
-    predicate: abstractTerm("P", true),
-  },
-];
+}[] = ([
+  ["S", "P"],
+  ["P", "S"],
+] as const).flatMap(([subjectRole, predicateRole]) =>
+  ([false, true] as const).flatMap((subjectComplemented) =>
+    ([false, true] as const).map((predicateComplemented) => ({
+      subject: abstractTerm(subjectRole, subjectComplemented),
+      predicate: abstractTerm(predicateRole, predicateComplemented),
+    }))
+  )
+);
 
-function preferredConclusionTerms(
-  premises: AbstractSyllogism,
-): (typeof CONCLUSION_TERM_PAIRS)[number] {
-  const subject = [
-    premises.secondPremise.subject,
-    premises.secondPremise.predicate,
-  ].find(({ role }) => role === "S");
-  const predicate = [
-    premises.firstPremise.subject,
-    premises.firstPremise.predicate,
-  ].find(({ role }) => role === "P");
-  if (subject === undefined || predicate === undefined) {
-    throw new Error("The retained conclusion terms could not be determined.");
+type ConclusionFact = `empty:${BiliteralCell}` | `existence:${BiliteralCell}`;
+
+function conclusionFacts(
+  conclusion: SyllogismConclusion,
+  settings: LogicSettings,
+): readonly ConclusionFact[] {
+  const cells = conclusionCells(conclusion.subject, conclusion.predicate);
+  switch (conclusion.form) {
+    case "A":
+      return settings.existentialImport === "carroll"
+        ? [`empty:${cells.negative}`, `existence:${cells.positive}`]
+        : [`empty:${cells.negative}`];
+    case "E":
+      return [`empty:${cells.positive}`];
+    case "I":
+      return [`existence:${cells.positive}`];
+    case "O":
+      return [`existence:${cells.negative}`];
   }
-  return { subject, predicate };
+}
+
+function biliteralFacts(state: BiliteralDiagramState): readonly ConclusionFact[] {
+  const empty = new Set(state.emptyCells);
+  return [
+    ...(["SP", "Sp", "sP", "sp"] as const)
+      .filter((cell) => empty.has(cell))
+      .map((cell): ConclusionFact => `empty:${cell}`),
+    ...(["SP", "Sp", "sP", "sp"] as const)
+      .filter((cell) => hasCertainExistence(state, cell))
+      .map((cell): ConclusionFact => `existence:${cell}`),
+  ];
+}
+
+export function inferAllEntailedSignedPropositions(
+  state: BiliteralDiagramState,
+  settings: LogicSettings = DEFAULT_LOGIC_SETTINGS,
+): readonly SyllogismConclusion[] {
+  return ALL_SIGNED_CONCLUSION_TERM_PAIRS.flatMap((terms) =>
+    CONCLUSION_FORM_ORDER.map((form): SyllogismConclusion => ({
+      form,
+      ...terms,
+    }))
+  ).filter((candidate) => isConclusionEntailed(state, candidate, settings));
+}
+
+export function inferCompleteConclusion(
+  state: BiliteralDiagramState,
+  settings: LogicSettings = DEFAULT_LOGIC_SETTINGS,
+): CompleteConclusion | null {
+  const targetFacts = biliteralFacts(state);
+  if (targetFacts.length === 0) return null;
+  const uncovered = new Set(targetFacts);
+  const candidates = inferAllEntailedSignedPropositions(state, settings)
+    .map((proposition) => ({
+      proposition,
+      facts: conclusionFacts(proposition, settings),
+    }));
+  const propositions: SyllogismConclusion[] = [];
+
+  while (uncovered.size > 0) {
+    const selected = candidates.reduce<(typeof candidates)[number] | null>(
+      (best, candidate) => {
+        const coverage = candidate.facts.filter((fact) => uncovered.has(fact))
+          .length;
+        if (coverage === 0) return best;
+        if (best === null) return candidate;
+        const bestCoverage = best.facts.filter((fact) => uncovered.has(fact))
+          .length;
+        if (coverage !== bestCoverage) {
+          return coverage > bestCoverage ? candidate : best;
+        }
+        return candidate.facts.length > best.facts.length ? candidate : best;
+      },
+      null,
+    );
+    if (selected === null) {
+      throw new Error(
+        `Complete conclusion cannot represent facts: ${[...uncovered].join(", ")}.`,
+      );
+    }
+    propositions.push(selected.proposition);
+    for (const fact of selected.facts) uncovered.delete(fact);
+  }
+
+  return {
+    biliteralState: state,
+    propositions,
+  };
 }
 
 function hasCertainExistence(
@@ -87,83 +156,6 @@ export function isConclusionEntailed(
     case "O":
       return hasCertainExistence(state, cells.negative);
   }
-}
-
-export function inferConclusionForms(
-  state: BiliteralDiagramState,
-  settings: LogicSettings = DEFAULT_LOGIC_SETTINGS,
-  subject: AbstractTermOccurrence = abstractTerm("S"),
-  predicate: AbstractTermOccurrence = abstractTerm("P"),
-): readonly PropositionForm[] {
-  return CONCLUSION_FORM_ORDER.filter((form) =>
-    isConclusionEntailed(
-      state,
-      {
-        form,
-        subject,
-        predicate,
-      },
-      settings,
-    ),
-  );
-}
-
-export function removeRedundantConclusionForms(
-  forms: readonly PropositionForm[],
-): readonly PropositionForm[] {
-  const uniqueForms = new Set(forms);
-
-  if (uniqueForms.has("A")) {
-    uniqueForms.delete("I");
-  }
-
-  if (uniqueForms.has("E")) {
-    uniqueForms.delete("O");
-  }
-
-  return CONCLUSION_FORM_ORDER.filter((form) => uniqueForms.has(form));
-}
-
-export function inferConclusionFromBiliteralState(
-  state: BiliteralDiagramState,
-  settings: LogicSettings = DEFAULT_LOGIC_SETTINGS,
-  preferredTerms?: (typeof CONCLUSION_TERM_PAIRS)[number],
-): {
-  readonly conclusion: SyllogismConclusion | null;
-  readonly entailedForms: readonly PropositionForm[];
-  readonly conclusionForms: readonly PropositionForm[];
-} {
-  const termPairs = preferredTerms === undefined
-    ? CONCLUSION_TERM_PAIRS
-    : [
-        preferredTerms,
-        ...CONCLUSION_TERM_PAIRS.filter((terms) =>
-          terms.subject.complemented !== preferredTerms.subject.complemented ||
-          terms.predicate.complemented !== preferredTerms.predicate.complemented
-        ),
-      ];
-  for (const terms of termPairs) {
-    for (const form of CONCLUSION_FORM_ORDER) {
-      const candidate: SyllogismConclusion = { form, ...terms };
-      if (!isConclusionEntailed(state, candidate, settings)) continue;
-      const entailedForms = inferConclusionForms(
-        state,
-        settings,
-        terms.subject,
-        terms.predicate,
-      );
-      const conclusionForms = removeRedundantConclusionForms(entailedForms);
-      const conclusionForm = conclusionForms[0];
-      return {
-        conclusion: conclusionForm === undefined
-          ? null
-          : { form: conclusionForm, ...terms },
-        entailedForms,
-        conclusionForms,
-      };
-    }
-  }
-  return { conclusion: null, entailedForms: [], conclusionForms: [] };
 }
 
 function errorMessage(error: unknown): string {
@@ -202,17 +194,16 @@ export function inferSyllogismConclusion(
       secondConstraints,
     ]);
     const biliteralState = projectToBiliteralDiagram(triliteralState);
-    const inference = inferConclusionFromBiliteralState(
+    const completeConclusion = inferCompleteConclusion(
       biliteralState,
       settings,
-      preferredConclusionTerms(premises),
     );
 
     return {
       ok: true,
       triliteralState,
       biliteralState,
-      ...inference,
+      completeConclusion,
     };
   } catch (error: unknown) {
     return {

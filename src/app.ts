@@ -25,7 +25,10 @@ import {
   validateBiliteralCounterAttempt,
   validateTriliteralCounterAttempt,
 } from "./app/counterPractice";
-import { validateConclusionAnswer } from "./app/conclusionQuiz";
+import {
+  deriveConclusionQuizQuestions,
+  validateConclusionQuizAnswers,
+} from "./app/conclusionQuiz";
 import {
   createSavedCustomProblem,
   findSavedCustomProblemsUsingTerm,
@@ -211,15 +214,19 @@ export function mountApp(
         dispatch({ type: "set-counter-placement-mode", mode }),
       onConclusionAnswerModeChange: (mode) =>
         dispatch({ type: "set-conclusion-answer-mode", mode }),
-      onConclusionAnswerChange: (answer) =>
-        dispatch({ type: "select-conclusion-answer", answer }),
+      onConclusionAnswerChange: (questionIndex, answer) =>
+        dispatch({
+          type: "select-conclusion-answer",
+          questionIndex,
+          answer,
+        }),
       onConclusionAnswerSubmit: () => {
         const computation = currentComputation();
         dispatch({
           type: "submit-conclusion-answer",
-          validation: validateConclusionAnswer(
-            state.conclusionQuiz.selectedAnswer,
-            computation.conclusionForms,
+          validation: validateConclusionQuizAnswers(
+            state.conclusionQuiz.answers,
+            deriveConclusionQuizQuestions(computation.completeConclusion),
           ),
         });
       },

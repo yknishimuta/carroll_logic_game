@@ -43,6 +43,8 @@
 | eliminate-middle | Eliminands disappear from the conclusion; transfer to a biliteral diagram | I.V.I; I.IV.IV | direct | 56; 53 | yes |
 | project-empty | A biliteral quarter receives O only if both source cells contain O | symbolic-logic-i-iv-iv / I.IV.IV | direct | 53 | yes |
 | project-existence | A biliteral quarter receives I if either source cell contains I | symbolic-logic-i-iv-iv / I.IV.IV | direct | 53 | yes |
+| multiple-complete-conclusions | A complete conclusion may require more than one proposition to express all definite biliteral information | symbolic-logic-i-v-ii-2 / I.V.II.2 | direct | 60 (worked example 62–63) | yes |
+| complete-vs-incomplete-conclusion | A proposed conclusion may be consequent but incomplete when it omits part of the complete conclusion | symbolic-logic-i-v-ii-3 / I.V.II.3 | direct | 66–68 | yes |
 | barbara-stages | Barbara worked by the verified general representation, combination, projection, and syllogism rules | I.IV.II; I.IV.III; I.IV.IV; I.V.II.2 | derived | 43; 50; 53; 60 | yes |
 | manual-placement-ui | O/I/erase tools, 20/8 targets, checking, clearing, and keyboard behavior | — | application | — | yes |
 | common-error-corrections | Tutorial summary of verified counter, boundary, and projection rules | I.III.II; I.IV.III; I.IV.IV | derived | 26; 50; 53 | yes |
@@ -65,6 +67,10 @@
 - The exact 20 triliteral and 8 biliteral interactive target sets, tool
   replacement, clear/check actions, quiz unlocking, and answer-state
   behavior are application behavior.
+- Ordered-list rendering and the app's one-question-per-complete-proposition
+  quiz are application behavior. The Carroll source supports the logical
+  distinction between complete and incomplete conclusions, not those UI
+  choices.
 - The tutorial's specific modern-language Barbara example is a derived
   application of the verified method. It is not claimed to be a verbatim
   worked example at a guessed chapter.

@@ -24,6 +24,8 @@ export const JA_MESSAGES = {
   secondPremiseLabel: "第二前提",
   concreteConclusionLabel: "具体的結論",
   abstractConclusionLabel: "抽象的結論",
+  concreteConclusionsLabel: "具体的結論",
+  abstractConclusionsLabel: "抽象的結論",
   noConclusion: "これらの前提から確定した結論は得られません。",
   progressAriaLabel: "進行状況",
   controlsAriaLabel: "ゲーム操作",
@@ -252,6 +254,8 @@ export const JA_MESSAGES = {
   derivedConclusion: {
     heading: "導出結果",
     explanation: "この結果は、入力した前提の形式から導かれます。",
+    multipleIntroduction: "この問題では、二文字図の確定情報を完全に表すため、完全な結論が複数の命題からなります。",
+    multipleExplanation: "これらの結果は、入力した前提の形式から導かれます。",
   },
   phases: {
     problem: "問題",

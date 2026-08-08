@@ -1,10 +1,11 @@
 import { describe, expect, it } from "vitest";
 import type { BiliteralDiagramState } from "../src/domain/conclusion";
 import {
-  inferConclusionForms,
+  inferCompleteConclusion,
+  inferSyllogismConclusion,
   isConclusionEntailed,
-  removeRedundantConclusionForms,
 } from "../src/logic/conclusionInference";
+import { CARROLL_BOOK_VIII_SECTION_4 } from "./fixtures/carrollBookVIIISection4";
 
 const emptyState: BiliteralDiagramState = {
   emptyCells: [],
@@ -130,47 +131,71 @@ describe("isConclusionEntailed", () => {
   });
 });
 
-describe("inferConclusionForms", () => {
-  it("returns all entailed forms in A, E, I, O order", () => {
-    expect(
-      inferConclusionForms({
-        emptyCells: ["Sp", "SP"],
-        existentials: [
-          { sourceId: "i", possibleCells: ["SP"] },
-          { sourceId: "o", possibleCells: ["Sp"] },
-        ],
-      }),
-    ).toEqual(["A", "E", "I", "O"]);
+describe("CompleteConclusion", () => {
+  const section4Number10 = CARROLL_BOOK_VIII_SECTION_4.find(
+    (testCase) => testCase.number === 10,
+  );
+  if (section4Number10 === undefined) {
+    throw new Error("Book VIII §4 No. 10 fixture is missing.");
+  }
+
+  it("uses null as the only no-conclusion representation", () => {
+    expect(inferCompleteConclusion(emptyState)).toBeNull();
   });
 
-  it("is deterministic with frozen input", () => {
-    const state: BiliteralDiagramState = Object.freeze({
-      emptyCells: Object.freeze(["Sp"] as const),
-      existentials: Object.freeze([
-        Object.freeze({
-          sourceId: "i",
-          possibleCells: Object.freeze(["SP"] as const),
-        }),
-      ]),
+  it("preserves the two signed propositions in Book VIII §4 No. 10", () => {
+    const result = inferSyllogismConclusion(section4Number10.premises);
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+
+    expect(result.completeConclusion?.propositions).toEqual([
+      {
+        form: "A",
+        subject: { role: "S", complemented: false },
+        predicate: { role: "P", complemented: false },
+      },
+      {
+        form: "A",
+        subject: { role: "P", complemented: true },
+        predicate: { role: "S", complemented: true },
+      },
+    ]);
+  });
+
+  it("retains the reverse P-to-S conclusion orientation", () => {
+    const result = inferSyllogismConclusion(section4Number10.premises);
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+
+    expect(result.completeConclusion?.propositions).toContainEqual({
+      form: "A",
+      subject: { role: "P", complemented: true },
+      predicate: { role: "S", complemented: true },
     });
-
-    expect(inferConclusionForms(state)).toEqual(["A", "I"]);
-    expect(inferConclusionForms(state)).toEqual(["A", "I"]);
   });
-});
 
-describe("removeRedundantConclusionForms", () => {
-  it.each([
-    [["A", "I"], ["A"]],
-    [["E", "O"], ["E"]],
-    [["I", "O"], ["I", "O"]],
-    [["A", "E", "I", "O"], ["A", "E"]],
-    [[], []],
-    [["O", "A", "I", "O", "E"], ["A", "E"]],
-  ] as const)("simplifies %j to %j", (forms, expected) => {
-    const frozen = Object.freeze([...forms]);
+  it("covers separate empty and existence information without collapsing it", () => {
+    const state: BiliteralDiagramState = {
+      emptyCells: ["Sp"],
+      existentials: [
+        { sourceId: "sp", possibleCells: ["SP"] },
+        { sourceId: "lower", possibleCells: ["sp"] },
+      ],
+    };
 
-    expect(removeRedundantConclusionForms(frozen)).toEqual(expected);
-    expect(frozen).toEqual(forms);
+    const complete = inferCompleteConclusion(state);
+    expect(complete?.biliteralState).toBe(state);
+    expect(complete?.propositions).toEqual([
+      {
+        form: "A",
+        subject: { role: "S", complemented: false },
+        predicate: { role: "P", complemented: false },
+      },
+      {
+        form: "A",
+        subject: { role: "P", complemented: true },
+        predicate: { role: "S", complemented: true },
+      },
+    ]);
   });
 });

@@ -60,4 +60,22 @@ describe("tutorial renderer", () => {
     expect(onLocaleChange).toHaveBeenCalledOnce();
     expect(onLocaleChange).toHaveBeenCalledWith("en");
   });
+
+  it.each([
+    ["ja", "完全な結論が複数の命題になる場合", "すべての S は P′ である。", "(I.V.II.3)"],
+    ["en", "When a Complete Conclusion Needs Multiple Propositions", "All S are P′.", "(I.V.II.3)"],
+  ] as const)("renders the multiple-complete-conclusion explanation in %s", (
+    locale,
+    heading,
+    conclusion,
+    locator,
+  ) => {
+    const root = document.createElement("div");
+    renderTutorial(root, createTutorialViewModel(locale), { onLocaleChange: vi.fn() });
+    const section = root.querySelector("#biliteral-diagram");
+    expect(Array.from(section?.querySelectorAll("h3") ?? []).map(({ textContent }) => textContent))
+      .toContain(heading);
+    expect(section?.textContent).toContain(conclusion);
+    expect(section?.textContent).toContain(locator);
+  });
 });

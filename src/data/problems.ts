@@ -9,7 +9,6 @@ export const BUILT_IN_PROBLEMS = [
       firstPremise: { form: "A", subject: concreteTerm("animal"), predicate: concreteTerm("mortal") },
       secondPremise: { form: "A", subject: concreteTerm("human"), predicate: concreteTerm("animal") },
     },
-    expectedConclusionForm: "A",
   },
   {
     id: "celarent-eae1",
@@ -18,7 +17,6 @@ export const BUILT_IN_PROBLEMS = [
       firstPremise: { form: "E", subject: concreteTerm("reptile"), predicate: concreteTerm("warm-blooded") },
       secondPremise: { form: "A", subject: concreteTerm("snake"), predicate: concreteTerm("reptile") },
     },
-    expectedConclusionForm: "E",
   },
   {
     id: "darii-aii1",
@@ -27,7 +25,6 @@ export const BUILT_IN_PROBLEMS = [
       firstPremise: { form: "A", subject: concreteTerm("poet"), predicate: concreteTerm("writer") },
       secondPremise: { form: "I", subject: concreteTerm("student"), predicate: concreteTerm("poet") },
     },
-    expectedConclusionForm: "I",
   },
   {
     id: "ferio-eio1",
@@ -36,7 +33,6 @@ export const BUILT_IN_PROBLEMS = [
       firstPremise: { form: "E", subject: concreteTerm("bird"), predicate: concreteTerm("mammal") },
       secondPremise: { form: "I", subject: concreteTerm("pet"), predicate: concreteTerm("bird") },
     },
-    expectedConclusionForm: "O",
   },
   {
     id: "cesare-eae2",
@@ -45,7 +41,6 @@ export const BUILT_IN_PROBLEMS = [
       firstPremise: { form: "E", subject: concreteTerm("mammal"), predicate: concreteTerm("bird") },
       secondPremise: { form: "A", subject: concreteTerm("sparrow"), predicate: concreteTerm("bird") },
     },
-    expectedConclusionForm: "E",
   },
   {
     id: "invalid-undistributed-middle",
@@ -57,7 +52,6 @@ export const BUILT_IN_PROBLEMS = [
       firstPremise: { form: "A", subject: concreteTerm("cat"), predicate: concreteTerm("animal") },
       secondPremise: { form: "A", subject: concreteTerm("dog"), predicate: concreteTerm("animal") },
     },
-    expectedConclusionForm: null,
   },
 ] as const satisfies readonly SyllogismProblemDefinition[];
 

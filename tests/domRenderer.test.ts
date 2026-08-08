@@ -291,7 +291,7 @@ describe("renderGameView", () => {
         problemId: "invalid-undistributed-middle",
         conclusionQuiz: {
           mode: "quiz",
-          selectedAnswer: "none",
+          answers: ["none"],
           check: { kind: "correct" },
         },
       }),
@@ -694,7 +694,7 @@ describe("renderGameView", () => {
       phase: "combined-premises" as const,
       conclusionQuiz: {
         mode: "quiz" as const,
-        selectedAnswer: null,
+        answers: [],
         check: { kind: "incomplete" as const },
       },
     };
@@ -731,10 +731,10 @@ describe("renderGameView", () => {
     ]);
     answer.value = "A";
     answer.dispatchEvent(new Event("change"));
-    expect(callbacks.onConclusionAnswerChange).toHaveBeenCalledWith("A");
+    expect(callbacks.onConclusionAnswerChange).toHaveBeenCalledWith(0, "A");
     answer.value = "";
     answer.dispatchEvent(new Event("change"));
-    expect(callbacks.onConclusionAnswerChange).toHaveBeenLastCalledWith(null);
+    expect(callbacks.onConclusionAnswerChange).toHaveBeenLastCalledWith(0, null);
     container.querySelector<HTMLButtonElement>(
       '[data-action="check-conclusion-answer"]',
     )!.click();
@@ -763,7 +763,7 @@ describe("renderGameView", () => {
       },
       conclusionQuiz: {
         mode: "quiz",
-        selectedAnswer: "A",
+        answers: ["A"],
         check: { kind: "correct" },
       },
     }), handlers());

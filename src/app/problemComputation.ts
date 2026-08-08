@@ -7,18 +7,14 @@ import { DEFAULT_LOGIC_SETTINGS } from "../domain/logicSettings";
 import type {
   AbstractProposition,
   ConcreteProposition,
-  PropositionForm,
 } from "../domain/proposition";
 import type {
   AbstractSyllogism,
   ConcreteSyllogism,
 } from "../domain/syllogism";
-import type {
-  AbstractTermOccurrence,
-  TermAssignment,
-} from "../domain/term";
-import { abstractTerm } from "../domain/term";
+import type { TermAssignment } from "../domain/term";
 import type { TriliteralDiagramState } from "../domain/diagram";
+import type { CompleteConclusion } from "../domain/conclusion";
 import { abstractSyllogism } from "../logic/abstraction";
 import { createConclusionCounterPlacements } from "../logic/conclusionDisplay";
 import { inferSyllogismConclusion } from "../logic/conclusionInference";
@@ -31,19 +27,13 @@ export interface ProblemComputation {
   readonly problem: ComputableProblem;
   readonly assignment: TermAssignment;
   readonly abstractPremises: AbstractSyllogism;
-  readonly conclusionTerms: {
-    readonly subject: AbstractTermOccurrence;
-    readonly predicate: AbstractTermOccurrence;
-  };
-  readonly abstractConclusion: AbstractProposition | null;
-  readonly concreteConclusion: ConcreteProposition | null;
+  readonly completeConclusion: CompleteConclusion | null;
+  readonly concreteConclusions: readonly ConcreteProposition[];
   readonly firstPremiseState: TriliteralDiagramState;
   readonly combinedState: TriliteralDiagramState;
   readonly firstPremisePlacements: TriliteralCounterPlacements;
   readonly combinedPlacements: TriliteralCounterPlacements;
   readonly conclusionPlacements: BiliteralCounterPlacements;
-  readonly entailedForms: readonly PropositionForm[];
-  readonly conclusionForms: readonly PropositionForm[];
 }
 
 export interface ComputableProblem {
@@ -52,15 +42,19 @@ export interface ComputableProblem {
 }
 
 export function createConcreteConclusion(
-  form: PropositionForm,
+  conclusion: AbstractProposition,
   assignment: TermAssignment,
-  subject: AbstractTermOccurrence = { role: "S", complemented: false },
-  predicate: AbstractTermOccurrence = { role: "P", complemented: false },
 ): ConcreteProposition {
   return {
-    form,
-    subject: { termId: assignment[subject.role], complemented: subject.complemented },
-    predicate: { termId: assignment[predicate.role], complemented: predicate.complemented },
+    form: conclusion.form,
+    subject: {
+      termId: assignment[conclusion.subject.role],
+      complemented: conclusion.subject.complemented,
+    },
+    predicate: {
+      termId: assignment[conclusion.predicate.role],
+      complemented: conclusion.predicate.complemented,
+    },
   };
 }
 
@@ -92,12 +86,6 @@ export function computeProblem(
       `Failed to infer problem "${problem.id}": ${inference.reason}.`,
     );
   }
-  const conclusionTerms = inference.conclusion === null
-    ? { subject: abstractTerm("S"), predicate: abstractTerm("P") }
-    : {
-        subject: inference.conclusion.subject,
-        predicate: inference.conclusion.predicate,
-      };
   const combinedPlacements = createTriliteralCounterPlacements(
     inference.triliteralState,
   );
@@ -106,11 +94,9 @@ export function computeProblem(
       `Failed to place combined premises for problem "${problem.id}": ${combinedPlacements.reason}.`,
     );
   }
+  const completeConclusion = inference.completeConclusion;
   const conclusionPlacements = createConclusionCounterPlacements(
-    inference.biliteralState,
-    inference.entailedForms,
-    conclusionTerms.subject,
-    conclusionTerms.predicate,
+    completeConclusion?.biliteralState ?? { emptyCells: [], existentials: [] },
   );
   if (!conclusionPlacements.ok) {
     throw new Error(
@@ -118,37 +104,20 @@ export function computeProblem(
     );
   }
 
-  if (inference.conclusionForms.length > 1) {
-    throw new Error(`Problem "${problem.id}" has multiple complete conclusions.`);
-  }
-  const conclusionForm = inference.conclusion?.form;
-  const abstractConclusion =
-    conclusionForm === undefined
-      ? null
-      : { form: conclusionForm, ...conclusionTerms };
-  const concreteConclusion =
-    conclusionForm === undefined
-      ? null
-      : createConcreteConclusion(
-        conclusionForm,
-        assignment,
-        conclusionTerms.subject,
-        conclusionTerms.predicate,
-      );
+  const concreteConclusions = (completeConclusion?.propositions ?? []).map((conclusion) =>
+    createConcreteConclusion(conclusion, assignment)
+  );
 
   return {
     problem,
     assignment,
     abstractPremises,
-    conclusionTerms,
-    abstractConclusion,
-    concreteConclusion,
+    completeConclusion,
+    concreteConclusions,
     firstPremiseState,
     combinedState: inference.triliteralState,
     firstPremisePlacements: firstPlacements.placements,
     combinedPlacements: combinedPlacements.placements,
     conclusionPlacements: conclusionPlacements.placements,
-    entailedForms: inference.entailedForms,
-    conclusionForms: inference.conclusionForms,
   };
 }

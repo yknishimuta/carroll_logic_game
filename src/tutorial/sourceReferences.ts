@@ -11,7 +11,8 @@ export type TutorialSourceId =
   | "symbolic-logic-i-iv-iii"
   | "symbolic-logic-i-iv-iv"
   | "symbolic-logic-i-v-i"
-  | "symbolic-logic-i-v-ii-2";
+  | "symbolic-logic-i-v-ii-2"
+  | "symbolic-logic-i-v-ii-3";
 
 export type TutorialSourceWork = "symbolic-logic-part-i";
 
@@ -213,6 +214,20 @@ export const TUTORIAL_SOURCE_ENTRIES:
       notes: {
         ja: "二前提から結論を求める三段論法問題の規則。",
         en: "Rules for deriving a conclusion from a pair of premises.",
+      },
+    },
+    {
+      id: "symbolic-logic-i-v-ii-3",
+      work: "symbolic-logic-part-i",
+      locator: "I.V.II.3",
+      page: 66,
+      labels: {
+        ja: "Part I・Book V・Chapter II §3",
+        en: "Part I, Book V, Chapter II §3",
+      },
+      notes: {
+        ja: "提案された結論を実際の結論と比較し、正しい・不完全・結論なしを区別する規則と例。",
+        en: "Rules and examples for comparing a proposed conclusion with the actual conclusion and distinguishing right, incomplete, and no-conclusion cases.",
       },
     },
   ];

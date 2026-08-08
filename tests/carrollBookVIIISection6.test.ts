@@ -53,13 +53,8 @@ function productionConclusionEvidence(production: Extract<
   ReturnType<typeof inferSyllogismConclusion>,
   { readonly ok: true }
 >): readonly string[] {
-  if (production.conclusion === null) return [];
-  return [...new Set(production.entailedForms.flatMap((form) =>
-    carrollConclusionEvidence({
-      form,
-      subject: production.conclusion!.subject,
-      predicate: production.conclusion!.predicate,
-    })
+  return [...new Set((production.completeConclusion?.propositions ?? []).flatMap(
+    carrollConclusionEvidence,
   ))].sort();
 }
 
@@ -128,12 +123,12 @@ describe("Lewis Carroll Book VIII §6 golden corpus", () => {
         case "right":
           expect(actualEvidence).toEqual(proposedEvidence);
           expect(oracle).toContainEqual(testCase.proposedConclusion);
-          expect(production.conclusion).not.toBeNull();
-          if (production.conclusion !== null) {
-            expect(oracle).toContainEqual(production.conclusion);
-            expect(productionConclusionEvidence(production))
-              .toEqual(proposedEvidence);
+          expect(production.completeConclusion).not.toBeNull();
+          for (const conclusion of production.completeConclusion?.propositions ?? []) {
+            expect(oracle).toContainEqual(conclusion);
           }
+          expect(productionConclusionEvidence(production))
+            .toEqual(proposedEvidence);
           break;
         case "wrong":
           expect(actualEvidence).not.toEqual(proposedEvidence);
@@ -142,16 +137,14 @@ describe("Lewis Carroll Book VIII §6 golden corpus", () => {
           );
           expect(oracle).not.toContainEqual(testCase.proposedConclusion);
           expect(oracle).toContainEqual(testCase.expected.correctConclusion);
-          expect(production.conclusion).not.toBeNull();
-          if (production.conclusion !== null) {
-            expect(productionConclusionEvidence(production)).toEqual(
-              carrollConclusionEvidence(testCase.expected.correctConclusion),
-            );
-          }
+          expect(production.completeConclusion).not.toBeNull();
+          expect(productionConclusionEvidence(production)).toEqual(
+            carrollConclusionEvidence(testCase.expected.correctConclusion),
+          );
           break;
         case "no-conclusion":
           expect(actualEvidence).toEqual([]);
-          expect(production.conclusion).toBeNull();
+          expect(production.completeConclusion).toBeNull();
           expect(oracle).toEqual([]);
           break;
         case "incomplete":

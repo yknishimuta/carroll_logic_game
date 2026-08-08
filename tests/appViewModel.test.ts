@@ -22,7 +22,7 @@ function state(
     locale,
     problemId,
     conclusionQuiz: phase === "conclusion"
-      ? { mode: "automatic" as const, selectedAnswer: null, check: { kind: "not-checked" as const } }
+      ? { mode: "automatic" as const, answers: [], check: { kind: "not-checked" as const } }
       : initial.conclusionQuiz,
   };
 }
@@ -102,8 +102,8 @@ describe("Barbara view models", () => {
       "All M are P.",
       "All S are M.",
     ]);
-    expect(conclusion.concreteConclusion).toBe("All humans are mortal.");
-    expect(conclusion.abstractConclusion).toBe("All S are P.");
+    expect(conclusion.concreteConclusions).toEqual(["All humans are mortal."]);
+    expect(conclusion.abstractConclusions).toEqual(["All S are P."]);
   });
 
   it("keeps the established phase diagrams", () => {
@@ -151,8 +151,8 @@ describe("catalog-driven view models", () => {
     "shows inferred conclusion for $id",
     ({ id }) => {
       const model = createGameViewModel(state("conclusion", "ja", id));
-      expect(model.concreteConclusion).not.toBeNull();
-      expect(model.abstractConclusion).not.toBeNull();
+      expect(model.concreteConclusions).toHaveLength(1);
+      expect(model.abstractConclusions).toHaveLength(1);
       expect(model.noConclusionMessage).toBeNull();
     },
   );
@@ -161,11 +161,12 @@ describe("catalog-driven view models", () => {
     const model = createGameViewModel(
       state("conclusion", "ja", "invalid-undistributed-middle"),
     );
-    expect(model.concreteConclusion).toBeNull();
-    expect(model.abstractConclusion).toBeNull();
+    expect(model.concreteConclusions).toEqual([]);
+    expect(model.abstractConclusions).toEqual([]);
     expect(model.noConclusionMessage).toBe(
       "これらの前提から確定した結論は得られません。",
     );
+    expect(model.multipleConclusionIntroduction).toBeNull();
     expect(count(model.diagram.svg, "data-counter-kind=")).toBe(0);
   });
 
@@ -270,7 +271,7 @@ describe("custom problem view models", () => {
       phase: "combined-premises",
       conclusionQuiz: {
         mode: "quiz",
-        selectedAnswer: null,
+        answers: [],
         check: { kind: "not-checked" },
       },
     });
@@ -282,7 +283,7 @@ describe("custom problem view models", () => {
       phase: "combined-premises",
       conclusionQuiz: {
         mode: "quiz",
-        selectedAnswer: null,
+        answers: [],
         check: { kind: "not-checked" },
       },
     });
@@ -290,13 +291,13 @@ describe("custom problem view models", () => {
     for (const model of [builtAutomatic, customAutomatic]) {
       expect(model.conclusionAnswerModeSelector.selectedValue).toBe("automatic");
       expect(model.conclusionQuiz).toBeNull();
-      expect(model.concreteConclusion).not.toBeNull();
+      expect(model.concreteConclusions).toHaveLength(1);
       expect(model.derivedConclusion).not.toBeNull();
     }
     for (const model of [builtQuiz, customQuiz]) {
       expect(model.conclusionAnswerModeSelector.selectedValue).toBe("quiz");
       expect(model.conclusionQuiz).not.toBeNull();
-      expect(model.concreteConclusion).toBeNull();
+      expect(model.concreteConclusions).toEqual([]);
       expect(model.derivedConclusion).toBeNull();
       expect(model.diagram.kind).toBe("triliteral");
     }
@@ -392,9 +393,9 @@ describe("custom problem view models", () => {
       phase === "conclusion" ? "biliteral" : "triliteral",
     );
     if (phase === "conclusion") {
-      expect(model.concreteConclusion).toBe(
+      expect(model.concreteConclusions).toEqual([
         "すべての人間は死すべきものである。",
-      );
+      ]);
     }
   });
 
@@ -413,8 +414,8 @@ describe("custom problem view models", () => {
         secondPremise: { form: "A", subject: { termId: "dog", complemented: false }, predicate: { termId: "animal", complemented: false } },
       },
     });
-    expect(model.concreteConclusion).toBeNull();
-    expect(model.abstractConclusion).toBeNull();
+    expect(model.concreteConclusions).toEqual([]);
+    expect(model.abstractConclusions).toEqual([]);
     expect(model.noConclusionMessage).toBe(
       "これらの前提から確定した結論は得られません。",
     );
@@ -713,22 +714,22 @@ describe("custom term view models", () => {
       phase: "combined-premises",
       conclusionQuiz: {
         mode: "quiz",
-        selectedAnswer: null,
+        answers: [],
         check: { kind: "not-checked" },
       },
     });
-    expect(model.conclusionQuiz?.options.map(({ value }) => value)).toEqual(
+    expect(model.conclusionQuiz?.questions[0]?.options.map(({ value }) => value)).toEqual(
       ["A", "E", "I", "O", "none"],
     );
-    expect(model.conclusionQuiz?.options.map(({ label }) => label)).toEqual([
+    expect(model.conclusionQuiz?.questions[0]?.options.map(({ label }) => label)).toEqual([
       "A — すべての人間は死すべきものである。",
       "E — いかなる人間も死すべきものではない。",
       "I — ある人間は死すべきものである。",
       "O — ある人間は死すべきものではない。",
       "確定した結論なし",
     ]);
-    expect(model.concreteConclusion).toBeNull();
-    expect(model.abstractConclusion).toBeNull();
+    expect(model.concreteConclusions).toEqual([]);
+    expect(model.abstractConclusions).toEqual([]);
     expect(model.noConclusionMessage).toBeNull();
     expect(model.counterPracticePanel).toBeNull();
     expect(count(model.diagram.svg, "data-counter-kind=")).toBe(6);
@@ -743,11 +744,11 @@ describe("custom term view models", () => {
       locale: "en",
       conclusionQuiz: {
         mode: "quiz",
-        selectedAnswer: "A",
+        answers: ["A"],
         check: { kind: "correct" },
       },
     });
-    expect(model.conclusionQuiz?.options.map(({ label }) => label)).toEqual([
+    expect(model.conclusionQuiz?.questions[0]?.options.map(({ label }) => label)).toEqual([
       "A — All humans are mortal.",
       "E — No humans are mortal.",
       "I — Some humans are mortal.",
@@ -755,8 +756,8 @@ describe("custom term view models", () => {
       "No determinate conclusion",
     ]);
     expect(model.conclusionQuiz?.feedback?.message).toBe("Correct.");
-    expect(model.concreteConclusion).toBeNull();
-    expect(model.abstractConclusion).toBeNull();
+    expect(model.concreteConclusions).toEqual([]);
+    expect(model.abstractConclusions).toEqual([]);
     expect(model.navigation.nextDisabled).toBe(false);
     expect(model.diagram.kind).toBe("triliteral");
   });
@@ -772,15 +773,15 @@ describe("custom term view models", () => {
       },
       conclusionQuiz: {
         mode: "quiz",
-        selectedAnswer: "A",
+        answers: ["A"],
         check: { kind: "correct" },
       },
     });
     expect(model.counterPracticePanel?.targets).toHaveLength(8);
     expect(count(model.diagram.svg, "data-counter-kind=")).toBe(0);
-    expect(model.concreteConclusion).toBe(
+    expect(model.concreteConclusions).toEqual([
       "すべての人間は死すべきものである。",
-    );
+    ]);
   });
 
   it("reveals only the no-conclusion message after none is correct", () => {
@@ -791,15 +792,15 @@ describe("custom term view models", () => {
       problemId: "invalid-undistributed-middle",
       conclusionQuiz: {
         mode: "quiz",
-        selectedAnswer: "none",
+        answers: ["none"],
         check: { kind: "correct" },
       },
     });
     expect(model.noConclusionMessage).toBe(
       "これらの前提から確定した結論は得られません。",
     );
-    expect(model.concreteConclusion).toBeNull();
-    expect(model.abstractConclusion).toBeNull();
+    expect(model.concreteConclusions).toEqual([]);
+    expect(model.abstractConclusions).toEqual([]);
     expect(count(model.diagram.svg, "data-counter-kind=")).toBe(0);
   });
 
@@ -823,18 +824,18 @@ describe("custom term view models", () => {
       customPremises: premises,
       conclusionQuiz: {
         mode: "automatic" as const,
-        selectedAnswer: null,
+        answers: [],
         check: { kind: "not-checked" as const },
       },
     };
     expect(createGameViewModel(base).conclusionQuiz).toBeNull();
-    expect(createGameViewModel(base).concreteConclusion).toBe(
+    expect(createGameViewModel(base).concreteConclusions).toEqual([
       "すべての哲学者は動物である。",
-    );
+    ]);
     expect(createGameViewModel({
       ...base,
       locale: "en",
-    }).concreteConclusion).toBe("All philosophers are animals.");
+    }).concreteConclusions).toEqual(["All philosophers are animals."]);
   });
 
   it("builds a localized saved custom problem manager", () => {

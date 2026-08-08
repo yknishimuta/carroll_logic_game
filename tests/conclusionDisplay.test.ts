@@ -1,260 +1,211 @@
 import { describe, expect, it } from "vitest";
 import type { BiliteralDiagramState } from "../src/domain/conclusion";
+import { conclusionCells } from "../src/logic/conclusionCells";
 import {
   createConclusionCounterPlacements,
   createConclusionDisplayState,
 } from "../src/logic/conclusionDisplay";
 
-const projectedState: BiliteralDiagramState = {
-  emptyCells: ["SP", "Sp"],
-  existentials: [
-    { sourceId: "unrelated-p", possibleCells: ["SP", "sP"] },
-    { sourceId: "certain-i-1", possibleCells: ["SP"] },
-    { sourceId: "certain-i-2", possibleCells: ["SP"] },
-    { sourceId: "certain-o", possibleCells: ["Sp"] },
-    { sourceId: "outside-s", possibleCells: ["sP"] },
-    { sourceId: "outside-both", possibleCells: ["sp"] },
-  ],
-};
-
-describe("createConclusionDisplayState", () => {
-  it("extracts only Barbara Carroll conclusion information", () => {
-    expect(
-      createConclusionDisplayState(projectedState, ["A", "I"]),
-    ).toEqual({
-      ok: true,
-      state: {
-        emptyCells: ["Sp"],
-        existentials: [
-          { sourceId: "certain-i-1", possibleCells: ["SP"] },
-          { sourceId: "certain-i-2", possibleCells: ["SP"] },
-        ],
-      },
-    });
-  });
-
-  it("extracts Barbara modern without existence", () => {
-    expect(createConclusionDisplayState(projectedState, ["A"])).toEqual({
-      ok: true,
-      state: {
-        emptyCells: ["Sp"],
-        existentials: [],
-      },
-    });
-  });
-
-  it("extracts Celarent Carroll and modern information", () => {
-    expect(
-      createConclusionDisplayState(projectedState, ["E", "O"]),
-    ).toEqual({
-      ok: true,
-      state: {
-        emptyCells: ["SP"],
-        existentials: [
-          { sourceId: "certain-o", possibleCells: ["Sp"] },
-        ],
-      },
-    });
-    expect(createConclusionDisplayState(projectedState, ["E"])).toEqual({
-      ok: true,
-      state: {
-        emptyCells: ["SP"],
-        existentials: [],
-      },
-    });
-  });
-
-  it("extracts only the certain existence for Darii and Ferio", () => {
-    expect(createConclusionDisplayState(projectedState, ["I"])).toEqual({
-      ok: true,
-      state: {
-        emptyCells: [],
-        existentials: [
-          { sourceId: "certain-i-1", possibleCells: ["SP"] },
-          { sourceId: "certain-i-2", possibleCells: ["SP"] },
-        ],
-      },
-    });
-    expect(createConclusionDisplayState(projectedState, ["O"])).toEqual({
-      ok: true,
-      state: {
-        emptyCells: [],
-        existentials: [
-          { sourceId: "certain-o", possibleCells: ["Sp"] },
-        ],
-      },
-    });
-  });
-
-  it("returns an empty successful state for no conclusion", () => {
-    expect(createConclusionDisplayState(projectedState, [])).toEqual({
-      ok: true,
-      state: { emptyCells: [], existentials: [] },
-    });
-  });
-
-  it("uses sP and sp for a complemented conclusion subject", () => {
-    const state: BiliteralDiagramState = {
-      emptyCells: ["sp"],
-      existentials: [{ sourceId: "prime-subject", possibleCells: ["sP"] }],
-    };
-    expect(createConclusionDisplayState(
-      state,
-      ["A", "I"],
-      { role: "S", complemented: true },
-      { role: "P", complemented: false },
-    )).toEqual({ ok: true, state });
-  });
-
-  it("uses Sp and SP for a complemented conclusion predicate", () => {
-    const state: BiliteralDiagramState = {
-      emptyCells: ["SP"],
-      existentials: [{ sourceId: "prime-predicate", possibleCells: ["Sp"] }],
-    };
-    expect(createConclusionDisplayState(
-      state,
-      ["A", "I"],
-      { role: "S", complemented: false },
-      { role: "P", complemented: true },
-    )).toEqual({ ok: true, state });
-  });
-
-  it("places E emptiness in Sp for a complemented predicate", () => {
-    const result = createConclusionCounterPlacements(
-      { emptyCells: ["Sp"], existentials: [] },
-      ["E"],
-      { role: "S", complemented: false },
-      { role: "P", complemented: true },
-    );
-    expect(result).toEqual({
-      ok: true,
-      displayState: { emptyCells: ["Sp"], existentials: [] },
-      placements: {
-        emptinessCounters: [{
-          kind: "emptiness",
-          anchor: { type: "cell", cell: "Sp" },
-        }],
-        existenceCounters: [],
-      },
-    });
-  });
-
-  it.each([
-    ["A", { emptyCells: [], existentials: [] }],
-    ["E", { emptyCells: [], existentials: [] }],
-    ["I", { emptyCells: [], existentials: [] }],
-    ["O", { emptyCells: [], existentials: [] }],
-  ] as const)("rejects unsupported entailed form %s", (form, state) => {
-    expect(createConclusionDisplayState(state, [form])).toEqual({
-      ok: false,
-      reason: "entailed-form-not-supported-by-state",
-      form,
-    });
-  });
-
-  it("is non-destructive and deterministic with frozen inputs", () => {
-    const state: BiliteralDiagramState = Object.freeze({
-      emptyCells: Object.freeze(["Sp"] as const),
-      existentials: Object.freeze([
-        Object.freeze({
-          sourceId: "frozen",
-          possibleCells: Object.freeze(["SP"] as const),
-        }),
-      ]),
-    });
-    const forms = Object.freeze(["A", "I"] as const);
-
-    const first = createConclusionDisplayState(state, forms);
-    const second = createConclusionDisplayState(state, forms);
-
-    expect(first).toEqual(second);
-    expect(state.existentials[0]?.possibleCells).toEqual(["SP"]);
-    expect(forms).toEqual(["A", "I"]);
-  });
-});
-
-describe("createConclusionCounterPlacements", () => {
+describe("signed conclusion cell semantics", () => {
   it.each([
     [false, false, "SP", "Sp"],
     [false, true, "Sp", "SP"],
     [true, false, "sP", "sp"],
     [true, true, "sp", "sP"],
   ] as const)(
-    "maps every form for signed terms S complemented=%s and P complemented=%s",
+    "maps S complemented=%s and P complemented=%s to positive=%s and negative=%s",
     (subjectComplemented, predicateComplemented, positive, negative) => {
-      const subject = { role: "S" as const, complemented: subjectComplemented };
-      const predicate = { role: "P" as const, complemented: predicateComplemented };
-      const existence = (cell: typeof positive, sourceId: string) => ({
-        sourceId,
-        possibleCells: [cell],
-      });
-      const placementCells = (
-        result: ReturnType<typeof createConclusionCounterPlacements>,
-      ) => result.ok
-        ? {
-            empty: result.placements.emptinessCounters.map(({ anchor }) =>
-              anchor.type === "cell" ? anchor.cell : null
-            ),
-            occupied: result.placements.existenceCounters.map(({ anchor }) =>
-              anchor.type === "cell" ? anchor.cell : null
-            ),
-          }
-        : null;
-
-      expect(placementCells(createConclusionCounterPlacements(
-        { emptyCells: [negative], existentials: [existence(positive, "a")] },
-        ["A", "I"],
-        subject,
-        predicate,
-      ))).toEqual({ empty: [negative], occupied: [positive] });
-      expect(placementCells(createConclusionCounterPlacements(
-        { emptyCells: [positive], existentials: [] },
-        ["E"],
-        subject,
-        predicate,
-      ))).toEqual({ empty: [positive], occupied: [] });
-      expect(placementCells(createConclusionCounterPlacements(
-        { emptyCells: [], existentials: [existence(positive, "i")] },
-        ["I"],
-        subject,
-        predicate,
-      ))).toEqual({ empty: [], occupied: [positive] });
-      expect(placementCells(createConclusionCounterPlacements(
-        { emptyCells: [], existentials: [existence(negative, "o")] },
-        ["O"],
-        subject,
-        predicate,
-      ))).toEqual({ empty: [], occupied: [negative] });
+      expect(conclusionCells(
+        { role: "S", complemented: subjectComplemented },
+        { role: "P", complemented: predicateComplemented },
+      )).toEqual({ positive, negative });
     },
   );
+});
 
-  it("aggregates sources only at the placement stage", () => {
-    const result = createConclusionCounterPlacements(
-      projectedState,
-      ["A", "I"],
-    );
-
-    expect(result).toEqual({
-      ok: true,
-      displayState: {
+describe("state-based conclusion display", () => {
+  it.each([
+    [
+      "Barbara",
+      {
         emptyCells: ["Sp"],
         existentials: [
-          { sourceId: "certain-i-1", possibleCells: ["SP"] },
-          { sourceId: "certain-i-2", possibleCells: ["SP"] },
+          { sourceId: "major", possibleCells: ["SP", "sP"] },
+          { sourceId: "minor", possibleCells: ["SP"] },
         ],
       },
+      { empty: ["Sp"], occupied: 2 },
+    ],
+    [
+      "modern Barbara",
+      { emptyCells: ["Sp"], existentials: [] },
+      { empty: ["Sp"], occupied: 0 },
+    ],
+    [
+      "Celarent",
+      {
+        emptyCells: ["SP"],
+        existentials: [{ sourceId: "minor", possibleCells: ["Sp"] }],
+      },
+      { empty: ["SP"], occupied: 1 },
+    ],
+    [
+      "Darii",
+      {
+        emptyCells: [],
+        existentials: [
+          { sourceId: "major", possibleCells: ["SP", "sP"] },
+          { sourceId: "minor", possibleCells: ["SP"] },
+        ],
+      },
+      { empty: [], occupied: 2 },
+    ],
+    [
+      "Ferio",
+      {
+        emptyCells: [],
+        existentials: [{ sourceId: "minor", possibleCells: ["Sp"] }],
+      },
+      { empty: [], occupied: 1 },
+    ],
+  ] as const)("preserves all projected %s information", (_name, state, expected) => {
+    const result = createConclusionCounterPlacements(state);
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.placements.emptinessCounters.map(({ anchor }) =>
+      anchor.type === "cell" ? anchor.cell : null
+    )).toEqual(expected.empty);
+    expect(result.placements.existenceCounters).toHaveLength(expected.occupied);
+  });
+
+  it("creates an empty display for no conclusion", () => {
+    expect(createConclusionCounterPlacements({
+      emptyCells: [],
+      existentials: [],
+    })).toEqual({
+      ok: true,
+      displayState: { emptyCells: [], existentials: [] },
+      placements: { emptinessCounters: [], existenceCounters: [] },
+    });
+  });
+
+  it("is deterministic and non-destructive with frozen input", () => {
+    const state: BiliteralDiagramState = Object.freeze({
+      emptyCells: Object.freeze(["Sp"] as const),
+      existentials: Object.freeze([Object.freeze({
+        sourceId: "frozen",
+        possibleCells: Object.freeze(["SP", "sP"] as const),
+      })]),
+    });
+    expect(createConclusionCounterPlacements(state)).toEqual(
+      createConclusionCounterPlacements(state),
+    );
+    expect(state.existentials[0]?.possibleCells).toEqual(["SP", "sP"]);
+  });
+
+  it.each([
+    ["no candidates", { sourceId: "none", possibleCells: [] }, "existential-has-no-candidates"],
+    ["too many candidates", { sourceId: "many", possibleCells: ["SP", "Sp", "sP"] }, "existential-has-too-many-candidates"],
+    ["non-adjacent candidates", { sourceId: "diagonal", possibleCells: ["SP", "sp"] }, "existential-candidates-are-not-adjacent"],
+  ] as const)("reports %s from the generic placement conversion", (_name, existential, reason) => {
+    expect(createConclusionCounterPlacements({
+      emptyCells: [],
+      existentials: [existential],
+    })).toMatchObject({ ok: false, stage: "counter-placement", reason });
+  });
+
+  it("uses the complete biliteral state without form-based filtering", () => {
+    const state: BiliteralDiagramState = {
+      emptyCells: ["SP", "sp"],
+      existentials: [
+        { sourceId: "certain", possibleCells: ["Sp"] },
+        { sourceId: "boundary", possibleCells: ["SP", "Sp"] },
+      ],
+    };
+
+    expect(createConclusionDisplayState(state)).toBe(state);
+    expect(createConclusionCounterPlacements(state)).toEqual({
+      ok: true,
+      displayState: state,
       placements: {
         emptinessCounters: [
-          { kind: "emptiness", anchor: { type: "cell", cell: "Sp" } },
+          { kind: "emptiness", anchor: { type: "cell", cell: "SP" } },
+          { kind: "emptiness", anchor: { type: "cell", cell: "sp" } },
         ],
         existenceCounters: [
           {
             kind: "existence",
-            sourceIds: ["certain-i-1", "certain-i-2"],
-            anchor: { type: "cell", cell: "SP" },
+            sourceIds: ["certain"],
+            anchor: { type: "cell", cell: "Sp" },
+          },
+          {
+            kind: "existence",
+            sourceIds: ["boundary"],
+            anchor: {
+              type: "boundary",
+              cells: ["SP", "Sp"],
+              partitionRole: "P",
+            },
           },
         ],
       },
     });
+  });
+
+  it("places No S are P′ emptiness at Sp without a legacy E form", () => {
+    const result = createConclusionCounterPlacements({
+      emptyCells: ["Sp"],
+      existentials: [],
+    });
+    expect(result.ok && result.placements.emptinessCounters).toEqual([{
+      kind: "emptiness",
+      anchor: { type: "cell", cell: "Sp" },
+    }]);
+  });
+
+  it("consolidates co-located existence sources only for display", () => {
+    const state: BiliteralDiagramState = {
+      emptyCells: [],
+      existentials: [
+        { sourceId: "second", possibleCells: ["SP"] },
+        { sourceId: "first", possibleCells: ["SP"] },
+      ],
+    };
+    const result = createConclusionCounterPlacements(state);
+    expect(result).toEqual({
+      ok: true,
+      displayState: state,
+      placements: {
+        emptinessCounters: [],
+        existenceCounters: [{
+          kind: "existence",
+          sourceIds: ["second", "first"],
+          anchor: { type: "cell", cell: "SP" },
+        }],
+      },
+    });
+    expect(state.existentials).toHaveLength(2);
+  });
+
+  it("keeps logical anchors stable when provenance and input order change", () => {
+    const anchors = (state: BiliteralDiagramState) => {
+      const result = createConclusionCounterPlacements(state);
+      if (!result.ok) throw new Error(result.reason);
+      return result.placements.existenceCounters.map(({ anchor }) => anchor)
+        .sort((left, right) => JSON.stringify(left).localeCompare(JSON.stringify(right)));
+    };
+    expect(anchors({
+      emptyCells: [],
+      existentials: [
+        { sourceId: "a", possibleCells: ["Sp"] },
+        { sourceId: "b", possibleCells: ["SP", "Sp"] },
+      ],
+    })).toEqual(anchors({
+      emptyCells: [],
+      existentials: [
+        { sourceId: "changed", possibleCells: ["Sp", "SP"] },
+        { sourceId: "other", possibleCells: ["Sp"] },
+      ],
+    }));
   });
 });

@@ -6,7 +6,6 @@ import type {
   ConstraintSourceId,
   DiagramCellId,
 } from "./diagram";
-import type { PropositionForm } from "./proposition";
 import type { TermRole } from "./term";
 
 export type CounterKind = "emptiness" | "existence";
@@ -100,28 +99,11 @@ export type BiliteralCounterPlacementResult =
       readonly possibleCells: readonly BiliteralCell[];
     };
 
-export type ConclusionDisplayStateResult =
-  | {
-      readonly ok: true;
-      readonly state: BiliteralDiagramState;
-    }
-  | {
-      readonly ok: false;
-      readonly reason: "entailed-form-not-supported-by-state";
-      readonly form: PropositionForm;
-    };
-
 export type ConclusionCounterPlacementResult =
   | {
       readonly ok: true;
       readonly displayState: BiliteralDiagramState;
       readonly placements: BiliteralCounterPlacements;
-    }
-  | {
-      readonly ok: false;
-      readonly stage: "conclusion-display";
-      readonly reason: "entailed-form-not-supported-by-state";
-      readonly form: PropositionForm;
     }
   | {
       readonly ok: false;

@@ -115,7 +115,7 @@ describe("application state", () => {
     expect(initial.problemSource).toBe("built-in");
     expect(initial.conclusionQuiz).toEqual({
       mode: "automatic",
-      selectedAnswer: null,
+      answers: [],
       check: { kind: "not-checked" },
     });
     expect(initial.customProblemDraft).toEqual({
@@ -729,15 +729,14 @@ describe("application state", () => {
       phase: "combined-premises" as const,
       conclusionQuiz: {
         mode: "quiz" as const,
-        selectedAnswer: null,
+        answers: [],
         check: { kind: "not-checked" as const },
       },
     };
     const selected = reduceAppState(quiz, {
-      type: "select-conclusion-answer",
-      answer: "A",
+      type: "select-conclusion-answer", questionIndex: 0, answer: "A",
     });
-    expect(selected.conclusionQuiz.selectedAnswer).toBe("A");
+    expect(selected.conclusionQuiz.answers[0]).toBe("A");
     expect(reduceAppState(selected, {
       type: "submit-conclusion-answer",
       validation: { ok: false, reason: "incorrect" },
@@ -748,19 +747,17 @@ describe("application state", () => {
     });
     expect(correct.conclusionQuiz.check).toEqual({ kind: "correct" });
     expect(reduceAppState(correct, {
-      type: "select-conclusion-answer",
-      answer: "E",
+      type: "select-conclusion-answer", questionIndex: 0, answer: "E",
     }).conclusionQuiz.check).toEqual({ kind: "not-checked" });
     expect(reduceAppState({
       ...quiz,
       phase: "conclusion",
     }, {
-      type: "select-conclusion-answer",
-      answer: "A",
+      type: "select-conclusion-answer", questionIndex: 0, answer: "A",
     })).toEqual({ ...quiz, phase: "conclusion" });
     expect(reduceAppState({ ...quiz, problemSource: "custom" }, {
-      type: "select-conclusion-answer", answer: "A",
-    }).conclusionQuiz.selectedAnswer).toBe("A");
+      type: "select-conclusion-answer", questionIndex: 0, answer: "A",
+    }).conclusionQuiz.answers[0]).toBe("A");
   });
 
   it("locks manual conclusion counters until the conclusion is correct", () => {
@@ -773,7 +770,7 @@ describe("application state", () => {
       },
       conclusionQuiz: {
         mode: "quiz" as const,
-        selectedAnswer: "A" as const,
+        answers: ["A"] as const,
         check: { kind: "incorrect" as const },
       },
     };
@@ -816,7 +813,7 @@ describe("application state", () => {
       phase: "conclusion" as const,
       conclusionQuiz: {
         mode: "quiz" as const,
-        selectedAnswer: "A" as const,
+        answers: ["A"] as const,
         check: { kind: "correct" as const },
       },
     };
@@ -832,7 +829,7 @@ describe("application state", () => {
       problemId: "darii-aii1",
     }).conclusionQuiz).toEqual({
       mode: "quiz",
-      selectedAnswer: null,
+      answers: [],
       check: { kind: "not-checked" },
     });
   });
@@ -843,7 +840,7 @@ describe("application state", () => {
       phase: "combined-premises" as const,
       conclusionQuiz: {
         mode: "quiz" as const,
-        selectedAnswer: "E" as const,
+        answers: ["E"] as const,
         check: { kind: "incorrect" as const },
       },
     };
@@ -853,12 +850,12 @@ describe("application state", () => {
     });
     expect(changed.conclusionQuiz).toEqual({
       mode: "automatic",
-      selectedAnswer: null,
+      answers: [],
       check: { kind: "not-checked" },
     });
     expect({ ...changed, conclusionQuiz: answered.conclusionQuiz })
       .toEqual(answered);
-    expect(answered.conclusionQuiz.selectedAnswer).toBe("E");
+    expect(answered.conclusionQuiz.answers[0]).toBe("E");
   });
 
   it("enters conclusion automatically or only after a correct quiz answer", () => {
@@ -890,8 +887,7 @@ describe("application state", () => {
       .toBe("conclusion");
     const automaticConclusion = { ...initial, phase: "conclusion" as const };
     expect(reduceAppState(automaticConclusion, {
-      type: "select-conclusion-answer",
-      answer: "A",
+      type: "select-conclusion-answer", questionIndex: 0, answer: "A",
     })).toBe(automaticConclusion);
     expect(reduceAppState(automaticConclusion, {
       type: "submit-conclusion-answer",
@@ -906,13 +902,12 @@ describe("application state", () => {
       counterPractice: { ...initial.counterPractice, mode: "manual" as const },
       conclusionQuiz: {
         mode: "quiz" as const,
-        selectedAnswer: null,
+        answers: [],
         check: { kind: "not-checked" as const },
       },
     };
     expect(reduceAppState(unfinished, {
-      type: "select-conclusion-answer",
-      answer: "A",
+      type: "select-conclusion-answer", questionIndex: 0, answer: "A",
     })).toBe(unfinished);
   });
 
@@ -946,7 +941,7 @@ describe("application state", () => {
     expect(state.problemSource).toBe("custom");
     expect(state.conclusionQuiz).toEqual({
       mode: "quiz",
-      selectedAnswer: null,
+      answers: [],
       check: { kind: "not-checked" },
     });
     expect(state.customProblemStatus).toBe("ready");
@@ -1003,7 +998,7 @@ describe("application state", () => {
       ...titled,
       conclusionQuiz: {
         mode: "quiz" as const,
-        selectedAnswer: "A" as const,
+        answers: ["A"] as const,
         check: { kind: "correct" as const },
       },
     };

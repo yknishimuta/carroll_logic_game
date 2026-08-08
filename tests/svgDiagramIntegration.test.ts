@@ -48,8 +48,10 @@ function renderSyllogism(
   if (!triliteral.ok) throw new Error(triliteral.reason);
 
   const conclusion = createConclusionCounterPlacements(
-    inference.biliteralState,
-    inference.entailedForms,
+    inference.completeConclusion?.biliteralState ?? {
+      emptyCells: [],
+      existentials: [],
+    },
   );
   if (!conclusion.ok) throw new Error(conclusion.reason);
 
@@ -79,7 +81,7 @@ describe("SVG diagram integration", () => {
     expect(carrollSvgs.conclusionSvg).toContain(
       'data-source-ids="[&quot;second-premise&quot;]"><circle cx="120" cy="120"',
     );
-    expect(counterCount(carrollSvgs.conclusionSvg)).toBe(2);
+    expect(counterCount(carrollSvgs.conclusionSvg)).toBe(3);
 
     expect(modernSvgs.conclusionSvg).toContain(
       'data-counter-kind="emptiness"><circle cx="280" cy="120"',
@@ -125,7 +127,7 @@ describe("SVG diagram integration", () => {
         `data-source-ids="[&quot;second-premise&quot;]"><circle cx="${x}" cy="120"`,
       );
       expect(svg).not.toContain('data-counter-kind="emptiness"');
-      expect(counterCount(svg)).toBe(1);
+      expect(counterCount(svg)).toBe(_name === "Darii" ? 2 : 1);
     },
   );
 

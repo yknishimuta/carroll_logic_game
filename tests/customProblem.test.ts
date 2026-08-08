@@ -263,7 +263,7 @@ describe("custom problem validation", () => {
     if (!result.ok) return;
     expect(result.assignment).toEqual({ S: "dog", M: "animal", P: "cat" });
     expect(computeProblem({ id: "custom", premises: result.premises })
-      .conclusionForms).toEqual([]);
+      .completeConclusion).toBeNull();
   });
 
   it.each(["A", "E", "I", "O"] as const)(

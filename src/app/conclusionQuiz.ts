@@ -1,3 +1,7 @@
+import type {
+  CompleteConclusion,
+  SyllogismConclusion,
+} from "../domain/conclusion";
 import {
   isPropositionForm,
   type PropositionForm,
@@ -8,8 +12,28 @@ import type {
 } from "./counterPractice";
 import type { GamePhase } from "./state";
 
-export type ConclusionAnswerChoice = PropositionForm | "none";
+export type ConclusionQuizAnswer = PropositionForm | "none";
 export type ConclusionAnswerMode = "automatic" | "quiz";
+
+export interface ConclusionQuizQuestion {
+  readonly proposition: SyllogismConclusion | null;
+  readonly expectedAnswer: ConclusionQuizAnswer;
+}
+
+export function deriveConclusionQuizQuestions(
+  completeConclusion: CompleteConclusion | null,
+): readonly ConclusionQuizQuestion[] {
+  if (completeConclusion === null) {
+    return [{ proposition: null, expectedAnswer: "none" }];
+  }
+  if (completeConclusion.propositions.length === 0) {
+    throw new Error("A complete conclusion must contain a proposition.");
+  }
+  return completeConclusion.propositions.map((proposition) => ({
+    proposition,
+    expectedAnswer: proposition.form,
+  }));
+}
 
 export function isConclusionAnswerMode(
   value: string,
@@ -17,26 +41,10 @@ export function isConclusionAnswerMode(
   return value === "automatic" || value === "quiz";
 }
 
-export function isConclusionAnswerChoice(
+export function isConclusionQuizAnswer(
   value: string,
-): value is ConclusionAnswerChoice {
+): value is ConclusionQuizAnswer {
   return value === "none" || isPropositionForm(value);
-}
-
-export function deriveExpectedConclusionAnswer(
-  conclusionForms: readonly PropositionForm[],
-): ConclusionAnswerChoice {
-  for (const form of conclusionForms) {
-    if (!isPropositionForm(form)) {
-      throw new Error(`Unknown complete conclusion form: ${String(form)}.`);
-    }
-  }
-  if (conclusionForms.length > 1) {
-    throw new Error(
-      `Expected at most one complete conclusion form, but received: ${conclusionForms.join(", ")}.`,
-    );
-  }
-  return conclusionForms[0] ?? "none";
 }
 
 export type ConclusionQuizValidationResult =
@@ -46,12 +54,17 @@ export type ConclusionQuizValidationResult =
       readonly reason: "incomplete" | "incorrect";
     };
 
-export function validateConclusionAnswer(
-  selected: ConclusionAnswerChoice | null,
-  conclusionForms: readonly PropositionForm[],
+export function validateConclusionQuizAnswers(
+  answers: readonly (ConclusionQuizAnswer | null)[],
+  questions: readonly ConclusionQuizQuestion[],
 ): ConclusionQuizValidationResult {
-  if (selected === null) return { ok: false, reason: "incomplete" };
-  return selected === deriveExpectedConclusionAnswer(conclusionForms)
+  if (
+    answers.length !== questions.length ||
+    answers.some((answer) => answer === null)
+  ) return { ok: false, reason: "incomplete" };
+  return questions.every((question, index) =>
+      answers[index] === question.expectedAnswer
+    )
     ? { ok: true }
     : { ok: false, reason: "incorrect" };
 }
@@ -64,7 +77,7 @@ export type ConclusionQuizCheckState =
 
 export interface ConclusionQuizState {
   readonly mode: ConclusionAnswerMode;
-  readonly selectedAnswer: ConclusionAnswerChoice | null;
+  readonly answers: readonly (ConclusionQuizAnswer | null)[];
   readonly check: ConclusionQuizCheckState;
 }
 
@@ -73,18 +86,21 @@ export function createInitialConclusionQuizState(
 ): ConclusionQuizState {
   return {
     mode,
-    selectedAnswer: null,
+    answers: [],
     check: { kind: "not-checked" },
   };
 }
 
-export function selectConclusionAnswer(
+export function selectConclusionQuizAnswer(
   state: ConclusionQuizState,
-  answer: ConclusionAnswerChoice | null,
+  questionIndex: number,
+  answer: ConclusionQuizAnswer | null,
 ): ConclusionQuizState {
+  const answers = [...state.answers];
+  answers[questionIndex] = answer;
   return {
     mode: state.mode,
-    selectedAnswer: answer,
+    answers,
     check: { kind: "not-checked" },
   };
 }

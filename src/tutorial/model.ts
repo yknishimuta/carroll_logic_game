@@ -71,6 +71,21 @@ const emptyBiliteral: BiliteralCounterPlacements = {
   existenceCounters: [],
 };
 
+// The tutorial's existing Barbara figure intentionally illustrates the
+// canonical A conclusion only. The game diagram uses the complete projected
+// biliteral state and may therefore display additional existence information.
+const barbaraTutorialConclusion: BiliteralCounterPlacements = {
+  emptinessCounters: [{
+    kind: "emptiness",
+    anchor: { type: "cell", cell: "Sp" },
+  }],
+  existenceCounters: [{
+    kind: "existence",
+    sourceIds: ["second-premise"],
+    anchor: { type: "cell", cell: "SP" },
+  }],
+};
+
 const boundaryExample: TriliteralCounterPlacements = {
   emptinessCounters: [],
   existenceCounters: [{
@@ -168,7 +183,7 @@ export function createTutorialViewModel(locale: Locale): TutorialViewModel {
     ["barbara", [
       createDiagram("barbara-first", text.first, "triliteral", barbara.firstPremisePlacements),
       createDiagram("barbara-combined", text.combined, "triliteral", barbara.combinedPlacements),
-      createDiagram("barbara-conclusion", text.conclusion, "biliteral", barbara.conclusionPlacements),
+      createDiagram("barbara-conclusion", text.conclusion, "biliteral", barbaraTutorialConclusion),
     ]],
   ]);
   const sections = content.sections.map((section) => {

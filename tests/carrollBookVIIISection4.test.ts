@@ -42,13 +42,8 @@ function productionConclusionEvidence(production: Extract<
   ReturnType<typeof inferSyllogismConclusion>,
   { readonly ok: true }
 >): readonly string[] {
-  if (production.conclusion === null) return [];
-  return [...new Set(production.entailedForms.flatMap((form) =>
-    carrollConclusionEvidence({
-      form,
-      subject: production.conclusion!.subject,
-      predicate: production.conclusion!.predicate,
-    })
+  return [...new Set((production.completeConclusion?.propositions ?? []).flatMap(
+    carrollConclusionEvidence,
   ))].sort();
 }
 
@@ -70,7 +65,7 @@ describe("Lewis Carroll Book VIII §4 golden corpus", () => {
     }
   });
 
-  it("records canonical conclusions that omit part of Carroll's complete answer", () => {
+  it("preserves every part of Carroll's complete answers", () => {
     const incompleteCanonicalCases = CARROLL_BOOK_VIII_SECTION_4.flatMap(
       (testCase) => {
         if (testCase.expected.kind === "no-conclusion") return [];
@@ -78,7 +73,7 @@ describe("Lewis Carroll Book VIII §4 golden corpus", () => {
           testCase.premises,
           DEFAULT_LOGIC_SETTINGS,
         );
-        if (!production.ok || production.conclusion === null) {
+        if (!production.ok || production.completeConclusion === null) {
           return [testCase.number];
         }
         const expectedEvidence = [...new Set(
@@ -93,13 +88,7 @@ describe("Lewis Carroll Book VIII §4 golden corpus", () => {
           : [testCase.number];
       },
     );
-    // These cases still have the complete Carroll answer in the biliteral
-    // state, but the current single-conclusion display selects only part of
-    // that information. Keeping the measured baseline explicit prevents the
-    // corpus from hiding either a new omission or a future improvement.
-    expect(incompleteCanonicalCases).toEqual([
-      10, 12, 16, 24, 26, 27, 35, 40,
-    ]);
+    expect(incompleteCanonicalCases).toEqual([]);
   });
 
   for (const testCase of CARROLL_BOOK_VIII_SECTION_4) {
@@ -113,7 +102,7 @@ describe("Lewis Carroll Book VIII §4 golden corpus", () => {
 
       const oracle = oracleConclusions(testCase.premises);
       if (testCase.expected.kind === "no-conclusion") {
-        expect(production.conclusion).toBeNull();
+        expect(production.completeConclusion).toBeNull();
         expect(oracle).toEqual([]);
         return;
       }
@@ -126,14 +115,14 @@ describe("Lewis Carroll Book VIII §4 golden corpus", () => {
         expect(oracle).toContainEqual(expectedConclusion);
       }
 
-      expect(production.conclusion).not.toBeNull();
-      expect(production.conclusion === null
-        ? false
-        : isCarrollConclusionEntailedByBiliteralState(
-            production.biliteralState,
-            production.conclusion,
-          )).toBe(true);
-      expect(oracle).toContainEqual(production.conclusion);
+      expect(production.completeConclusion).not.toBeNull();
+      for (const conclusion of production.completeConclusion?.propositions ?? []) {
+        expect(isCarrollConclusionEntailedByBiliteralState(
+          production.biliteralState,
+          conclusion,
+        )).toBe(true);
+        expect(oracle).toContainEqual(conclusion);
+      }
       const expectedEvidence = [...new Set(
         testCase.expected.conclusions.flatMap(carrollConclusionEvidence),
       )].sort();

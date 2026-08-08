@@ -35,9 +35,9 @@ import {
   type CounterTool,
 } from "./counterPractice";
 import {
-  isConclusionAnswerChoice,
+  isConclusionQuizAnswer,
   isConclusionAnswerMode,
-  type ConclusionAnswerChoice,
+  type ConclusionQuizAnswer,
   type ConclusionAnswerMode,
 } from "./conclusionQuiz";
 import {
@@ -89,7 +89,7 @@ export interface GameEventHandlers {
   readonly onCounterAttemptCheck: () => void;
   readonly onCounterAttemptClear: () => void;
   readonly onConclusionAnswerChange:
-    (answer: ConclusionAnswerChoice | null) => void;
+    (questionIndex: number, answer: ConclusionQuizAnswer | null) => void;
   readonly onConclusionAnswerSubmit: () => void;
   readonly onSavedCustomProblemTitleChange: (value: string) => void;
   readonly onSavedCustomProblemSubmit: () => void;
@@ -368,46 +368,54 @@ function createConclusionQuizSection(
   section.dataset.conclusionExperience = "quiz";
   section.dataset.conclusionQuizLocation = "combined-premises";
   section.append(heading("h2", quiz.heading));
-  const fieldset = element("fieldset");
-  const legend = element("legend");
-  legend.textContent = quiz.selectorLabel;
   const instruction = element("p");
   instruction.textContent = quiz.instruction;
-  const label = element("label");
-  const labelText = element("span");
-  labelText.textContent = quiz.selectPlaceholder;
-  const select = element("select");
-  select.dataset.action = "conclusion-answer";
-  const placeholder = element("option");
-  placeholder.value = "";
-  placeholder.textContent = quiz.selectPlaceholder;
-  select.append(placeholder);
-  quiz.options.forEach(({ value, label: optionLabel }) => {
-    const option = element("option");
-    option.value = value;
-    option.textContent = optionLabel;
-    select.append(option);
-  });
-  select.value = quiz.selectedAnswer ?? "";
-  if (quiz.feedback !== null && quiz.feedback.kind !== "correct") {
-    select.setAttribute("aria-invalid", "true");
-    select.setAttribute("aria-describedby", "conclusion-quiz-feedback");
-  }
-  select.addEventListener("change", () => {
-    const value = select.value;
-    if (value !== "" && !isConclusionAnswerChoice(value)) {
-      throw new Error(`Unknown conclusion answer: "${value}".`);
+  section.append(instruction);
+  quiz.questions.forEach((question, questionIndex) => {
+    const fieldset = element("fieldset");
+    const legend = element("legend");
+    legend.textContent = question.selectorLabel;
+    const label = element("label");
+    const labelText = element("span");
+    labelText.textContent = question.selectPlaceholder;
+    const select = element("select");
+    select.dataset.action = "conclusion-answer";
+    select.dataset.questionIndex = String(questionIndex);
+    const placeholder = element("option");
+    placeholder.value = "";
+    placeholder.textContent = question.selectPlaceholder;
+    select.append(placeholder);
+    question.options.forEach(({ value, label: optionLabel }) => {
+      const option = element("option");
+      option.value = value;
+      option.textContent = optionLabel;
+      select.append(option);
+    });
+    select.value = question.answer ?? "";
+    if (quiz.feedback !== null && quiz.feedback.kind !== "correct") {
+      select.setAttribute("aria-invalid", "true");
+      select.setAttribute("aria-describedby", "conclusion-quiz-feedback");
     }
-    handlers.onConclusionAnswerChange(value === "" ? null : value);
+    select.addEventListener("change", () => {
+      const value = select.value;
+      if (value !== "" && !isConclusionQuizAnswer(value)) {
+        throw new Error(`Unknown conclusion answer: "${value}".`);
+      }
+      handlers.onConclusionAnswerChange(
+        questionIndex,
+        value === "" ? null : value,
+      );
+    });
+    label.append(labelText, select);
+    fieldset.append(legend, label);
+    section.append(fieldset);
   });
-  label.append(labelText, select);
   const check = element("button");
   check.type = "button";
   check.dataset.action = "check-conclusion-answer";
   check.textContent = quiz.checkButtonLabel;
   check.addEventListener("click", handlers.onConclusionAnswerSubmit);
-  fieldset.append(legend, instruction, label, check);
-  section.append(fieldset);
+  section.append(check);
   if (quiz.feedback !== null) {
     const feedback = element(
       "p",
@@ -417,7 +425,7 @@ function createConclusionQuizSection(
     feedback.setAttribute("aria-live", "polite");
     feedback.id = "conclusion-quiz-feedback";
     feedback.textContent = quiz.feedback.message;
-    fieldset.append(feedback);
+    section.append(feedback);
   }
   return section;
 }
@@ -1088,8 +1096,8 @@ function createConclusionSection(
     return null;
   }
   if (
-    model.concreteConclusion === null &&
-    model.abstractConclusion === null &&
+    model.concreteConclusions.length === 0 &&
+    model.abstractConclusions.length === 0 &&
     model.noConclusionMessage === null
   ) return null;
 
@@ -1114,28 +1122,60 @@ function createConclusionSection(
     return section;
   }
 
-  if (
-    model.concreteConclusion === null ||
-    model.abstractConclusion === null
-  ) {
+  if (model.concreteConclusions.length !== model.abstractConclusions.length) {
     throw new Error("Conclusion view model is incomplete.");
   }
-
-  const concrete = element("p", "logic-game__concrete-conclusion");
-  const concreteLabel = element("strong");
-  concreteLabel.textContent = `${model.concreteConclusionLabel}: `;
-  concrete.append(
-    concreteLabel,
-    document.createTextNode(model.concreteConclusion),
-  );
-  const abstract = element("p", "logic-game__abstract-conclusion");
-  const abstractLabel = element("strong");
-  abstractLabel.textContent = `${model.abstractConclusionLabel}: `;
-  abstract.append(
-    abstractLabel,
-    document.createTextNode(model.abstractConclusion),
-  );
-  section.append(concrete, abstract);
+  if (model.concreteConclusions.length === 1) {
+    const concrete = element("p", "logic-game__concrete-conclusion");
+    const concreteLabel = element("strong");
+    concreteLabel.textContent = `${model.concreteConclusionLabel}: `;
+    concrete.append(
+      concreteLabel,
+      document.createTextNode(model.concreteConclusions[0]!),
+    );
+    const abstract = element("p", "logic-game__abstract-conclusion");
+    const abstractLabel = element("strong");
+    abstractLabel.textContent = `${model.abstractConclusionLabel}: `;
+    abstract.append(
+      abstractLabel,
+      document.createTextNode(model.abstractConclusions[0]!),
+    );
+    section.append(concrete, abstract);
+  } else {
+    if (model.multipleConclusionIntroduction === null) {
+      throw new Error("Multiple conclusions require an introduction.");
+    }
+    const introduction = element(
+      "p",
+      "logic-game__multiple-conclusion-introduction",
+    );
+    introduction.textContent = model.multipleConclusionIntroduction;
+    section.append(introduction);
+    for (const [labelText, items, className] of [
+      [
+        model.concreteConclusionsLabel,
+        model.concreteConclusions,
+        "logic-game__concrete-conclusions",
+      ],
+      [
+        model.abstractConclusionsLabel,
+        model.abstractConclusions,
+        "logic-game__abstract-conclusions",
+      ],
+    ] as const) {
+      const group = element("div", className);
+      const label = element("strong");
+      label.textContent = `${labelText}:`;
+      const list = element("ol");
+      for (const item of items) {
+        const listItem = element("li");
+        listItem.textContent = item;
+        list.append(listItem);
+      }
+      group.append(label, list);
+      section.append(group);
+    }
+  }
   if (model.derivedConclusion !== null) {
     const explanation = element("p");
     explanation.textContent = model.derivedConclusion.explanation;
@@ -1373,6 +1413,7 @@ function assignFocusKeys(root: HTMLElement): void {
       control.dataset.field,
       control.dataset.tool,
       control.dataset.targetKey,
+      control.dataset.questionIndex,
       control.dataset.termId,
       control.dataset.problemId,
     ].filter((value): value is string => value !== undefined);

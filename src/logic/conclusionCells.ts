@@ -17,8 +17,14 @@ export function conclusionCells(
   subject: AbstractTermOccurrence,
   predicate: AbstractTermOccurrence,
 ): { readonly positive: BiliteralCell; readonly negative: BiliteralCell } {
-  if (subject.role !== "S" || predicate.role !== "P") {
-    throw new Error("A conclusion requires S as subject and P as predicate.");
+  if (
+    (subject.role !== "S" && subject.role !== "P") ||
+    (predicate.role !== "S" && predicate.role !== "P") ||
+    subject.role === predicate.role
+  ) {
+    throw new Error(
+      "A conclusion requires distinct S and P retained terms.",
+    );
   }
   const positive = BILITERAL_CELLS.find((cell) =>
     belongsToBaseTerm(cell, subject) && belongsToBaseTerm(cell, predicate)

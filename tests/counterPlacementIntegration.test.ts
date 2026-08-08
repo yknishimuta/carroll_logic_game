@@ -47,8 +47,10 @@ function inferPlacements(
     inference.triliteralState,
   );
   const conclusion = createConclusionCounterPlacements(
-    inference.biliteralState,
-    inference.entailedForms,
+    inference.completeConclusion?.biliteralState ?? {
+      emptyCells: [],
+      existentials: [],
+    },
   );
 
   expect(triliteral.ok).toBe(true);
@@ -70,6 +72,15 @@ describe("counter placement integration", () => {
         { kind: "emptiness", anchor: { type: "cell", cell: "Sp" } },
       ],
       existenceCounters: [
+        {
+          kind: "existence",
+          sourceIds: ["first-premise"],
+          anchor: {
+            type: "boundary",
+            cells: ["SP", "sP"],
+            partitionRole: "S",
+          },
+        },
         {
           kind: "existence",
           sourceIds: ["second-premise"],
@@ -96,12 +107,21 @@ describe("counter placement integration", () => {
     });
   });
 
-  it("creates only an SP existence counter for Darii", () => {
+  it("creates all projected existence counters for Darii", () => {
     const { conclusion } = inferPlacements(syllogisms.darii, carroll);
 
     expect(conclusion.placements).toEqual({
       emptinessCounters: [],
       existenceCounters: [
+        {
+          kind: "existence",
+          sourceIds: ["first-premise"],
+          anchor: {
+            type: "boundary",
+            cells: ["SP", "sP"],
+            partitionRole: "S",
+          },
+        },
         {
           kind: "existence",
           sourceIds: ["second-premise"],

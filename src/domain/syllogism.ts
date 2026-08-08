@@ -1,7 +1,6 @@
 import type {
   AbstractProposition,
   ConcreteProposition,
-  PropositionForm,
 } from "./proposition";
 import type { LocalizedText } from "./locale";
 
@@ -19,5 +18,4 @@ export interface SyllogismProblemDefinition {
   readonly id: string;
   readonly title: LocalizedText;
   readonly premises: ConcreteSyllogism;
-  readonly expectedConclusionForm: PropositionForm | null;
 }

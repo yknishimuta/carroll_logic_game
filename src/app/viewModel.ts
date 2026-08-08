@@ -24,7 +24,7 @@ import {
   type CustomProblemId,
 } from "../domain/savedCustomProblem";
 import type { ConcreteSyllogism } from "../domain/syllogism";
-import type { TermId, TermRole } from "../domain/term";
+import { abstractTerm, type TermId, type TermRole } from "../domain/term";
 import {
   formatAbstractProposition,
   formatConcreteProposition,
@@ -60,11 +60,12 @@ import {
   type CounterTool,
 } from "./counterPractice";
 import type {
-  ConclusionAnswerChoice,
+  ConclusionQuizAnswer,
   ConclusionAnswerMode,
 } from "./conclusionQuiz";
 import {
   canEnterConclusion,
+  deriveConclusionQuizQuestions,
   isCombinedPremisesReady,
   isConclusionDiagramUnlocked,
   shouldShowConclusionQuiz,
@@ -286,17 +287,21 @@ export interface CounterPracticeViewModel {
 }
 
 export interface ConclusionAnswerOptionViewModel {
-  readonly value: ConclusionAnswerChoice;
+  readonly value: ConclusionQuizAnswer;
   readonly label: string;
+}
+
+export interface ConclusionQuizQuestionViewModel {
+  readonly selectorLabel: string;
+  readonly selectPlaceholder: string;
+  readonly answer: ConclusionQuizAnswer | null;
+  readonly options: readonly ConclusionAnswerOptionViewModel[];
 }
 
 export interface ConclusionQuizViewModel {
   readonly heading: string;
   readonly instruction: string;
-  readonly selectorLabel: string;
-  readonly selectPlaceholder: string;
-  readonly selectedAnswer: ConclusionAnswerChoice | null;
-  readonly options: readonly ConclusionAnswerOptionViewModel[];
+  readonly questions: readonly ConclusionQuizQuestionViewModel[];
   readonly checkButtonLabel: string;
   readonly feedback: {
     readonly kind: "incomplete" | "incorrect" | "correct";
@@ -358,6 +363,8 @@ export interface GameViewModel {
   readonly premiseLabels: readonly [string, string];
   readonly concreteConclusionLabel: string;
   readonly abstractConclusionLabel: string;
+  readonly concreteConclusionsLabel: string;
+  readonly abstractConclusionsLabel: string;
   readonly progressAriaLabel: string;
   readonly progressSteps: readonly ProgressStepViewModel[];
   readonly concretePremises: readonly [string, string] | null;
@@ -365,8 +372,9 @@ export interface GameViewModel {
   readonly termAssignment: readonly TermAssignmentItemViewModel[];
   readonly abstractPremises: readonly [string, string] | null;
   readonly assignmentPanel: TermAssignmentPanelViewModel;
-  readonly concreteConclusion: string | null;
-  readonly abstractConclusion: string | null;
+  readonly concreteConclusions: readonly string[];
+  readonly abstractConclusions: readonly string[];
+  readonly multipleConclusionIntroduction: string | null;
   readonly noConclusionMessage: string | null;
   readonly diagram: DiagramViewModel;
   readonly counterPracticePanel: CounterPracticeViewModel | null;
@@ -871,6 +879,7 @@ function counterFeedback(
 function counterPanel(
   state: AppState,
   messages: UiMessages,
+  conclusionMode: ConclusionAnswerMode,
 ): CounterPracticeViewModel | null {
   if (
     state.counterPractice.mode !== "manual" ||
@@ -878,7 +887,7 @@ function counterPanel(
     (
       state.phase === "conclusion" &&
       !isConclusionDiagramUnlocked(
-        state.conclusionQuiz.mode,
+        conclusionMode,
         state.conclusionQuiz.check,
       )
     )
@@ -973,32 +982,44 @@ function conclusionQuizViewModel(
     computation === null
   ) return null;
   const forms = ["A", "E", "I", "O"] as const;
-  const options: readonly ConclusionAnswerOptionViewModel[] = [
-    ...forms.map((form) => ({
-      value: form,
-      label: `${messages.conclusionQuiz.options[form]} — ${
-        formatConcreteProposition(
-          createConcreteConclusion(
-            form,
-            computation.assignment,
-            computation.conclusionTerms.subject,
-            computation.conclusionTerms.predicate,
-          ),
-          state.locale,
-          resolveTerm,
-        )
-      }`,
-    })),
-    { value: "none", label: messages.conclusionQuiz.options.none },
-  ];
+  const quizQuestions = deriveConclusionQuizQuestions(
+    computation.completeConclusion,
+  );
+  const questions = quizQuestions.map(
+    (question, index): ConclusionQuizQuestionViewModel => {
+      const terms = question.proposition === null
+        ? { subject: abstractTerm("S"), predicate: abstractTerm("P") }
+        : {
+            subject: question.proposition.subject,
+            predicate: question.proposition.predicate,
+          };
+      return {
+        selectorLabel: quizQuestions.length === 1
+          ? messages.conclusionQuiz.selectorLabel
+          : `${messages.conclusionQuiz.selectorLabel} ${index + 1}`,
+        selectPlaceholder: messages.conclusionQuiz.selectPlaceholder,
+        answer: state.conclusionQuiz.answers[index] ?? null,
+        options: [
+          ...forms.map((form) => ({
+            value: form,
+            label: `${messages.conclusionQuiz.options[form]} — ${
+              formatConcreteProposition(
+                createConcreteConclusion({ form, ...terms }, computation.assignment),
+                state.locale,
+                resolveTerm,
+              )
+            }`,
+          })),
+          { value: "none", label: messages.conclusionQuiz.options.none },
+        ],
+      };
+    },
+  );
   const check = state.conclusionQuiz.check;
   return {
     heading: messages.conclusionQuiz.heading,
     instruction: messages.conclusionQuiz.instruction,
-    selectorLabel: messages.conclusionQuiz.selectorLabel,
-    selectPlaceholder: messages.conclusionQuiz.selectPlaceholder,
-    selectedAnswer: state.conclusionQuiz.selectedAnswer,
-    options,
+    questions,
     checkButtonLabel: messages.conclusionQuiz.checkButton,
     feedback: check.kind === "not-checked"
       ? null
@@ -1140,20 +1161,16 @@ export function createGameViewModel(state: AppState): GameViewModel {
             }),
             caption: messages.diagrams.conclusionCaption,
           };
-  const concreteConclusion = !conclusionDisclosed ||
-    computation?.concreteConclusion === null ||
-    computation === null
-    ? null
-    : formatConcreteProposition(
-        computation.concreteConclusion,
-        state.locale,
-        resolveTerm,
+  const concreteConclusions = !conclusionDisclosed || computation === null
+    ? []
+    : computation.concreteConclusions.map((conclusion) =>
+        formatConcreteProposition(conclusion, state.locale, resolveTerm)
       );
-  const abstractConclusion = !conclusionDisclosed ||
-    computation?.abstractConclusion === null ||
-    computation === null
-    ? null
-    : formatAbstractProposition(computation.abstractConclusion, state.locale);
+  const abstractConclusions = !conclusionDisclosed || computation === null
+    ? []
+    : (computation.completeConclusion?.propositions ?? []).map((conclusion) =>
+        formatAbstractProposition(conclusion, state.locale)
+      );
 
   return {
     activeScreen: state.screen,
@@ -1250,6 +1267,8 @@ export function createGameViewModel(state: AppState): GameViewModel {
     premiseLabels: [messages.firstPremiseLabel, messages.secondPremiseLabel],
     concreteConclusionLabel: messages.concreteConclusionLabel,
     abstractConclusionLabel: messages.abstractConclusionLabel,
+    concreteConclusionsLabel: messages.concreteConclusionsLabel,
+    abstractConclusionsLabel: messages.abstractConclusionsLabel,
     progressAriaLabel: messages.progressAriaLabel,
     progressSteps: [
       { phase: "problem", label: messages.phases.problem },
@@ -1267,16 +1286,23 @@ export function createGameViewModel(state: AppState): GameViewModel {
     termAssignment,
     abstractPremises,
     assignmentPanel: panel,
-    concreteConclusion,
-    abstractConclusion,
+    concreteConclusions,
+    abstractConclusions,
+    multipleConclusionIntroduction: concreteConclusions.length > 1
+      ? messages.derivedConclusion.multipleIntroduction
+      : null,
     noConclusionMessage:
       conclusionDisclosed &&
         computation !== null &&
-        computation.concreteConclusion === null
+        computation.completeConclusion === null
         ? messages.noConclusion
         : null,
     diagram,
-    counterPracticePanel: counterPanel(state, messages),
+    counterPracticePanel: counterPanel(
+      state,
+      messages,
+      state.conclusionQuiz.mode,
+    ),
     conclusionQuiz: conclusionQuizViewModel(
       state,
       messages,
@@ -1290,7 +1316,9 @@ export function createGameViewModel(state: AppState): GameViewModel {
         )
       ? {
           heading: messages.derivedConclusion.heading,
-          explanation: messages.derivedConclusion.explanation,
+          explanation: concreteConclusions.length > 1
+            ? messages.derivedConclusion.multipleExplanation
+            : messages.derivedConclusion.explanation,
         }
       : null,
     navigation: navigation(state, messages, ready),

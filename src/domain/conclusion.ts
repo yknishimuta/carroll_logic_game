@@ -25,14 +25,21 @@ export interface SyllogismConclusion {
   readonly predicate: AbstractTermOccurrence;
 }
 
+/**
+ * A deterministic, non-redundant proposition set semantically equivalent to
+ * all certain retinend information in the projected biliteral state.
+ */
+export interface CompleteConclusion {
+  readonly biliteralState: BiliteralDiagramState;
+  readonly propositions: readonly SyllogismConclusion[];
+}
+
 export type SyllogismConclusionResult =
   | {
       readonly ok: true;
       readonly triliteralState: TriliteralDiagramState;
       readonly biliteralState: BiliteralDiagramState;
-      readonly conclusion: SyllogismConclusion | null;
-      readonly entailedForms: readonly PropositionForm[];
-      readonly conclusionForms: readonly PropositionForm[];
+      readonly completeConclusion: CompleteConclusion | null;
     }
   | {
       readonly ok: false;

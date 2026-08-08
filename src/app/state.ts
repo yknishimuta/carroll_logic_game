@@ -54,8 +54,8 @@ import {
   createInitialConclusionQuizState,
   isCombinedPremisesReady,
   isConclusionDiagramUnlocked,
-  selectConclusionAnswer,
-  type ConclusionAnswerChoice,
+  selectConclusionQuizAnswer,
+  type ConclusionQuizAnswer,
   type ConclusionAnswerMode,
   type ConclusionQuizState,
   type ConclusionQuizValidationResult,
@@ -265,7 +265,8 @@ export type AppAction =
     }
   | {
       readonly type: "select-conclusion-answer";
-      readonly answer: ConclusionAnswerChoice | null;
+      readonly questionIndex: number;
+      readonly answer: ConclusionQuizAnswer | null;
     }
   | {
       readonly type: "submit-conclusion-answer";
@@ -867,8 +868,9 @@ export function reduceAppState(
       ) return state;
       return {
         ...state,
-        conclusionQuiz: selectConclusionAnswer(
+        conclusionQuiz: selectConclusionQuizAnswer(
           state.conclusionQuiz,
+          action.questionIndex,
           action.answer,
         ),
       };

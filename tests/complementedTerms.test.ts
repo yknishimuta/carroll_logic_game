@@ -50,7 +50,7 @@ describe("complemented terms in syllogisms", () => {
     );
     expect(inference.ok).toBe(true);
     if (!inference.ok) return;
-    expect(inference.conclusion).toEqual({
+    expect(inference.completeConclusion?.propositions).toContainEqual({
       form: "E",
       subject: { role: "S", complemented: false },
       predicate: { role: "P", complemented: true },
@@ -59,12 +59,23 @@ describe("complemented terms in syllogisms", () => {
 
   it("Book VIII §6 No. 25 [ProblemComputation and conclusion display]", () => {
     const result = compute("carroll-viii-i-6-25", NO_25_PREMISES);
-    expect(result.abstractConclusion).toEqual({
+    expect(result.completeConclusion).not.toBeNull();
+    expect(result.completeConclusion?.propositions).toContainEqual({
       form: "E",
       subject: { role: "S", complemented: false },
       predicate: { role: "P", complemented: true },
     });
-    expect(result.concreteConclusion).toEqual({
+    expect(result.concreteConclusions).toContainEqual({
+      form: "E",
+      subject: { termId: "human", complemented: false },
+      predicate: { termId: "mortal", complemented: true },
+    });
+    expect(result.completeConclusion?.propositions[0]).toEqual({
+      form: "E",
+      subject: { role: "S", complemented: false },
+      predicate: { role: "P", complemented: true },
+    });
+    expect(result.concreteConclusions[0]).toEqual({
       form: "E",
       subject: { termId: "human", complemented: false },
       predicate: { termId: "mortal", complemented: true },
@@ -74,11 +85,19 @@ describe("complemented terms in syllogisms", () => {
         kind: "emptiness",
         anchor: { type: "cell", cell: "Sp" },
       }],
-      existenceCounters: [],
+      existenceCounters: [{
+        kind: "existence",
+        sourceIds: ["first-premise"],
+        anchor: {
+          type: "boundary",
+          cells: ["SP", "sP"],
+          partitionRole: "S",
+        },
+      }],
     });
     expect(oracleConclusionIsEntailed(
       result.abstractPremises,
-      result.abstractConclusion!,
+      result.completeConclusion?.propositions[0]!,
       DEFAULT_LOGIC_SETTINGS,
     )).toBe(true);
   });
@@ -99,7 +118,7 @@ describe("complemented terms in syllogisms", () => {
 
     expect(projectToBiliteralDiagram(result.combinedState).emptyCells)
       .toContain("sp");
-    expect(result.abstractConclusion).toEqual({
+    expect(result.completeConclusion?.propositions[0]).toEqual({
       form: "E",
       subject: { role: "S", complemented: true },
       predicate: { role: "P", complemented: true },
@@ -132,12 +151,12 @@ describe("complemented terms in syllogisms", () => {
     });
     expect(projectToBiliteralDiagram(result.combinedState).existentials)
       .toContainEqual({ sourceId: "first-premise", possibleCells: ["SP"] });
-    expect(result.abstractConclusion).toEqual({
+    expect(result.completeConclusion?.propositions[0]).toEqual({
       form: "I",
       subject: { role: "S", complemented: false },
       predicate: { role: "P", complemented: false },
     });
-    expect(result.concreteConclusion).toEqual({
+    expect(result.concreteConclusions[0]).toEqual({
       form: "I",
       subject: { termId: "human", complemented: false },
       predicate: { termId: "student", complemented: false },
@@ -189,7 +208,7 @@ describe("complemented terms in syllogisms", () => {
     });
     expect(projectToBiliteralDiagram(result.combinedState).existentials)
       .toContainEqual({ sourceId: "first-premise", possibleCells: ["sP"] });
-    expect(result.abstractConclusion).toEqual({
+    expect(result.completeConclusion?.propositions[0]).toEqual({
       form: "I",
       subject: { role: "S", complemented: true },
       predicate: { role: "P", complemented: false },
@@ -212,13 +231,14 @@ describe("complemented terms in syllogisms", () => {
       },
     });
 
-    expect(result.abstractConclusion).toEqual({
+    expect(result.completeConclusion?.propositions[0]).toEqual({
       form: "O",
       subject: { role: "S", complemented: false },
       predicate: { role: "P", complemented: false },
     });
-    expect(result.conclusionPlacements.existenceCounters[0]?.anchor)
-      .toEqual({ type: "cell", cell: "Sp" });
+    expect(result.conclusionPlacements.existenceCounters.map(({ anchor }) =>
+      anchor
+    )).toContainEqual({ type: "cell", cell: "Sp" });
   });
 
   it("keeps P′ in All S are P′ for Carroll Book VIII §6 No. 30", () => {
@@ -235,15 +255,16 @@ describe("complemented terms in syllogisms", () => {
       },
     });
 
-    expect(result.abstractConclusion).toEqual({
+    expect(result.completeConclusion?.propositions[0]).toEqual({
       form: "A",
       subject: { role: "S", complemented: false },
       predicate: { role: "P", complemented: true },
     });
     expect(result.conclusionPlacements.emptinessCounters[0]?.anchor)
       .toEqual({ type: "cell", cell: "SP" });
-    expect(result.conclusionPlacements.existenceCounters[0]?.anchor)
-      .toEqual({ type: "cell", cell: "Sp" });
+    expect(result.conclusionPlacements.existenceCounters.map(({ anchor }) =>
+      anchor
+    )).toContainEqual({ type: "cell", cell: "Sp" });
   });
 
   it("infers All S′ are P and places O in sp and I in sP", () => {
@@ -260,17 +281,16 @@ describe("complemented terms in syllogisms", () => {
       },
     });
 
-    expect(result.conclusionForms).toEqual(["A"]);
     expect(oracleEntailedForms(
       result.abstractPremises,
       DEFAULT_LOGIC_SETTINGS,
     )).toEqual(["A", "I"]);
-    expect(result.abstractConclusion).toEqual({
+    expect(result.completeConclusion?.propositions[0]).toEqual({
       form: "A",
       subject: { role: "S", complemented: true },
       predicate: { role: "P", complemented: false },
     });
-    expect(result.concreteConclusion).toEqual({
+    expect(result.concreteConclusions[0]).toEqual({
       form: "A",
       subject: { termId: "human", complemented: true },
       predicate: { termId: "mortal", complemented: false },
@@ -278,6 +298,14 @@ describe("complemented terms in syllogisms", () => {
     expect(result.conclusionPlacements).toEqual({
       emptinessCounters: [{ kind: "emptiness", anchor: { type: "cell", cell: "sp" } }],
       existenceCounters: [{
+        kind: "existence",
+        sourceIds: ["first-premise"],
+        anchor: {
+          type: "boundary",
+          cells: ["SP", "sP"],
+          partitionRole: "S",
+        },
+      }, {
         kind: "existence",
         sourceIds: ["second-premise"],
         anchor: { type: "cell", cell: "sP" },
@@ -299,8 +327,7 @@ describe("complemented terms in syllogisms", () => {
       },
     });
 
-    expect(result.conclusionForms).toEqual(["A"]);
-    expect(result.abstractConclusion).toEqual({
+    expect(result.completeConclusion?.propositions[0]).toEqual({
       form: "A",
       subject: { role: "S", complemented: false },
       predicate: { role: "P", complemented: true },
@@ -308,6 +335,14 @@ describe("complemented terms in syllogisms", () => {
     expect(result.conclusionPlacements).toEqual({
       emptinessCounters: [{ kind: "emptiness", anchor: { type: "cell", cell: "SP" } }],
       existenceCounters: [{
+        kind: "existence",
+        sourceIds: ["first-premise"],
+        anchor: {
+          type: "boundary",
+          cells: ["Sp", "sp"],
+          partitionRole: "S",
+        },
+      }, {
         kind: "existence",
         sourceIds: ["second-premise"],
         anchor: { type: "cell", cell: "Sp" },
@@ -338,7 +373,7 @@ describe("complemented terms in syllogisms", () => {
       role: "M",
       complemented: true,
     });
-    expect(result.abstractConclusion).toEqual({
+    expect(result.completeConclusion?.propositions[0]).toEqual({
       form: "A",
       subject: { role: "S", complemented: false },
       predicate: { role: "P", complemented: false },

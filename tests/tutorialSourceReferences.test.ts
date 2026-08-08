@@ -48,6 +48,7 @@ describe("tutorial source registry", () => {
       "all-double-proposition", "aeio-placement", "third-term-split", "boundary-existence-meaning",
       "boundary-i-resolution", "eliminate-middle",
       "project-empty", "barbara-stages",
+      "multiple-complete-conclusions", "complete-vs-incomplete-conclusion",
       "manual-placement-ui",
     ]) {
       expect(byId.has(id), id).toBe(true);
@@ -97,6 +98,8 @@ describe("tutorial source registry", () => {
     )).toBe(true);
     expect(ja.sections.find(({ id }) => id === "syllogism-basics")?.locators)
       .toEqual([]);
+    expect(ja.sections.find(({ id }) => id === "biliteral-diagram")?.locators)
+      .toEqual(expect.arrayContaining(["(I.V.II.2)", "(I.V.II.3)"]));
   });
 
   it("deduplicates locators within each section without changing the registry", () => {
@@ -110,6 +113,11 @@ describe("tutorial source registry", () => {
       id: "symbolic-logic-i-ii-iii-3",
       locator: "I.II.III.3",
       page: 17,
+    }));
+    expect(TUTORIAL_SOURCE_ENTRIES).toContainEqual(expect.objectContaining({
+      id: "symbolic-logic-i-v-ii-3",
+      locator: "I.V.II.3",
+      page: 66,
     }));
   });
 

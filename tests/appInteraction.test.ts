@@ -118,6 +118,17 @@ function fillCustomBarbara(container: HTMLElement): void {
   selectCustom(container, "custom-term", "minor", "animal", "predicateTermId");
 }
 
+function fillCustomBookVIIISection4No10(container: HTMLElement): void {
+  selectCustom(container, "custom-form", "major", "A");
+  selectCustom(container, "custom-term", "major", "mortal", "subjectTermId");
+  setCustomComplement(container, "major", "subjectComplemented", true);
+  selectCustom(container, "custom-term", "major", "animal", "predicateTermId");
+  setCustomComplement(container, "major", "predicateComplemented", true);
+  selectCustom(container, "custom-form", "minor", "A");
+  selectCustom(container, "custom-term", "minor", "human", "subjectTermId");
+  selectCustom(container, "custom-term", "minor", "animal", "predicateTermId");
+}
+
 function setCustomComplement(
   container: HTMLElement,
   position: "major" | "minor",
@@ -382,8 +393,99 @@ describe("mounted application interaction", () => {
     const container = mount();
     select(container, "problem", "cesare-eae2");
     advanceToConclusion(container);
-    expect(container.textContent).toContain("いかなる雀も哺乳類ではない。");
-    expect(container.textContent).toContain("いかなる S も P ではない。");
+    expect(container.textContent).toContain("すべての雀は哺乳類′である。");
+    expect(container.textContent).toContain("すべての S は P′ である。");
+  });
+
+  it("keeps the existing single-conclusion paragraph for Barbara", () => {
+    const container = mount();
+    advanceToConclusion(container);
+
+    expect(container.querySelector(".logic-game__concrete-conclusion")?.textContent)
+      .toContain("すべての人間は死すべきものである。");
+    expect(container.querySelector(".logic-game__concrete-conclusions"))
+      .toBeNull();
+    expect(container.querySelector(".logic-game__multiple-conclusion-introduction"))
+      .toBeNull();
+  });
+
+  it("renders every Book VIII §4 No. 10 complete conclusion in canonical order", () => {
+    const container = mount();
+    select(container, "problem-source", "custom");
+    fillCustomBookVIIISection4No10(container);
+    createCustom(container);
+    advanceToConclusion(container);
+
+    const concreteItems = [...container.querySelectorAll(
+      ".logic-game__concrete-conclusions ol li",
+    )].map(({ textContent }) => textContent);
+    const abstractItems = [...container.querySelectorAll(
+      ".logic-game__abstract-conclusions ol li",
+    )].map(({ textContent }) => textContent);
+    expect(concreteItems).toEqual([
+      "すべての人間は死すべきものである。",
+      "すべての死すべきもの′は人間′である。",
+    ]);
+    expect(abstractItems).toEqual([
+      "すべての S は P である。",
+      "すべての P′ は S′ である。",
+    ]);
+    expect(container.textContent).toContain(
+      "この問題では、二文字図の確定情報を完全に表すため、完全な結論が複数の命題からなります。",
+    );
+    expect(container.textContent).toContain(
+      "これらの結果は、入力した前提の形式から導かれます。",
+    );
+
+    select(container, "locale", "en");
+    expect([...container.querySelectorAll(
+      ".logic-game__concrete-conclusions ol li",
+    )].map(({ textContent }) => textContent)).toEqual([
+      "All humans are mortal.",
+      "All mortal beings′ are humans′.",
+    ]);
+    expect(container.textContent).toContain(
+      "In this problem, the complete conclusion contains multiple propositions in order to express all the definite information in the biliteral diagram.",
+    );
+    expect(container.textContent).toContain(
+      "These results follow from the forms of the entered premises.",
+    );
+  });
+
+  it("uses one CompleteConclusion-backed question per complete proposition", () => {
+    const container = mount();
+    select(container, "problem-source", "custom");
+    fillCustomBookVIIISection4No10(container);
+    createCustom(container);
+    select(container, "conclusion-answer-mode", "quiz");
+    button(container, "next").click();
+    button(container, "next").click();
+
+    expect(phase(container)).toBe("combined-premises");
+    const answers = [...container.querySelectorAll<HTMLSelectElement>(
+      '[data-action="conclusion-answer"]',
+    )];
+    expect(answers).toHaveLength(2);
+    expect(answers.map(({ dataset }) => dataset.questionIndex)).toEqual(["0", "1"]);
+    expect(button(container, "next").disabled).toBe(true);
+    for (const answer of answers) {
+      answer.value = "A";
+      answer.dispatchEvent(new Event("change"));
+    }
+    container.querySelector<HTMLButtonElement>(
+      '[data-action="check-conclusion-answer"]',
+    )!.click();
+    expect(container.textContent).toContain("正解です。");
+    expect(button(container, "next").disabled).toBe(false);
+    button(container, "next").click();
+
+    expect(phase(container)).toBe("conclusion");
+    expect(container.querySelectorAll(
+      ".logic-game__concrete-conclusions ol li",
+    )).toHaveLength(2);
+    expect(container.querySelector<HTMLSelectElement>(
+      '[data-action="conclusion-answer-mode"]',
+    )?.value).toBe("quiz");
   });
 
   it("shows an empty conclusion diagram for invalid premises", () => {
@@ -396,6 +498,7 @@ describe("mounted application interaction", () => {
     );
     expect(container.querySelectorAll("[data-counter-kind]")).toHaveLength(0);
     expect(container.querySelector(".logic-game__concrete-conclusion")).toBeNull();
+    expect(container.querySelector(".logic-game__multiple-conclusion-introduction")).toBeNull();
     expect(container.querySelector(".logic-game__abstract-conclusion")).toBeNull();
   });
 
@@ -429,7 +532,7 @@ describe("mounted application interaction", () => {
     advanceToConclusion(container);
     expect(phase(container)).toBe("conclusion");
     expect(button(container, "next").disabled).toBe(true);
-    expect(container.querySelectorAll("[data-counter-kind]")).toHaveLength(2);
+    expect(container.querySelectorAll("[data-counter-kind]")).toHaveLength(3);
     button(container, "previous").click();
     expect(phase(container)).toBe("combined-premises");
     button(container, "previous").click();
@@ -493,7 +596,7 @@ describe("mounted application interaction", () => {
     expect(button(container, "next").disabled).toBe(false);
     advanceToConclusion(container);
     expect(container.textContent).toContain("すべての人間は死すべきものである。");
-    expect(container.querySelectorAll("[data-counter-kind]")).toHaveLength(2);
+    expect(container.querySelectorAll("[data-counter-kind]")).toHaveLength(3);
   });
 
   it("creates a structurally valid invalid custom problem", () => {
@@ -908,6 +1011,7 @@ describe("mounted application interaction", () => {
     chooseCounterTool(container, "emptiness");
     activateCounterTarget(container, "biliteral:cell:Sp");
     chooseCounterTool(container, "existence");
+    activateCounterTarget(container, "biliteral:boundary:S:SP:sP");
     activateCounterTarget(container, "biliteral:cell:SP");
     container.querySelector<HTMLButtonElement>(
       '[data-action="check-counter-attempt"]',
@@ -997,7 +1101,7 @@ describe("mounted application interaction", () => {
   it.each([
     ["darii-aii1", "I"],
     ["ferio-eio1", "O"],
-    ["cesare-eae2", "E"],
+    ["cesare-eae2", "A"],
   ] as const)("accepts %s with conclusion %s", (problemId, answer) => {
     const container = mount();
     select(container, "problem", problemId);
@@ -1077,6 +1181,7 @@ describe("mounted application interaction", () => {
     chooseCounterTool(container, "emptiness");
     activateCounterTarget(container, "biliteral:cell:Sp");
     chooseCounterTool(container, "existence");
+    activateCounterTarget(container, "biliteral:boundary:S:SP:sP");
     activateCounterTarget(container, "biliteral:cell:SP");
     container.querySelector<HTMLButtonElement>(
       '[data-action="check-counter-attempt"]',
@@ -1267,6 +1372,8 @@ describe("mounted application interaction", () => {
         "いかなる人間も死すべきもの′ではない。",
       );
       expect(container.textContent).toContain("いかなる S も P′ ではない。");
+      expect(container.querySelector(".logic-game__multiple-conclusion-introduction"))
+        .toBeNull();
       const svg = container.querySelector(".carroll-diagram")?.outerHTML ?? "";
       expect(svg).toContain(
         'data-counter-kind="emptiness"><circle cx="280" cy="120"',

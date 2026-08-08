@@ -3,6 +3,8 @@ import {
   EN_TUTORIAL_CONTENT,
   JA_TUTORIAL_CONTENT,
 } from "../src/tutorial/content";
+import { abstractTerm } from "../src/domain/term";
+import { inferSyllogismConclusion } from "../src/logic/conclusionInference";
 const expectedIds = [
   "syllogism-basics", "syllogism-figures-and-moods", "eight-regions", "biliteral-diagram", "counters", "proposition-rules",
   "boundary-existence", "barbara",
@@ -90,20 +92,65 @@ describe("tutorial content", () => {
     ]);
     expect(JSON.stringify(biliteralEn)).not.toContain("Abbreviation");
     expect(JSON.stringify(biliteralEn)).not.toContain("Set notation");
-    const flow = biliteralJa.blocks?.find((block) => block.kind === "list" && block.ordered);
+    for (const text of [
+      "完全な結論が複数の命題になる場合",
+      "二文字図に複数の独立した情報が確定している場合、完全な結論が二つ以上の命題からなることがあります。",
+      "前提から導ける命題をすべて列挙するという意味ではありません",
+      "二命題を合わせて一つの完全な結論を表します",
+      "前提",
+      "完全な結論",
+      "すべての S は M である。",
+      "すべての P は M′ である。",
+      "すべての S は P′ である。",
+      "すべての P は S′ である。",
+    ]) expect(biliteralText).toContain(text);
+    const biliteralEnText = JSON.stringify(biliteralEn);
+    for (const text of [
+      "When a Complete Conclusion Needs Multiple Propositions",
+      "When multiple independent pieces of information are determined in the biliteral diagram",
+      "does not mean that every proposition implied by the premises is listed",
+      "together they express one complete conclusion",
+      "Premises",
+      "Complete conclusion",
+      "All S are M.",
+      "All P are M′.",
+      "All S are P′.",
+      "All P are S′.",
+    ]) expect(biliteralEnText).toContain(text);
+    const jaLists = biliteralJa.blocks?.filter((block) => block.kind === "list") ?? [];
+    const enLists = biliteralEn.blocks?.filter((block) => block.kind === "list") ?? [];
+    expect(jaLists.map((block) => block.kind === "list" ? [block.ordered, block.items.length] : null))
+      .toEqual(enLists.map((block) => block.kind === "list" ? [block.ordered, block.items.length] : null));
+    expect(jaLists.filter((block) => block.kind === "list" && block.items.length === 2))
+      .toHaveLength(2);
+    expect(enLists.filter((block) => block.kind === "list" && block.items.length === 2))
+      .toHaveLength(2);
+    const flow = biliteralJa.blocks?.find((block) =>
+      block.kind === "list" && block.ordered && block.items.length === 4
+    );
     expect(flow?.kind === "list" ? flow.items : []).toHaveLength(4);
     expect(flow?.kind === "list" ? flow.items[1] : undefined)
       .toBe("第二前提を同じ三文字図へ加え、二つの前提を組み合わせる");
-    const enFlow = biliteralEn.blocks?.find((block) => block.kind === "list" && block.ordered);
+    const enFlow = biliteralEn.blocks?.find((block) =>
+      block.kind === "list" && block.ordered && block.items.length === 4
+    );
     expect(enFlow?.kind === "list" ? enFlow.items : []).toHaveLength(4);
-    expect(biliteralJa.ruleSources.map(({ id }) => id)).toEqual(["eliminate-middle", "project-empty"]);
-    expect(biliteralEn.ruleSources.map(({ id }) => id)).toEqual(["eliminate-middle", "project-empty"]);
+    expect(biliteralJa.ruleSources.map(({ id }) => id)).toEqual([
+      "eliminate-middle", "project-empty", "multiple-complete-conclusions",
+      "complete-vs-incomplete-conclusion",
+    ]);
+    expect(biliteralEn.ruleSources.map(({ id }) => id)).toEqual([
+      "eliminate-middle", "project-empty", "multiple-complete-conclusions",
+      "complete-vs-incomplete-conclusion",
+    ]);
     const blocks = biliteralJa.blocks ?? [];
     const definitionIndex = blocks.findIndex((block) => block.kind === "paragraph" && block.text.includes("この操作を「Mの消去」"));
     const diagramIndex = blocks.findIndex((block) => block.kind === "diagram");
     const tableIndex = blocks.findIndex((block) => block.kind === "table");
     const emptyRuleIndex = blocks.findIndex((block) => block.kind === "paragraph" && block.text.includes("両方とも空"));
-    const flowIndex = blocks.findIndex((block) => block.kind === "list" && block.ordered);
+    const flowIndex = blocks.findIndex((block) =>
+      block.kind === "list" && block.ordered && block.items.length === 4
+    );
     expect(definitionIndex).toBeLessThan(diagramIndex);
     expect(diagramIndex).toBeLessThan(tableIndex);
     expect(tableIndex).toBeLessThan(emptyRuleIndex);
@@ -496,5 +543,26 @@ describe("tutorial content", () => {
   it("is deterministic and does not advertise a modern-logic switch", () => {
     expect(JSON.stringify(JA_TUTORIAL_CONTENT)).toBe(JSON.stringify(JA_TUTORIAL_CONTENT));
     expect(JSON.stringify(EN_TUTORIAL_CONTENT).toLowerCase()).not.toContain("switch to modern");
+  });
+
+  it("uses a production-verified Carroll example for multiple complete conclusions", () => {
+    const result = inferSyllogismConclusion({
+      firstPremise: {
+        form: "A",
+        subject: abstractTerm("P"),
+        predicate: abstractTerm("M", true),
+      },
+      secondPremise: {
+        form: "A",
+        subject: abstractTerm("S"),
+        predicate: abstractTerm("M"),
+      },
+    });
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.completeConclusion?.propositions).toEqual([
+      { form: "A", subject: abstractTerm("S"), predicate: abstractTerm("P", true) },
+      { form: "A", subject: abstractTerm("P"), predicate: abstractTerm("S", true) },
+    ]);
   });
 });
