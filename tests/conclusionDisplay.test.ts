@@ -119,6 +119,26 @@ describe("createConclusionDisplayState", () => {
     )).toEqual({ ok: true, state });
   });
 
+  it("places E emptiness in Sp for a complemented predicate", () => {
+    const result = createConclusionCounterPlacements(
+      { emptyCells: ["Sp"], existentials: [] },
+      ["E"],
+      { role: "S", complemented: false },
+      { role: "P", complemented: true },
+    );
+    expect(result).toEqual({
+      ok: true,
+      displayState: { emptyCells: ["Sp"], existentials: [] },
+      placements: {
+        emptinessCounters: [{
+          kind: "emptiness",
+          anchor: { type: "cell", cell: "Sp" },
+        }],
+        existenceCounters: [],
+      },
+    });
+  });
+
   it.each([
     ["A", { emptyCells: [], existentials: [] }],
     ["E", { emptyCells: [], existentials: [] }],
@@ -154,6 +174,60 @@ describe("createConclusionDisplayState", () => {
 });
 
 describe("createConclusionCounterPlacements", () => {
+  it.each([
+    [false, false, "SP", "Sp"],
+    [false, true, "Sp", "SP"],
+    [true, false, "sP", "sp"],
+    [true, true, "sp", "sP"],
+  ] as const)(
+    "maps every form for signed terms S complemented=%s and P complemented=%s",
+    (subjectComplemented, predicateComplemented, positive, negative) => {
+      const subject = { role: "S" as const, complemented: subjectComplemented };
+      const predicate = { role: "P" as const, complemented: predicateComplemented };
+      const existence = (cell: typeof positive, sourceId: string) => ({
+        sourceId,
+        possibleCells: [cell],
+      });
+      const placementCells = (
+        result: ReturnType<typeof createConclusionCounterPlacements>,
+      ) => result.ok
+        ? {
+            empty: result.placements.emptinessCounters.map(({ anchor }) =>
+              anchor.type === "cell" ? anchor.cell : null
+            ),
+            occupied: result.placements.existenceCounters.map(({ anchor }) =>
+              anchor.type === "cell" ? anchor.cell : null
+            ),
+          }
+        : null;
+
+      expect(placementCells(createConclusionCounterPlacements(
+        { emptyCells: [negative], existentials: [existence(positive, "a")] },
+        ["A", "I"],
+        subject,
+        predicate,
+      ))).toEqual({ empty: [negative], occupied: [positive] });
+      expect(placementCells(createConclusionCounterPlacements(
+        { emptyCells: [positive], existentials: [] },
+        ["E"],
+        subject,
+        predicate,
+      ))).toEqual({ empty: [positive], occupied: [] });
+      expect(placementCells(createConclusionCounterPlacements(
+        { emptyCells: [], existentials: [existence(positive, "i")] },
+        ["I"],
+        subject,
+        predicate,
+      ))).toEqual({ empty: [], occupied: [positive] });
+      expect(placementCells(createConclusionCounterPlacements(
+        { emptyCells: [], existentials: [existence(negative, "o")] },
+        ["O"],
+        subject,
+        predicate,
+      ))).toEqual({ empty: [], occupied: [negative] });
+    },
+  );
+
   it("aggregates sources only at the placement stage", () => {
     const result = createConclusionCounterPlacements(
       projectedState,

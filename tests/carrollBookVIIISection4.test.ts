@@ -38,6 +38,20 @@ function oracleConclusions(
   );
 }
 
+function productionConclusionEvidence(production: Extract<
+  ReturnType<typeof inferSyllogismConclusion>,
+  { readonly ok: true }
+>): readonly string[] {
+  if (production.conclusion === null) return [];
+  return [...new Set(production.entailedForms.flatMap((form) =>
+    carrollConclusionEvidence({
+      form,
+      subject: production.conclusion!.subject,
+      predicate: production.conclusion!.predicate,
+    })
+  ))].sort();
+}
+
 describe("Lewis Carroll Book VIII §4 golden corpus", () => {
   it("contains every explicitly answered example from 1 through 42 exactly once", () => {
     const numbers = CARROLL_BOOK_VIII_SECTION_4.map(({ number }) => number);
@@ -70,9 +84,7 @@ describe("Lewis Carroll Book VIII §4 golden corpus", () => {
         const expectedEvidence = [...new Set(
           testCase.expected.conclusions.flatMap(carrollConclusionEvidence),
         )].sort();
-        const productionEvidence = carrollConclusionEvidence(
-          production.conclusion,
-        );
+        const productionEvidence = productionConclusionEvidence(production);
         return expectedEvidence.length === productionEvidence.length &&
             expectedEvidence.every((value, index) =>
               value === productionEvidence[index]
@@ -86,7 +98,7 @@ describe("Lewis Carroll Book VIII §4 golden corpus", () => {
     // that information. Keeping the measured baseline explicit prevents the
     // corpus from hiding either a new omission or a future improvement.
     expect(incompleteCanonicalCases).toEqual([
-      10, 12, 16, 24, 26, 27, 35, 40, 41,
+      10, 12, 16, 24, 26, 27, 35, 40,
     ]);
   });
 
@@ -122,6 +134,12 @@ describe("Lewis Carroll Book VIII §4 golden corpus", () => {
             production.conclusion,
           )).toBe(true);
       expect(oracle).toContainEqual(production.conclusion);
+      const expectedEvidence = [...new Set(
+        testCase.expected.conclusions.flatMap(carrollConclusionEvidence),
+      )].sort();
+      expect(productionConclusionEvidence(production)).toEqual(
+        expectedEvidence,
+      );
     });
   }
 });

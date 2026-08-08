@@ -77,6 +77,37 @@ function pairText(premises: AbstractSyllogism): string {
   return `${propositionText(premises.firstPremise)} + ${propositionText(premises.secondPremise)}`;
 }
 
+function conclusionRequirements(
+  conclusion: SyllogismConclusion,
+  settings: LogicSettings,
+): readonly string[] {
+  const subjectSymbol = conclusion.subject.complemented ? "s" : "S";
+  const predicateSymbol = conclusion.predicate.complemented ? "p" : "P";
+  const oppositePredicateSymbol = conclusion.predicate.complemented ? "P" : "p";
+  const positive = `${subjectSymbol}${predicateSymbol}`;
+  const negative = `${subjectSymbol}${oppositePredicateSymbol}`;
+  switch (conclusion.form) {
+    case "A":
+      return settings.existentialImport === "carroll"
+        ? [`empty:${negative}`, `existence:${positive}`].sort()
+        : [`empty:${negative}`];
+    case "E":
+      return [`empty:${positive}`];
+    case "I":
+      return [`existence:${positive}`];
+    case "O":
+      return [`existence:${negative}`];
+  }
+}
+
+function isStrictRequirementSubset(
+  candidate: readonly string[],
+  other: readonly string[],
+): boolean {
+  return candidate.length < other.length &&
+    candidate.every((requirement) => other.includes(requirement));
+}
+
 interface DifferentialSummary {
   readonly mode: LogicSettings["existentialImport"];
   readonly satisfiablePairs: number;
@@ -86,12 +117,14 @@ interface DifferentialSummary {
 
 function compareMode(settings: LogicSettings): {
   readonly summary: DifferentialSummary;
-  readonly mismatches: readonly string[];
+  readonly rawMismatches: readonly string[];
+  readonly inferenceMismatches: readonly string[];
 } {
   let satisfiablePairs = 0;
   let inconsistentPairs = 0;
   let candidateComparisons = 0;
-  const mismatches: string[] = [];
+  const rawMismatches: string[] = [];
+  const inferenceMismatches: string[] = [];
 
   for (const premises of PREMISE_PAIRS) {
     const label = pairText(premises);
@@ -101,7 +134,7 @@ function compareMode(settings: LogicSettings): {
     if (satisfyingModels.length === 0) {
       inconsistentPairs += 1;
       if (production.ok) {
-        mismatches.push(
+        inferenceMismatches.push(
           `mode=${settings.existentialImport}; premises=${label}; oracle=inconsistent; production=ok`,
         );
       }
@@ -110,13 +143,13 @@ function compareMode(settings: LogicSettings): {
 
     satisfiablePairs += 1;
     if (!production.ok) {
-      mismatches.push(
+      inferenceMismatches.push(
         `mode=${settings.existentialImport}; premises=${label}; oracle=satisfiable; production=${production.stage}:${production.reason}`,
       );
       continue;
     }
 
-    let oracleHasConclusion = false;
+    const oracleEntailedCandidates: SyllogismConclusion[] = [];
     for (const candidate of CONCLUSION_CANDIDATES) {
       candidateComparisons += 1;
       const oracle = satisfyingModels.every((model) =>
@@ -127,13 +160,13 @@ function compareMode(settings: LogicSettings): {
         candidate,
         settings,
       );
-      oracleHasConclusion ||= oracle;
+      if (oracle) oracleEntailedCandidates.push(candidate);
       if (oracle === actual) continue;
 
       const countermodel = actual && !oracle
         ? oracleFindCountermodel(premises, candidate, settings)
         : null;
-      mismatches.push(
+      rawMismatches.push(
         [
           `mode=${settings.existentialImport}`,
           `premises=${label}`,
@@ -147,18 +180,43 @@ function compareMode(settings: LogicSettings): {
       );
     }
 
+    const maximalOracleRequirements = oracleEntailedCandidates
+      .map((candidate) => conclusionRequirements(candidate, settings))
+      .filter((requirements, index, allRequirements) =>
+        !allRequirements.some((other, otherIndex) =>
+          otherIndex !== index &&
+          isStrictRequirementSubset(requirements, other)
+        )
+      );
+
     if (production.conclusion === null) {
-      if (oracleHasConclusion) {
-        mismatches.push(
-          `mode=${settings.existentialImport}; premises=${label}; oracle has an S/P conclusion; production canonical=null`,
+      if (maximalOracleRequirements.length > 0) {
+        inferenceMismatches.push(
+          `mode=${settings.existentialImport}; premises=${label}; oracle has a complete signed conclusion; production canonical=null`,
         );
       }
-    } else if (!satisfyingModels.every((model) =>
-      oraclePropositionIsTrue(model, production.conclusion!, settings)
-    )) {
-      mismatches.push(
-        `mode=${settings.existentialImport}; premises=${label}; production canonical=${propositionText(production.conclusion)} is not oracle-entailed`,
+    } else {
+      if (!satisfyingModels.every((model) =>
+        oraclePropositionIsTrue(model, production.conclusion!, settings)
+      )) {
+        inferenceMismatches.push(
+          `mode=${settings.existentialImport}; premises=${label}; production canonical=${propositionText(production.conclusion)} is not oracle-entailed`,
+        );
+      }
+      const productionRequirements = conclusionRequirements(
+        production.conclusion,
+        settings,
       );
+      if (!maximalOracleRequirements.some((oracleRequirements) =>
+        oracleRequirements.length === productionRequirements.length &&
+          oracleRequirements.every((value, index) =>
+            value === productionRequirements[index]
+          )
+      )) {
+        inferenceMismatches.push(
+          `mode=${settings.existentialImport}; premises=${label}; production canonical=${propositionText(production.conclusion)} requirements=${productionRequirements.join("+")}; oracle maximal=${maximalOracleRequirements.map((requirements) => requirements.join("+")).join("|")}`,
+        );
+      }
     }
   }
 
@@ -169,7 +227,8 @@ function compareMode(settings: LogicSettings): {
       inconsistentPairs,
       candidateComparisons,
     },
-    mismatches,
+    rawMismatches,
+    inferenceMismatches,
   };
 }
 
@@ -182,12 +241,27 @@ describe("exhaustive complemented abstract-premise differential oracle", () => {
     expect(new Set(SM_VARIANTS.map(propositionText)).size).toBe(32);
   });
 
-  it.each([
+  const SETTINGS = [
     { existentialImport: "carroll" as const },
     { existentialImport: "modern" as const },
-  ])("matches the independent oracle in $existentialImport mode", (settings) => {
+  ];
+
+  it.each(SETTINGS)(
+    "Stage A matches raw entailment in $existentialImport mode",
+    (settings) => {
+      expect(compareMode(settings).rawMismatches).toEqual([]);
+    },
+  );
+
+  it.each(SETTINGS)(
+    "Stage B preserves an oracle-valid signed production conclusion in $existentialImport mode",
+    (settings) => {
+      expect(compareMode(settings).inferenceMismatches).toEqual([]);
+    },
+  );
+
+  it.each(SETTINGS)("records exhaustive totals in $existentialImport mode", (settings) => {
     const result = compareMode(settings);
-    expect(result.mismatches).toEqual([]);
     expect(result.summary).toEqual({
       mode: settings.existentialImport,
       satisfiablePairs: 1024,

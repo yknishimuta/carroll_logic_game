@@ -7,12 +7,109 @@ import {
   oracleEntailedForms,
 } from "./helpers/semanticOracle";
 import { projectToBiliteralDiagram } from "../src/logic/biliteralProjection";
+import { inferSyllogismConclusion } from "../src/logic/conclusionInference";
 
 function compute(id: string, premises: ConcreteSyllogism) {
   return computeProblem({ id, premises });
 }
 
+const NO_25_PREMISES: ConcreteSyllogism = {
+  firstPremise: {
+    form: "A",
+    subject: { termId: "pet", complemented: false },
+    predicate: { termId: "mortal", complemented: false },
+  },
+  secondPremise: {
+    form: "E",
+    subject: { termId: "human", complemented: false },
+    predicate: { termId: "pet", complemented: true },
+  },
+};
+
 describe("complemented terms in syllogisms", () => {
+  it("Book VIII §6 No. 25 [combined triliteral and projection]", () => {
+    const result = compute("carroll-viii-i-6-25", NO_25_PREMISES);
+
+    expect(result.combinedState.emptyCells).toEqual(expect.arrayContaining([
+      "SMp", "sMp", "SmP", "Smp",
+    ]));
+    expect(result.combinedState.existentials).toContainEqual({
+      sourceId: "first-premise",
+      possibleCells: ["SMP", "sMP"],
+    });
+
+    const biliteralState = projectToBiliteralDiagram(result.combinedState);
+    expect(biliteralState.emptyCells).toContain("Sp");
+  });
+
+  it("Book VIII §6 No. 25 [production inference]", () => {
+    const computation = compute("carroll-viii-i-6-25", NO_25_PREMISES);
+    const inference = inferSyllogismConclusion(
+      computation.abstractPremises,
+      DEFAULT_LOGIC_SETTINGS,
+    );
+    expect(inference.ok).toBe(true);
+    if (!inference.ok) return;
+    expect(inference.conclusion).toEqual({
+      form: "E",
+      subject: { role: "S", complemented: false },
+      predicate: { role: "P", complemented: true },
+    });
+  });
+
+  it("Book VIII §6 No. 25 [ProblemComputation and conclusion display]", () => {
+    const result = compute("carroll-viii-i-6-25", NO_25_PREMISES);
+    expect(result.abstractConclusion).toEqual({
+      form: "E",
+      subject: { role: "S", complemented: false },
+      predicate: { role: "P", complemented: true },
+    });
+    expect(result.concreteConclusion).toEqual({
+      form: "E",
+      subject: { termId: "human", complemented: false },
+      predicate: { termId: "mortal", complemented: true },
+    });
+    expect(result.conclusionPlacements).toEqual({
+      emptinessCounters: [{
+        kind: "emptiness",
+        anchor: { type: "cell", cell: "Sp" },
+      }],
+      existenceCounters: [],
+    });
+    expect(oracleConclusionIsEntailed(
+      result.abstractPremises,
+      result.abstractConclusion!,
+      DEFAULT_LOGIC_SETTINGS,
+    )).toBe(true);
+  });
+
+  it("derives No S′ are P′ when the complemented subject is retained", () => {
+    const result = compute("prime-subject-no-prime-predicate", {
+      firstPremise: {
+        form: "A",
+        subject: { termId: "pet", complemented: false },
+        predicate: { termId: "mortal", complemented: false },
+      },
+      secondPremise: {
+        form: "E",
+        subject: { termId: "human", complemented: true },
+        predicate: { termId: "pet", complemented: true },
+      },
+    });
+
+    expect(projectToBiliteralDiagram(result.combinedState).emptyCells)
+      .toContain("sp");
+    expect(result.abstractConclusion).toEqual({
+      form: "E",
+      subject: { role: "S", complemented: true },
+      predicate: { role: "P", complemented: true },
+    });
+    expect(result.conclusionPlacements.emptinessCounters).toEqual([{
+      kind: "emptiness",
+      anchor: { type: "cell", cell: "sp" },
+    }]);
+  });
+
   it("derives Some S are P from Some M are P and No M are S′", () => {
     // Carroll, Symbolic Logic, Part I, Book VIII, Chapter I, §6, No. 1.
     const result = compute("carroll-viii-i-6-1", {

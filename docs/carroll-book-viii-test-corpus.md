@@ -82,7 +82,7 @@ signed conclusion, and the independent oracle checks both S/P and P/S
 orientations.
 
 The biliteral state entails every golden §4 answer. A separate measured
-baseline records cases 10, 12, 16, 24, 26, 27, 35, 40, and 41, where the
+baseline records cases 10, 12, 16, 24, 26, 27, 35, and 40, where the
 current single canonical conclusion contains only part of Carroll's complete
 answer. This is intentionally documented rather than repaired as part of the
 corpus-introduction task.
@@ -131,3 +131,46 @@ supported modern mode, for 2,048 mode/pair runs and 32,768 raw candidate
 comparisons. Expected entailment is never generated from production code. A
 test-only countermodel helper reports all eight atomic-cell occupancies when
 production claims an entailment that the oracle rejects.
+
+## Coverage layers
+
+The suites deliberately cover different segments of the pipeline. A corpus
+answer being entailed by a projected diagram does not by itself prove that the
+app selects, preserves, and displays that signed conclusion.
+
+| Suite | constraints | merge | projection | raw entailment | signed inference / canonicalization | `ProblemComputation` | conclusion placements |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| Book VIII §2 | yes | yes | no | no | no | no | triliteral only |
+| Book VIII §3 | no | no | yes | no | no | no | no |
+| Book VIII §4 | yes | yes | yes | yes | yes | no | no |
+| Book VIII §6 | yes | yes | yes | yes | yes | no | no |
+| Exhaustive oracle Stage A | yes | yes | yes | yes | no | no | no |
+| Exhaustive oracle Stage B | yes | yes | yes | yes | yes | no | no |
+| No. 25 sentinel | yes | yes | yes | yes | yes | yes | yes, including DOM |
+
+Stage A compares every signed S/P candidate returned by the raw production
+entailment evaluator with the independent 256-model oracle. Stage B separately
+requires the actual `inferSyllogismConclusion` result to be non-null whenever
+the oracle finds a conclusion, oracle-valid, and signed-equivalent to an oracle
+candidate. This separation prevents a correct raw evaluator from masking a
+canonicalization failure.
+
+The No. 25 sentinel (`All M are P; No S are M′`) asserts the combined
+triliteral emptiness, `Sp` projection, signed `E(S,P′)` inference,
+`ProblemComputation` result, `Sp` O-counter placement, quiz flow, and rendered
+DOM text. An artificial `null`, `E(S,P)`, or O-counter at `SP` therefore fails
+an ordinary `npm test` run.
+
+The audit also exposes a broader current model limitation rather than hiding
+it behind raw entailment checks. `SyllogismConclusionResult` has one signed
+canonical proposition plus forms for that single signed term pair. It cannot
+represent every complete conclusion that requires two independent signed
+propositions or Carroll's reverse P-to-S orientation. Exact production-path
+comparison currently reports incomplete information for Book VIII §4 Nos.
+10, 12, 16, 24, 26, 27, 35, and 40, and Book VIII §6 Nos. 8, 13, 26, 33, and
+36. Fixing that requires a deliberate multi-proposition complete-conclusion
+model; the golden fixtures and assertions remain unchanged so this limitation
+cannot silently pass. The exhaustive Stage B audit independently reports 24
+Carroll-mode premise pairs where the selected canonical proposition is
+oracle-valid but omits a stronger maximal signed information set. Stage A has
+zero raw entailment mismatches, and modern mode has zero Stage B mismatches.

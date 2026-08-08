@@ -49,6 +49,20 @@ function oracleConclusions(
   );
 }
 
+function productionConclusionEvidence(production: Extract<
+  ReturnType<typeof inferSyllogismConclusion>,
+  { readonly ok: true }
+>): readonly string[] {
+  if (production.conclusion === null) return [];
+  return [...new Set(production.entailedForms.flatMap((form) =>
+    carrollConclusionEvidence({
+      form,
+      subject: production.conclusion!.subject,
+      predicate: production.conclusion!.predicate,
+    })
+  ))].sort();
+}
+
 describe("Lewis Carroll Book VIII §6 golden corpus", () => {
   it("contains exactly Nos. 1–40 once", () => {
     const numbers = CARROLL_BOOK_VIII_SECTION_6.map(({ number }) => number);
@@ -117,6 +131,8 @@ describe("Lewis Carroll Book VIII §6 golden corpus", () => {
           expect(production.conclusion).not.toBeNull();
           if (production.conclusion !== null) {
             expect(oracle).toContainEqual(production.conclusion);
+            expect(productionConclusionEvidence(production))
+              .toEqual(proposedEvidence);
           }
           break;
         case "wrong":
@@ -126,6 +142,12 @@ describe("Lewis Carroll Book VIII §6 golden corpus", () => {
           );
           expect(oracle).not.toContainEqual(testCase.proposedConclusion);
           expect(oracle).toContainEqual(testCase.expected.correctConclusion);
+          expect(production.conclusion).not.toBeNull();
+          if (production.conclusion !== null) {
+            expect(productionConclusionEvidence(production)).toEqual(
+              carrollConclusionEvidence(testCase.expected.correctConclusion),
+            );
+          }
           break;
         case "no-conclusion":
           expect(actualEvidence).toEqual([]);

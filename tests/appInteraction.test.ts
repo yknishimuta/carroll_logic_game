@@ -1232,6 +1232,51 @@ describe("mounted application interaction", () => {
     },
   );
 
+  it.each(["automatic", "quiz"] as const)(
+    "keeps Book VIII §6 No. 25 signed conclusion through the DOM in %s mode",
+    (mode) => {
+      const container = mount();
+      select(container, "problem-source", "custom");
+      selectCustom(container, "custom-form", "major", "A");
+      selectCustom(container, "custom-term", "major", "animal", "subjectTermId");
+      selectCustom(container, "custom-term", "major", "mortal", "predicateTermId");
+      selectCustom(container, "custom-form", "minor", "E");
+      selectCustom(container, "custom-term", "minor", "human", "subjectTermId");
+      selectCustom(container, "custom-term", "minor", "animal", "predicateTermId");
+      setCustomComplement(container, "minor", "predicateComplemented", true);
+      createCustom(container);
+      select(container, "conclusion-answer-mode", mode);
+      button(container, "next").click();
+      button(container, "next").click();
+      if (mode === "quiz") {
+        expect(container.querySelector<HTMLSelectElement>(
+          '[data-action="conclusion-answer"]',
+        )?.textContent).toContain(
+          "E — いかなる人間も死すべきもの′ではない。",
+        );
+        submitConclusion(container, "E");
+        expect(container.textContent).toContain("正解です。");
+      }
+      button(container, "next").click();
+
+      expect(phase(container)).toBe("conclusion");
+      expect(container.textContent).not.toContain(
+        "これらの前提から確定した結論は得られません。",
+      );
+      expect(container.textContent).toContain(
+        "いかなる人間も死すべきもの′ではない。",
+      );
+      expect(container.textContent).toContain("いかなる S も P′ ではない。");
+      const svg = container.querySelector(".carroll-diagram")?.outerHTML ?? "";
+      expect(svg).toContain(
+        'data-counter-kind="emptiness"><circle cx="280" cy="120"',
+      );
+      expect(svg).not.toContain(
+        'data-counter-kind="emptiness"><circle cx="120" cy="120"',
+      );
+    },
+  );
+
   it("creates and edits saved problem titles with IME composition", () => {
     const storage = new MemoryStorage();
     const container = mount(storage);

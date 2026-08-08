@@ -20,6 +20,25 @@ function conclusion(form: "A" | "E" | "I" | "O") {
 }
 
 describe("isConclusionEntailed", () => {
+  it.each([
+    [false, false, "SP"],
+    [false, true, "Sp"],
+    [true, false, "sP"],
+    [true, true, "sp"],
+  ] as const)(
+    "evaluates E with subject complemented=%s and predicate complemented=%s from %s",
+    (subjectComplemented, predicateComplemented, emptyCell) => {
+      expect(isConclusionEntailed(
+        { emptyCells: [emptyCell], existentials: [] },
+        {
+          form: "E",
+          subject: { role: "S", complemented: subjectComplemented },
+          predicate: { role: "P", complemented: predicateComplemented },
+        },
+      )).toBe(true);
+    },
+  );
+
   it("entails I only from an existence constrained to SP", () => {
     expect(
       isConclusionEntailed(
