@@ -162,20 +162,46 @@ describe("tutorial content", () => {
     expect(EN_TUTORIAL_CONTENT.sections.indexOf(en)).toBe(5);
     expect(ja.id).toBe("proposition-rules");
     expect(en.id).toBe("proposition-rules");
-    expect(ja.paragraphs).toHaveLength(9);
-    expect(en.paragraphs).toHaveLength(9);
-    expect(ja.paragraphs[0]).toContain("それぞれの命題形式に対して");
-    expect(ja.paragraphs.filter((_, index) => index % 2 === 1)).toEqual([
-      "全称肯定（All M are P）：", "全称否定（No M are P）：",
-      "特称肯定（Some M are P）：", "特称否定（Some M are not P）：",
-    ]);
-    expect(ja.paragraphs[2]).toContain("M ∩ P′は空なので、SMpとsMpにO駒");
-    expect(ja.paragraphs[2]).toContain("キャロル方式ではMの存在も仮定するため");
-    expect(ja.paragraphs[2]).toContain("M ∩ Pに対象が存在することを示すI駒");
-    expect(ja.paragraphs[2]).toContain("SMPとsMPの境界上");
-    expect(ja.paragraphs[4]).toContain("SMPとsMPの両方のセルにO駒");
-    expect(ja.paragraphs[6]).toContain("SMPとsMPの境界上にI駒");
-    expect(ja.paragraphs[8]).toContain("SMpとsMpの境界上にI駒");
+    expect(ja.paragraphs).toEqual([]);
+    expect(en.paragraphs).toEqual([]);
+    const jaBlocks = ja.blocks ?? [];
+    const enBlocks = en.blocks ?? [];
+    const jaText = jaBlocks.flatMap((block) =>
+      block.kind === "paragraph" || block.kind === "subheading"
+        ? [block.text]
+        : block.kind === "list" ? block.items : []
+    ).join(" ");
+    const enText = enBlocks.flatMap((block) =>
+      block.kind === "paragraph" || block.kind === "subheading"
+        ? [block.text]
+        : block.kind === "list" ? block.items : []
+    ).join(" ");
+    expect(jaText).toContain("All（すべて）で始まる命題について");
+    expect(jaText).toContain("二重命題（Double Proposition）");
+    expect(jaText).toContain("Some M are P");
+    expect(jaText).toContain("No M are P′");
+    expect(jaText).toContain("存在を示すI駒と、空であることを示すO駒の両方");
+    expect(jaText).toContain("全称肯定（All M are P）：");
+    expect(jaText).toContain("No M are P′から、M ∩ P′は空なので、SMpとsMpにO駒");
+    expect(jaText).toContain("Some M are Pから、M ∩ Pには少なくとも一つの対象");
+    expect(jaText).toContain("SMPとsMPの境界上にI駒");
+    for (const unchanged of [
+      "全称否定（No M are P）：",
+      "特称肯定（Some M are P）：",
+      "特称否定（Some M are not P）：",
+    ]) expect(jaText).toContain(unchanged);
+    expect(enText).toContain("About Propositions Beginning with All");
+    expect(enText).toContain("Double Proposition");
+    expect(enText).toContain("Some M are P");
+    expect(enText).toContain("No M are P′");
+    expect(enText).toContain("I-counter");
+    expect(enText).toContain("O-counters");
+    const jaList = jaBlocks.find((block) => block.kind === "list");
+    const enList = enBlocks.find((block) => block.kind === "list");
+    expect(jaList?.kind === "list" ? jaList.items : null)
+      .toEqual(["Some M are P", "No M are P′"]);
+    expect(enList?.kind === "list" ? enList.items : null)
+      .toEqual(["Some M are P", "No M are P′"]);
     const jaTable = ja.tables?.[0];
     const enTable = en.tables?.[0];
     expect(jaTable?.caption).toBe("命題形式と領域の対応");
@@ -191,6 +217,11 @@ describe("tutorial content", () => {
     expect(enTable?.rows).toHaveLength(4);
     expect(enTable?.headers).toHaveLength(jaTable?.headers.length ?? 0);
     expect(enTable?.rows.every((row) => row.length === jaTable?.headers.length)).toBe(true);
+    expect(ja.ruleSources[0]).toEqual({
+      id: "all-double-proposition",
+      label: "Allで始まる関係命題の二重命題としての構造",
+      sourceReferences: [{ relation: "direct", sourceId: "symbolic-logic-i-ii-iii-3" }],
+    });
     expect(ja.ruleSources.at(-1)).toEqual({
       id: "lowercase-cell-shorthand",
       label: "セルIDでプライムを小文字として表す",

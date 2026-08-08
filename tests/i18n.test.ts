@@ -62,12 +62,10 @@ describe("UI messages", () => {
   it("provides matching conclusion-mode settings in both languages", () => {
     expect(JA_MESSAGES.conclusionMode).toEqual({
       selectorLabel: "結論の表示",
-      conclusionLockedDescription: "結論表示後に設定を変更するには、統合前提へ戻ってください。",
       modes: { automatic: "自動表示", quiz: "クイズ" },
     });
     expect(EN_MESSAGES.conclusionMode).toEqual({
       selectorLabel: "Conclusion display",
-      conclusionLockedDescription: "Return to the combined-premises step to change this setting.",
       modes: { automatic: "Show automatically", quiz: "Quiz" },
     });
   });

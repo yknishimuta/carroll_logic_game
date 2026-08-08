@@ -244,7 +244,6 @@ export const EN_MESSAGES = {
   },
   conclusionMode: {
     selectorLabel: "Conclusion display",
-    conclusionLockedDescription: "Return to the combined-premises step to change this setting.",
     modes: {
       automatic: "Show automatically",
       quiz: "Quiz",

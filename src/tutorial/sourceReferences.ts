@@ -1,6 +1,7 @@
 export type TutorialSourceRelation = "direct" | "derived" | "application";
 
 export type TutorialSourceId =
+  | "symbolic-logic-i-ii-iii-3"
   | "symbolic-logic-i-iii-i"
   | "symbolic-logic-i-iii-ii"
   | "symbolic-logic-i-iii-iii-2"
@@ -60,6 +61,20 @@ export const TUTORIAL_SOURCE_WORKS:
 
 export const TUTORIAL_SOURCE_ENTRIES:
   readonly TutorialSourceEntry[] = [
+    {
+      id: "symbolic-logic-i-ii-iii-3",
+      work: "symbolic-logic-part-i",
+      locator: "I.II.III.3",
+      page: 17,
+      labels: {
+        ja: "Part I・Book II・Chapter III §3",
+        en: "Part I, Book II, Chapter III §3",
+      },
+      notes: {
+        ja: "Allで始まる関係命題が、Someと述語の補項に対するNoからなる二重命題であることの説明。",
+        en: "Explains that a proposition of relation beginning with All is a Double Proposition, equivalent to a Some proposition and a No proposition involving the contradictory predicate.",
+      },
+    },
     {
       id: "symbolic-logic-i-iii-i",
       work: "symbolic-logic-part-i",

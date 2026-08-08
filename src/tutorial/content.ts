@@ -15,6 +15,7 @@ export interface TutorialTable {
 
 export type TutorialBlock =
   | { readonly kind: "paragraph"; readonly text: string }
+  | { readonly kind: "subheading"; readonly text: string }
   | { readonly kind: "diagram"; readonly diagramId: string }
   | { readonly kind: "table"; readonly table: TutorialTable }
   | { readonly kind: "list"; readonly ordered?: boolean; readonly items: readonly string[] };
@@ -227,16 +228,24 @@ export const JA_TUTORIAL_CONTENT: TutorialContent = {
     },
     {
       id: ids[5], heading: "5. A・E・I・Oの配置規則",
-      paragraphs: [
-        "それぞれの命題形式に対して、どのように駒を置くのかを説明します。",
-        "全称肯定（All M are P）：",
-        "M ∩ P′は空なので、SMpとsMpにO駒を置きます。さらに、キャロル方式ではMの存在も仮定するため、M ∩ Pに対象が存在することを示すI駒を、SMPとsMPの境界上に置きます。",
-        "全称否定（No M are P）：",
-        "M ∩ P全体が空なので、SMPとsMPの両方のセルにO駒を置きます。",
-        "特称肯定（Some M are P）：",
-        "対象がSに属するかS′に属するかは分からないため、SMPとsMPの境界上にI駒を置きます。",
-        "特称否定（Some M are not P）：",
-        "対象がSに属するかS′に属するかは分からないため、SMpとsMpの境界上にI駒を置きます。",
+      paragraphs: [],
+      blocks: [
+        { kind: "paragraph", text: "それぞれの命題形式に対して、どのように駒を置くのかを説明します。" },
+        { kind: "subheading", text: "All（すべて）で始まる命題について" },
+        { kind: "paragraph", text: "Carrollは、All（すべて）で始まる関係命題を「二重命題（Double Proposition）」として扱います。例えばAll M are Pは、次の二つの情報をあわせたものです。" },
+        { kind: "list", ordered: false, items: ["Some M are P", "No M are P′"] },
+        { kind: "paragraph", text: "つまり、「MでありPであるものが存在する」という情報と、「MでありPではないものは存在しない」という情報を同時に表します。" },
+        { kind: "paragraph", text: "このため、All M are Pを図に表すときには、存在を示すI駒と、空であることを示すO駒の両方を使います。" },
+        { kind: "paragraph", text: "全称肯定（All M are P）：" },
+        { kind: "paragraph", text: "All M are Pは、No M are P′とSome M are Pの二つの情報として図に表します。" },
+        { kind: "paragraph", text: "No M are P′から、M ∩ P′は空なので、SMpとsMpにO駒を置きます。" },
+        { kind: "paragraph", text: "Some M are Pから、M ∩ Pには少なくとも一つの対象が存在するので、SMPとsMPの境界上にI駒を置きます。SかS′かはこの命題だけではまだ分からないため、I駒は境界上に置かれます。" },
+        { kind: "paragraph", text: "全称否定（No M are P）：" },
+        { kind: "paragraph", text: "M ∩ P全体が空なので、SMPとsMPの両方のセルにO駒を置きます。" },
+        { kind: "paragraph", text: "特称肯定（Some M are P）：" },
+        { kind: "paragraph", text: "対象がSに属するかS′に属するかは分からないため、SMPとsMPの境界上にI駒を置きます。" },
+        { kind: "paragraph", text: "特称否定（Some M are not P）：" },
+        { kind: "paragraph", text: "対象がSに属するかS′に属するかは分からないため、SMpとsMpの境界上にI駒を置きます。" },
       ],
       tables: [{
         caption: "命題形式と領域の対応",
@@ -249,6 +258,7 @@ export const JA_TUTORIAL_CONTENT: TutorialContent = {
         ],
       }],
       ruleSources: [
+        { id: "all-double-proposition", label: "Allで始まる関係命題の二重命題としての構造", sourceReferences: [{ relation: "direct", sourceId: "symbolic-logic-i-ii-iii-3" }] },
         { id: "aeio-placement", label: "A・E・I・Oの配置規則", sourceReferences: [{ relation: "derived", sourceId: "symbolic-logic-i-iii-iii-2" }, { relation: "direct", sourceId: "symbolic-logic-i-iii-iii-3" }, { relation: "direct", sourceId: "symbolic-logic-i-iv-ii" }] },
         { id: "third-term-split", label: "第三項による二セルへの分割", sourceReferences: [{ relation: "direct", sourceId: "symbolic-logic-i-iv-ii" }] },
         { id: "lowercase-cell-shorthand", label: "セルIDでプライムを小文字として表す", sourceReferences: [{ relation: "application", sourceId: null }] },
@@ -478,22 +488,30 @@ export const EN_TUTORIAL_CONTENT: TutorialContent = {
       { id: "boundary-existence-meaning", label: "A boundary I means existence in either cell", sourceReferences: [{ relation: "direct", sourceId: "symbolic-logic-i-iii-ii" }] },
       { id: "counter-display-consolidation", label: "Display co-located existence requirements as one I-counter", sourceReferences: [{ relation: "application", sourceId: null }] },
     ] },
-    { id: ids[5], heading: "5. Placement rules for A, E, I, and O", paragraphs: [
-      "The following explains how counters are placed for each proposition form.",
-      "Universal affirmative (All M are P):",
-      "The region M ∩ P′ is empty, so O-counters are placed in SMp and sMp. In Carroll's system, the existence of M is also assumed. An I-counter is therefore placed on the boundary between SMP and sMP to show that something exists in M ∩ P, although it is not known whether it is S or S′.",
-      "Universal negative (No M are P):",
-      "The whole region M ∩ P is empty, so O-counters are placed in both SMP and sMP.",
-      "Particular affirmative (Some M are P):",
-      "It is not known whether the existing object is S or S′, so an I-counter is placed on the boundary between SMP and sMP.",
-      "Particular negative (Some M are not P):",
-      "It is not known whether the existing object is S or S′, so an I-counter is placed on the boundary between SMp and sMp.",
+    { id: ids[5], heading: "5. Placement rules for A, E, I, and O", paragraphs: [], blocks: [
+      { kind: "paragraph", text: "The following explains how counters are placed for each proposition form." },
+      { kind: "subheading", text: "About Propositions Beginning with All" },
+      { kind: "paragraph", text: "Carroll treats a proposition of relation beginning with All as a “Double Proposition.” For example, All M are P combines the following two pieces of information:" },
+      { kind: "list", ordered: false, items: ["Some M are P", "No M are P′"] },
+      { kind: "paragraph", text: "In other words, it states both that at least one thing is both M and P, and that nothing is M but not P." },
+      { kind: "paragraph", text: "For this reason, representing All M are P on the diagram requires both an I-counter to indicate existence and O-counters to indicate emptiness." },
+      { kind: "paragraph", text: "Universal affirmative (All M are P):" },
+      { kind: "paragraph", text: "All M are P is represented as the two pieces of information No M are P′ and Some M are P." },
+      { kind: "paragraph", text: "From No M are P′, M ∩ P′ is empty, so O-counters are placed in SMp and sMp." },
+      { kind: "paragraph", text: "From Some M are P, at least one object exists in M ∩ P, so an I-counter is placed on the boundary between SMP and sMP. The proposition alone does not determine whether the object is S or S′, so the I-counter remains on the boundary." },
+      { kind: "paragraph", text: "Universal negative (No M are P):" },
+      { kind: "paragraph", text: "The whole region M ∩ P is empty, so O-counters are placed in both SMP and sMP." },
+      { kind: "paragraph", text: "Particular affirmative (Some M are P):" },
+      { kind: "paragraph", text: "It is not known whether the existing object is S or S′, so an I-counter is placed on the boundary between SMP and sMP." },
+      { kind: "paragraph", text: "Particular negative (Some M are not P):" },
+      { kind: "paragraph", text: "It is not known whether the existing object is S or S′, so an I-counter is placed on the boundary between SMp and sMp." },
     ], tables: [{ caption: "Correspondence Between Proposition Forms and Regions", headers: ["Form", "Proposition", "Empty", "Existing"], rows: [
       ["A", "Universal affirmative / All M are P", "O-counter: SMp, sMp", "I-counter: SMP/sMP boundary"],
       ["E", "Universal negative / No M are P", "O-counter: SMP, sMP", "none"],
       ["I", "Particular affirmative / Some M are P", "none", "I-counter: SMP/sMP boundary"],
       ["O", "Particular negative / Some M are not P", "none", "I-counter: SMp/sMp boundary"],
     ] }], ruleSources: [
+      { id: "all-double-proposition", label: "All relation propositions as Double Propositions", sourceReferences: [{ relation: "direct", sourceId: "symbolic-logic-i-ii-iii-3" }] },
       { id: "aeio-placement", label: "Placement rules for A, E, I, and O", sourceReferences: [{ relation: "derived", sourceId: "symbolic-logic-i-iii-iii-2" }, { relation: "direct", sourceId: "symbolic-logic-i-iii-iii-3" }, { relation: "direct", sourceId: "symbolic-logic-i-iv-ii" }] },
       { id: "third-term-split", label: "Splitting across two cells by the third term", sourceReferences: [{ relation: "direct", sourceId: "symbolic-logic-i-iv-ii" }] },
       { id: "lowercase-cell-shorthand", label: "Represent primes as lowercase letters in cell IDs", sourceReferences: [{ relation: "application", sourceId: null }] },

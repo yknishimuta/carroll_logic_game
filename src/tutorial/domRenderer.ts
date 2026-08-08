@@ -64,6 +64,11 @@ function renderDiagram(diagram: TutorialDiagramViewModel): HTMLElement {
 }
 
 function renderBlock(block: TutorialViewBlock): HTMLElement {
+  if (block.kind === "subheading") {
+    const subheading = el("h3");
+    subheading.textContent = block.text;
+    return subheading;
+  }
   if (block.kind === "paragraph") {
     const paragraph = el("p");
     paragraph.textContent = block.text;

@@ -244,7 +244,6 @@ export const JA_MESSAGES = {
   },
   conclusionMode: {
     selectorLabel: "結論の表示",
-    conclusionLockedDescription: "結論表示後に設定を変更するには、統合前提へ戻ってください。",
     modes: {
       automatic: "自動表示",
       quiz: "クイズ",

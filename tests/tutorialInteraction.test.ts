@@ -98,13 +98,22 @@ describe("mountTutorial", () => {
     const propositionSection = root.querySelector("#proposition-rules");
     expect(propositionSection?.querySelector("h2")?.textContent).toBe("6. A・E・I・Oの配置規則");
     const propositionParagraphs = [...propositionSection?.querySelectorAll("p:not(.tutorial__locators)") ?? []];
-    expect(propositionParagraphs.filter((_, index) => index % 2 === 1).map(({ textContent }) => textContent)).toEqual([
+    expect(propositionSection?.querySelector("h3")?.textContent)
+      .toBe("All（すべて）で始まる命題について");
+    expect(propositionSection?.textContent).toContain("二重命題（Double Proposition）");
+    expect([...propositionSection?.querySelectorAll("ul li") ?? []].map(
+      ({ textContent }) => textContent,
+    )).toEqual(["Some M are P", "No M are P′"]);
+    for (const heading of [
       "全称肯定（All M are P）：", "全称否定（No M are P）：",
       "特称肯定（Some M are P）：", "特称否定（Some M are not P）：",
-    ]);
+    ]) expect(propositionParagraphs.some(({ textContent }) => textContent === heading)).toBe(true);
+    expect(propositionSection?.textContent).toContain("存在を示すI駒と、空であることを示すO駒の両方");
+    expect(propositionSection?.textContent).toContain("No M are P′から");
+    expect(propositionSection?.textContent).toContain("Some M are Pから");
     const propositionChildren = [...propositionSection?.children ?? []];
     const propositionTableWrapper = propositionSection?.querySelector(".tutorial__table-scroll") ?? document.body;
-    expect(propositionChildren.indexOf(propositionParagraphs[8] ?? document.body))
+    expect(propositionChildren.indexOf(propositionParagraphs.at(-1) ?? document.body))
       .toBeLessThan(propositionChildren.indexOf(propositionTableWrapper));
     expect(propositionSection?.querySelector("caption")?.textContent).toBe("命題形式と領域の対応");
     expect(propositionSection?.textContent).not.toContain("キャロル方式の四命題");
@@ -112,6 +121,7 @@ describe("mountTutorial", () => {
     expect([...propositionSection?.querySelectorAll("tbody th") ?? []].map(({ textContent }) => textContent))
       .toEqual(["A", "E", "I", "O"]);
     expect(propositionSection?.lastElementChild?.classList.contains("tutorial__locators")).toBe(true);
+    expect(propositionSection?.lastElementChild?.textContent).toContain("(I.II.III.3)");
     expect(propositionSection?.nextElementSibling?.id).toBe("boundary-existence");
     const boundarySection = root.querySelector("#boundary-existence");
     expect(boundarySection?.querySelector("h2")?.textContent).toBe("7. 境界上のI駒");
@@ -264,11 +274,23 @@ describe("mountTutorial", () => {
     expect(englishCounters?.lastElementChild?.classList.contains("tutorial__locators")).toBe(true);
     expect(englishCounters?.nextElementSibling?.id).toBe("proposition-rules");
     const englishPropositions = root.querySelector("#proposition-rules");
-    expect([...englishPropositions?.querySelectorAll("p:not(.tutorial__locators)") ?? []]
-      .filter((_, index) => index % 2 === 1).map(({ textContent }) => textContent)).toEqual([
+    expect(englishPropositions?.querySelector("h3")?.textContent)
+      .toBe("About Propositions Beginning with All");
+    expect(englishPropositions?.textContent).toContain("Double Proposition");
+    expect([...englishPropositions?.querySelectorAll("ul li") ?? []].map(
+      ({ textContent }) => textContent,
+    )).toEqual(["Some M are P", "No M are P′"]);
+    const englishPropositionParagraphs = [
+      ...englishPropositions?.querySelectorAll("p:not(.tutorial__locators)") ?? [],
+    ];
+    for (const heading of [
       "Universal affirmative (All M are P):", "Universal negative (No M are P):",
       "Particular affirmative (Some M are P):", "Particular negative (Some M are not P):",
-    ]);
+    ]) expect(englishPropositionParagraphs.some(
+      ({ textContent }) => textContent === heading,
+    )).toBe(true);
+    expect(englishPropositions?.textContent).toContain("I-counter to indicate existence");
+    expect(englishPropositions?.textContent).toContain("O-counters to indicate emptiness");
     expect(englishPropositions?.querySelector("caption")?.textContent)
       .toBe("Correspondence Between Proposition Forms and Regions");
     expect(englishPropositions?.textContent).not.toContain("Four proposition forms");

@@ -34,6 +34,7 @@
 | existence-counter | I denotes at least one existing thing; Carroll uses a red counter and later digit I | symbolic-logic-i-iii-ii / I.III.II; symbolic-logic-i-iv-iii / I.IV.III | direct | 26; 50 | yes |
 | boundary-existence-meaning | A counter on a partition means at least one of the two cells is occupied | symbolic-logic-i-iii-ii / I.III.II | direct | 26 | yes |
 | counter-display-consolidation | Co-located existence requirements may share one displayed I-counter without identifying their objects | — | application | — | yes |
+| all-double-proposition | All relation propositions are treated as Double Propositions, equivalent to Some S are P plus No S are P′ | symbolic-logic-i-ii-iii-3 / I.II.III.3 | direct | 17 | yes |
 | aeio-placement | Tutorial table consolidating existential and relation-proposition representations | I.III.III.2; I.III.III.3; I.IV.II | derived/direct | 28; 30; 43 | yes |
 | third-term-split | A two-term proposition occupies or empties a compartment split into two cells | symbolic-logic-i-iv-ii / I.IV.II | direct | 43 | yes |
 | boundary-i-resolution | A boundary I resolves into the remaining candidate cell when the other cell is made empty | symbolic-logic-i-iv-iii / I.IV.III | direct | 50 | yes |

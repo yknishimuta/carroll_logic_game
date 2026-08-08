@@ -305,6 +305,31 @@ describe("renderGameView", () => {
     expect(container.querySelector(".logic-game__abstract-conclusion")).toBeNull();
   });
 
+  it.each([
+    ["ja", "結論表示後に設定を変更するには、統合前提へ戻ってください。"],
+    ["en", "Return to the combined-premises step to change this setting."],
+  ] as const)(
+    "keeps the conclusion mode disabled without a locked description in %s",
+    (locale, removedDescription) => {
+      const container = createContainer();
+      renderGameView(
+        container,
+        createGameViewModel({
+          ...createInitialAppState(),
+          phase: "conclusion",
+          locale,
+        }),
+        handlers(),
+      );
+      const mode = container.querySelector<HTMLSelectElement>(
+        '[data-action="conclusion-answer-mode"]',
+      )!;
+      expect(mode.disabled).toBe(true);
+      expect(mode.getAttribute("aria-describedby")).toBeNull();
+      expect(container.textContent).not.toContain(removedDescription);
+    },
+  );
+
   it("removes old language, problem, and conclusion DOM on redraw", () => {
     const container = createContainer();
     const callbacks = handlers();

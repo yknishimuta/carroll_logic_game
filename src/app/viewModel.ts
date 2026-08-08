@@ -1221,9 +1221,6 @@ export function createGameViewModel(state: AppState): GameViewModel {
     },
     conclusionAnswerModeSelector: {
       label: messages.conclusionMode.selectorLabel,
-      ...(state.phase === "conclusion"
-        ? { description: messages.conclusionMode.conclusionLockedDescription }
-        : {}),
       disabled: state.phase === "conclusion",
       selectedValue: state.conclusionQuiz.mode,
       options: (["automatic", "quiz"] as readonly ConclusionAnswerMode[]).map(

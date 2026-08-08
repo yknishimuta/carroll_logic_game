@@ -246,7 +246,6 @@ export interface UiMessages {
   };
   readonly conclusionMode: {
     readonly selectorLabel: string;
-    readonly conclusionLockedDescription: string;
     readonly modes: {
       readonly automatic: string;
       readonly quiz: string;

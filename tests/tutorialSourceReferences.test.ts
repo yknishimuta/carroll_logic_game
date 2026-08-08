@@ -45,7 +45,7 @@ describe("tutorial source registry", () => {
     for (const id of [
       "complement-terms",
       "eight-triliteral-regions", "empty-counter", "existence-counter",
-      "aeio-placement", "third-term-split", "boundary-existence-meaning",
+      "all-double-proposition", "aeio-placement", "third-term-split", "boundary-existence-meaning",
       "boundary-i-resolution", "eliminate-middle",
       "project-empty", "barbara-stages",
       "manual-placement-ui",
@@ -85,6 +85,13 @@ describe("tutorial source registry", () => {
       .toEqual(ja.sections.map(({ locators }) => locators));
     expect(ja.sections.flatMap(({ locators }) => locators))
       .toContain("(I.III.III.2)");
+    const propositionLocators = ja.sections.find(
+      ({ id }) => id === "proposition-rules",
+    )?.locators;
+    expect(propositionLocators).toContain("(I.II.III.3)");
+    expect(propositionLocators).toEqual(expect.arrayContaining([
+      "(I.III.III.2)", "(I.III.III.3)", "(I.IV.II)",
+    ]));
     expect(ja.sections.flatMap(({ locators }) => locators).every(
       (locator) => /^\(I\.[IVX0-9.]+\)$/.test(locator),
     )).toBe(true);
@@ -99,6 +106,11 @@ describe("tutorial source registry", () => {
     )).toBe(true);
     expect(TUTORIAL_SOURCE_ENTRIES.map(({ locator }) => locator))
       .toContain("I.III.III.2");
+    expect(TUTORIAL_SOURCE_ENTRIES).toContainEqual(expect.objectContaining({
+      id: "symbolic-logic-i-ii-iii-3",
+      locator: "I.II.III.3",
+      page: 17,
+    }));
   });
 
   it("does not mutate the source registry or content", () => {
