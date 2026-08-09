@@ -46,6 +46,7 @@ describe("tutorial source registry", () => {
       "complement-terms",
       "eight-triliteral-regions", "empty-counter", "existence-counter",
       "all-double-proposition", "aeio-placement", "third-term-split", "boundary-existence-meaning",
+      "ei-converse-equivalence",
       "boundary-i-resolution", "eliminate-middle",
       "project-empty", "barbara-stages",
       "multiple-complete-conclusions", "complete-vs-incomplete-conclusion",
@@ -93,6 +94,8 @@ describe("tutorial source registry", () => {
     expect(propositionLocators).toEqual(expect.arrayContaining([
       "(I.III.III.2)", "(I.III.III.3)", "(I.IV.II)",
     ]));
+    expect(rules().find(({ id }) => id === "ei-converse-equivalence")?.sourceReferences)
+      .toEqual([{ relation: "direct", sourceId: "symbolic-logic-i-iii-iii-3" }]);
     expect(ja.sections.flatMap(({ locators }) => locators).every(
       (locator) => /^\(I\.[IVX0-9.]+\)$/.test(locator),
     )).toBe(true);

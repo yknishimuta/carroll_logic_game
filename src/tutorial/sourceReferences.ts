@@ -128,8 +128,8 @@ export const TUTORIAL_SOURCE_ENTRIES:
         en: "Part I, Book III, Chapter III §3",
       },
       notes: {
-        ja: "関係命題とAll命題の二重命題としての表現。",
-        en: "Represents propositions of relation and All as a double proposition.",
+        ja: "Some／No関係命題とその換位が同値であること、およびAll命題の二重命題としての表現。",
+        en: "Shows the equivalence of Some/No relation propositions with their converses and represents All as a double proposition.",
       },
     },
     {

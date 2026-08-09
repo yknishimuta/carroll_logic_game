@@ -68,7 +68,12 @@ main { padding-block-end: 3rem; }
   margin-block: 1rem;
 }
 table { width: 100%; border-collapse: collapse; min-width: 36rem; }
-caption { text-align: start; font-weight: 700; padding-block: .5rem; }
+caption {
+  text-align: start;
+  font-weight: 700;
+  padding-block: .5rem;
+  padding-inline: .55rem;
+}
 th, td { border: 1px solid var(--border); padding: .55rem; text-align: start; }
 .tutorial__table-scroll th,
 .tutorial__table-scroll td { overflow-wrap: normal; }

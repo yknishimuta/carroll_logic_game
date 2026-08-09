@@ -116,6 +116,12 @@ describe("mountTutorial", () => {
     expect(propositionSection?.textContent).toContain("存在を示すI駒と、空であることを示すO駒の両方");
     expect(propositionSection?.textContent).toContain("No M are P′から");
     expect(propositionSection?.textContent).toContain("Some M are Pから");
+    expect(propositionSection?.textContent).toContain(
+      "E命題とI命題では、二つの項を入れ替えても意味は変わりません",
+    );
+    expect(propositionSection?.textContent).toContain("いかなる Y も X ではない");
+    expect(propositionSection?.textContent).toContain("ある Y は X である");
+    expect(propositionSection?.textContent).toContain("一般にはA命題やO命題には成り立ちません");
     const propositionChildren = [...propositionSection?.children ?? []];
     const propositionTableWrapper = propositionSection?.querySelector(".tutorial__table-scroll") ?? document.body;
     expect(propositionChildren.indexOf(propositionParagraphs.at(-1) ?? document.body))
@@ -127,6 +133,7 @@ describe("mountTutorial", () => {
       .toEqual(["A", "E", "I", "O"]);
     expect(propositionSection?.lastElementChild?.classList.contains("tutorial__locators")).toBe(true);
     expect(propositionSection?.lastElementChild?.textContent).toContain("(I.II.III.3)");
+    expect(propositionSection?.lastElementChild?.textContent).toContain("(I.III.III.3)");
     expect(propositionSection?.nextElementSibling?.id).toBe("boundary-existence");
     const boundarySection = root.querySelector("#boundary-existence");
     expect(boundarySection?.querySelector("h2")?.textContent).toBe("7. 境界上のI駒");
@@ -299,6 +306,14 @@ describe("mountTutorial", () => {
     )).toBe(true);
     expect(englishPropositions?.textContent).toContain("I-counter to indicate existence");
     expect(englishPropositions?.textContent).toContain("O-counters to indicate emptiness");
+    expect(englishPropositions?.textContent).toContain(
+      "In E- and I-propositions, the two terms may be interchanged without changing the meaning",
+    );
+    expect(englishPropositions?.textContent).toContain("No Y are X");
+    expect(englishPropositions?.textContent).toContain("Some Y are X");
+    expect(englishPropositions?.textContent).toContain(
+      "does not in general apply to A- or O-propositions",
+    );
     expect(englishPropositions?.querySelector("caption")?.textContent)
       .toBe("Correspondence Between Proposition Forms and Regions");
     expect(englishPropositions?.textContent).not.toContain("Four proposition forms");

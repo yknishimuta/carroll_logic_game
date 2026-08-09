@@ -303,6 +303,14 @@ describe("tutorial content", () => {
     expect(enText).toContain("I-counter");
     expect(enText).toContain("O-counters");
     expect(enText).toContain("Counter Placement for Each Proposition Form");
+    expect(jaText).toContain("E命題とI命題では、二つの項を入れ替えても意味は変わりません");
+    expect(jaText).toContain("「いかなる X も Y ではない」と「いかなる Y も X ではない」は同値");
+    expect(jaText).toContain("「ある X は Y である」と「ある Y は X である」も同値");
+    expect(jaText).toContain("一般にはA命題やO命題には成り立ちません");
+    expect(enText).toContain("In E- and I-propositions, the two terms may be interchanged");
+    expect(enText).toContain("“No X are Y” is equivalent to “No Y are X");
+    expect(enText).toContain("“Some X are Y” is equivalent to “Some Y are X");
+    expect(enText).toContain("does not in general apply to A- or O-propositions");
     const jaAllHeadingIndex = jaBlocks.findIndex((block) =>
       block.kind === "subheading" && block.text === "All（すべて）で始まる命題について"
     );
@@ -312,8 +320,12 @@ describe("tutorial content", () => {
     const jaUniversalAffirmativeIndex = jaBlocks.findIndex((block) =>
       block.kind === "paragraph" && block.text === "全称肯定（All M are P）："
     );
+    const jaConverseIndex = jaBlocks.findIndex((block) =>
+      block.kind === "paragraph" && block.text.includes("E命題とI命題では")
+    );
     expect(jaAllHeadingIndex).toBeLessThan(jaPlacementHeadingIndex);
-    expect(jaPlacementHeadingIndex).toBeLessThan(jaUniversalAffirmativeIndex);
+    expect(jaPlacementHeadingIndex).toBeLessThan(jaConverseIndex);
+    expect(jaConverseIndex).toBeLessThan(jaUniversalAffirmativeIndex);
     const enAllHeadingIndex = enBlocks.findIndex((block) =>
       block.kind === "subheading" && block.text === "About Propositions Beginning with All"
     );
@@ -323,8 +335,12 @@ describe("tutorial content", () => {
     const enUniversalAffirmativeIndex = enBlocks.findIndex((block) =>
       block.kind === "paragraph" && block.text === "Universal affirmative (All M are P):"
     );
+    const enConverseIndex = enBlocks.findIndex((block) =>
+      block.kind === "paragraph" && block.text.includes("In E- and I-propositions")
+    );
     expect(enAllHeadingIndex).toBeLessThan(enPlacementHeadingIndex);
-    expect(enPlacementHeadingIndex).toBeLessThan(enUniversalAffirmativeIndex);
+    expect(enPlacementHeadingIndex).toBeLessThan(enConverseIndex);
+    expect(enConverseIndex).toBeLessThan(enUniversalAffirmativeIndex);
     const jaList = jaBlocks.find((block) => block.kind === "list");
     const enList = enBlocks.find((block) => block.kind === "list");
     expect(jaList?.kind === "list" ? jaList.items : null)

@@ -252,6 +252,7 @@ export const JA_TUTORIAL_CONTENT: TutorialContent = {
         { kind: "paragraph", text: "つまり、「MでありPであるものが存在する」という情報と、「MでありPではないものは存在しない」という情報を同時に表します。" },
         { kind: "paragraph", text: "このため、All M are Pを図に表すときには、存在を示すI駒と、空であることを示すO駒の両方を使います。" },
         { kind: "subheading", text: "命題形式ごとの駒の置き方" },
+        { kind: "paragraph", text: "E命題とI命題では、二つの項を入れ替えても意味は変わりません。したがって、「いかなる X も Y ではない」と「いかなる Y も X ではない」は同値であり、「ある X は Y である」と「ある Y は X である」も同値です。このような入れ替えは、一般にはA命題やO命題には成り立ちません。" },
         { kind: "paragraph", text: "全称肯定（All M are P）：" },
         { kind: "paragraph", text: "All M are Pは、No M are P′とSome M are Pの二つの情報として図に表します。" },
         { kind: "paragraph", text: "No M are P′から、M ∩ P′は空なので、SMpとsMpにO駒を置きます。" },
@@ -275,6 +276,7 @@ export const JA_TUTORIAL_CONTENT: TutorialContent = {
       }],
       ruleSources: [
         { id: "all-double-proposition", label: "Allで始まる関係命題の二重命題としての構造", sourceReferences: [{ relation: "direct", sourceId: "symbolic-logic-i-ii-iii-3" }] },
+        { id: "ei-converse-equivalence", label: "E命題とI命題では二項を入れ替えた命題が同値になる", sourceReferences: [{ relation: "direct", sourceId: "symbolic-logic-i-iii-iii-3" }] },
         { id: "aeio-placement", label: "A・E・I・Oの配置規則", sourceReferences: [{ relation: "derived", sourceId: "symbolic-logic-i-iii-iii-2" }, { relation: "direct", sourceId: "symbolic-logic-i-iii-iii-3" }, { relation: "direct", sourceId: "symbolic-logic-i-iv-ii" }] },
         { id: "third-term-split", label: "第三項による二セルへの分割", sourceReferences: [{ relation: "direct", sourceId: "symbolic-logic-i-iv-ii" }] },
         { id: "lowercase-cell-shorthand", label: "セルIDでプライムを小文字として表す", sourceReferences: [{ relation: "application", sourceId: null }] },
@@ -527,6 +529,7 @@ export const EN_TUTORIAL_CONTENT: TutorialContent = {
       { kind: "paragraph", text: "In other words, it states both that at least one thing is both M and P, and that nothing is M but not P." },
       { kind: "paragraph", text: "For this reason, representing All M are P on the diagram requires both an I-counter to indicate existence and O-counters to indicate emptiness." },
       { kind: "subheading", text: "Counter Placement for Each Proposition Form" },
+      { kind: "paragraph", text: "In E- and I-propositions, the two terms may be interchanged without changing the meaning. Thus, “No X are Y” is equivalent to “No Y are X,” and “Some X are Y” is equivalent to “Some Y are X.” This interchange does not in general apply to A- or O-propositions." },
       { kind: "paragraph", text: "Universal affirmative (All M are P):" },
       { kind: "paragraph", text: "All M are P is represented as the two pieces of information No M are P′ and Some M are P." },
       { kind: "paragraph", text: "From No M are P′, M ∩ P′ is empty, so O-counters are placed in SMp and sMp." },
@@ -544,6 +547,7 @@ export const EN_TUTORIAL_CONTENT: TutorialContent = {
       ["O", "Particular negative / Some M are not P", "none", "I-counter: SMp/sMp boundary"],
     ] }], ruleSources: [
       { id: "all-double-proposition", label: "All relation propositions as Double Propositions", sourceReferences: [{ relation: "direct", sourceId: "symbolic-logic-i-ii-iii-3" }] },
+      { id: "ei-converse-equivalence", label: "Interchanging the two terms gives an equivalent E- or I-proposition", sourceReferences: [{ relation: "direct", sourceId: "symbolic-logic-i-iii-iii-3" }] },
       { id: "aeio-placement", label: "Placement rules for A, E, I, and O", sourceReferences: [{ relation: "derived", sourceId: "symbolic-logic-i-iii-iii-2" }, { relation: "direct", sourceId: "symbolic-logic-i-iii-iii-3" }, { relation: "direct", sourceId: "symbolic-logic-i-iv-ii" }] },
       { id: "third-term-split", label: "Splitting across two cells by the third term", sourceReferences: [{ relation: "direct", sourceId: "symbolic-logic-i-iv-ii" }] },
       { id: "lowercase-cell-shorthand", label: "Represent primes as lowercase letters in cell IDs", sourceReferences: [{ relation: "application", sourceId: null }] },
