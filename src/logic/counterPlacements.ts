@@ -226,7 +226,7 @@ export function createBiliteralCounterPlacements(
   for (const existential of state.existentials) {
     const candidateSet = new Set(existential.possibleCells);
     const candidates = BILITERAL_CELLS.filter((cell) =>
-      candidateSet.has(cell),
+      candidateSet.has(cell) && !emptyCellSet.has(cell),
     );
 
     if (candidates.length === 0) {

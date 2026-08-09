@@ -148,13 +148,44 @@ describe("tutorial content", () => {
     const diagramIndex = blocks.findIndex((block) => block.kind === "diagram");
     const tableIndex = blocks.findIndex((block) => block.kind === "table");
     const emptyRuleIndex = blocks.findIndex((block) => block.kind === "paragraph" && block.text.includes("両方とも空"));
+    const multipleConclusionHeadingIndex = blocks.findIndex((block) =>
+      block.kind === "subheading" && block.text === "完全な結論が複数の命題になる場合"
+    );
+    const gameFlowHeadingIndex = blocks.findIndex((block) =>
+      block.kind === "subheading" && block.text === "ゲームの進行"
+    );
+    const premiseOrderIndex = blocks.findIndex((block) =>
+      block.kind === "paragraph" && block.text ===
+        "本アプリでは、第一前提をM–Pの関係、第二前提をS–Mの関係として扱います。自由問題を作成するときは、この順序に合わせて前提を入力してください。"
+    );
     const flowIndex = blocks.findIndex((block) =>
       block.kind === "list" && block.ordered && block.items.length === 4
     );
     expect(definitionIndex).toBeLessThan(diagramIndex);
     expect(diagramIndex).toBeLessThan(tableIndex);
     expect(tableIndex).toBeLessThan(emptyRuleIndex);
+    expect(emptyRuleIndex).toBeLessThan(multipleConclusionHeadingIndex);
+    expect(multipleConclusionHeadingIndex).toBeLessThan(gameFlowHeadingIndex);
+    expect(gameFlowHeadingIndex).toBeLessThan(premiseOrderIndex);
+    expect(premiseOrderIndex).toBeLessThan(flowIndex);
+    expect(gameFlowHeadingIndex).toBeLessThan(flowIndex);
     expect(emptyRuleIndex).toBeLessThan(flowIndex);
+    expect(biliteralEn.blocks?.filter((block) => block.kind === "subheading").map((block) =>
+      block.kind === "subheading" ? block.text : null
+    )).toEqual([
+      "When a Complete Conclusion Needs Multiple Propositions",
+      "Example",
+      "Game Flow",
+    ]);
+    const enBlocks = biliteralEn.blocks ?? [];
+    const enGameFlowHeadingIndex = enBlocks.findIndex((block) =>
+      block.kind === "subheading" && block.text === "Game Flow"
+    );
+    const enPremiseOrderIndex = enBlocks.findIndex((block) =>
+      block.kind === "paragraph" && block.text ===
+        "In this application, the first premise is treated as the relation between M and P, and the second premise as the relation between S and M. When creating a custom problem, enter the premises in this order."
+    );
+    expect(enGameFlowHeadingIndex).toBeLessThan(enPremiseOrderIndex);
     expect(JA_TUTORIAL_CONTENT.sections.flatMap(({ blocks: sectionBlocks }) => sectionBlocks ?? [])
       .filter((block) => block.kind === "diagram" && block.diagramId === "empty-biliteral-basics")).toHaveLength(1);
     expect(JA_TUTORIAL_CONTENT.sections.flatMap(({ blocks: sectionBlocks }) => sectionBlocks ?? [])
@@ -228,6 +259,7 @@ describe("tutorial content", () => {
     expect(jaText).toContain("Some M are P");
     expect(jaText).toContain("No M are P′");
     expect(jaText).toContain("存在を示すI駒と、空であることを示すO駒の両方");
+    expect(jaText).toContain("命題形式ごとの駒の置き方");
     expect(jaText).toContain("全称肯定（All M are P）：");
     expect(jaText).toContain("No M are P′から、M ∩ P′は空なので、SMpとsMpにO駒");
     expect(jaText).toContain("Some M are Pから、M ∩ Pには少なくとも一つの対象");
@@ -243,6 +275,29 @@ describe("tutorial content", () => {
     expect(enText).toContain("No M are P′");
     expect(enText).toContain("I-counter");
     expect(enText).toContain("O-counters");
+    expect(enText).toContain("Counter Placement for Each Proposition Form");
+    const jaAllHeadingIndex = jaBlocks.findIndex((block) =>
+      block.kind === "subheading" && block.text === "All（すべて）で始まる命題について"
+    );
+    const jaPlacementHeadingIndex = jaBlocks.findIndex((block) =>
+      block.kind === "subheading" && block.text === "命題形式ごとの駒の置き方"
+    );
+    const jaUniversalAffirmativeIndex = jaBlocks.findIndex((block) =>
+      block.kind === "paragraph" && block.text === "全称肯定（All M are P）："
+    );
+    expect(jaAllHeadingIndex).toBeLessThan(jaPlacementHeadingIndex);
+    expect(jaPlacementHeadingIndex).toBeLessThan(jaUniversalAffirmativeIndex);
+    const enAllHeadingIndex = enBlocks.findIndex((block) =>
+      block.kind === "subheading" && block.text === "About Propositions Beginning with All"
+    );
+    const enPlacementHeadingIndex = enBlocks.findIndex((block) =>
+      block.kind === "subheading" && block.text === "Counter Placement for Each Proposition Form"
+    );
+    const enUniversalAffirmativeIndex = enBlocks.findIndex((block) =>
+      block.kind === "paragraph" && block.text === "Universal affirmative (All M are P):"
+    );
+    expect(enAllHeadingIndex).toBeLessThan(enPlacementHeadingIndex);
+    expect(enPlacementHeadingIndex).toBeLessThan(enUniversalAffirmativeIndex);
     const jaList = jaBlocks.find((block) => block.kind === "list");
     const enList = enBlocks.find((block) => block.kind === "list");
     expect(jaList?.kind === "list" ? jaList.items : null)

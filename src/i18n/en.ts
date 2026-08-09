@@ -22,6 +22,8 @@ export const EN_MESSAGES = {
   conclusionHeading: "Conclusion",
   firstPremiseLabel: "First Premise",
   secondPremiseLabel: "Second Premise",
+  firstPremiseWithRolesLabel: "First premise (M-P)",
+  secondPremiseWithRolesLabel: "Second premise (S-M)",
   concreteConclusionLabel: "Concrete Conclusion",
   abstractConclusionLabel: "Abstract Conclusion",
   concreteConclusionsLabel: "Concrete Conclusions",
@@ -37,8 +39,6 @@ export const EN_MESSAGES = {
   customProblem: {
     title: "Create a Custom Problem",
     instruction: "Select the form, subject, and predicate for both premises.",
-    majorPremiseHeading: "Major Premise",
-    minorPremiseHeading: "Minor Premise",
     formLabel: "Form",
     subjectLabel: "Subject",
     predicateLabel: "Predicate",

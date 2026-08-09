@@ -24,6 +24,8 @@ export interface UiMessages {
   readonly conclusionHeading: string;
   readonly firstPremiseLabel: string;
   readonly secondPremiseLabel: string;
+  readonly firstPremiseWithRolesLabel: string;
+  readonly secondPremiseWithRolesLabel: string;
   readonly concreteConclusionLabel: string;
   readonly abstractConclusionLabel: string;
   readonly concreteConclusionsLabel: string;
@@ -39,8 +41,6 @@ export interface UiMessages {
   readonly customProblem: {
     readonly title: string;
     readonly instruction: string;
-    readonly majorPremiseHeading: string;
-    readonly minorPremiseHeading: string;
     readonly formLabel: string;
     readonly subjectLabel: string;
     readonly predicateLabel: string;

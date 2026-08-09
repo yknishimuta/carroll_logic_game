@@ -68,6 +68,12 @@ describe("renderGameView", () => {
     )).toBe(true);
     expect(container.querySelector(".logic-game__header-back")).toBeNull();
     expect(container.querySelectorAll("main#main-content")).toHaveLength(1);
+    expect([...container.querySelectorAll(".logic-game__problem strong")].map(
+      ({ textContent }) => textContent,
+    )).toEqual([
+      "第一前提（M-P）: ",
+      "第二前提（S-M）: ",
+    ]);
   });
 
   it("replaces the management header skip link with a second working back button", () => {
@@ -232,6 +238,12 @@ describe("renderGameView", () => {
     expect(container.querySelector(".logic-game__problem h2")?.textContent).toBe(
       "Premises",
     );
+    expect([...container.querySelectorAll(".logic-game__problem strong")].map(
+      ({ textContent }) => textContent,
+    )).toEqual([
+      "First premise (M-P): ",
+      "Second premise (S-M): ",
+    ]);
     expect(container.querySelector('[data-action="next"]')?.textContent).toBe(
       "Combine Second Premise",
     );

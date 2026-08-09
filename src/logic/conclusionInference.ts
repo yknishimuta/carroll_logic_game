@@ -12,7 +12,10 @@ import {
 } from "../domain/logicSettings";
 import type { AbstractSyllogism } from "../domain/syllogism";
 import { abstractTerm, type AbstractTermOccurrence } from "../domain/term";
-import { projectToBiliteralDiagram } from "./biliteralProjection";
+import {
+  normalizeBiliteralDiagramState,
+  projectToBiliteralDiagram,
+} from "./biliteralProjection";
 import { conclusionCells } from "./conclusionCells";
 import { mergeConstraints } from "./constraintMerge";
 import { propositionToConstraints } from "./propositionConstraints";
@@ -82,10 +85,11 @@ export function inferCompleteConclusion(
   state: BiliteralDiagramState,
   settings: LogicSettings = DEFAULT_LOGIC_SETTINGS,
 ): CompleteConclusion | null {
-  const targetFacts = biliteralFacts(state);
+  const normalizedState = normalizeBiliteralDiagramState(state);
+  const targetFacts = biliteralFacts(normalizedState);
   if (targetFacts.length === 0) return null;
   const uncovered = new Set(targetFacts);
-  const candidates = inferAllEntailedSignedPropositions(state, settings)
+  const candidates = inferAllEntailedSignedPropositions(normalizedState, settings)
     .map((proposition) => ({
       proposition,
       facts: conclusionFacts(proposition, settings),
@@ -117,8 +121,19 @@ export function inferCompleteConclusion(
     for (const fact of selected.facts) uncovered.delete(fact);
   }
 
+  const certainExistentials = normalizedState.existentials.filter(
+    ({ possibleCells }) => possibleCells.length === 1,
+  );
+  const completeBiliteralState =
+    certainExistentials.length === normalizedState.existentials.length
+      ? normalizedState
+      : {
+          emptyCells: normalizedState.emptyCells,
+          existentials: certainExistentials,
+        };
+
   return {
-    biliteralState: state,
+    biliteralState: completeBiliteralState,
     propositions,
   };
 }

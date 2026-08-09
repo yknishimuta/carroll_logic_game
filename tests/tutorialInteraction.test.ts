@@ -103,6 +103,8 @@ describe("mountTutorial", () => {
     const propositionParagraphs = [...propositionSection?.querySelectorAll("p:not(.tutorial__locators)") ?? []];
     expect(propositionSection?.querySelector("h3")?.textContent)
       .toBe("All（すべて）で始まる命題について");
+    expect([...propositionSection?.querySelectorAll("h3") ?? []].map(({ textContent }) => textContent))
+      .toEqual(["All（すべて）で始まる命題について", "命題形式ごとの駒の置き方"]);
     expect(propositionSection?.textContent).toContain("二重命題（Double Proposition）");
     expect([...propositionSection?.querySelectorAll("ul li") ?? []].map(
       ({ textContent }) => textContent,
@@ -287,6 +289,8 @@ describe("mountTutorial", () => {
     const englishPropositionParagraphs = [
       ...englishPropositions?.querySelectorAll("p:not(.tutorial__locators)") ?? [],
     ];
+    expect([...englishPropositions?.querySelectorAll("h3") ?? []].map(({ textContent }) => textContent))
+      .toEqual(["About Propositions Beginning with All", "Counter Placement for Each Proposition Form"]);
     for (const heading of [
       "Universal affirmative (All M are P):", "Universal negative (No M are P):",
       "Particular affirmative (Some M are P):", "Particular negative (Some M are not P):",

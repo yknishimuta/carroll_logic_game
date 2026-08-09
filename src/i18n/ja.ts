@@ -22,6 +22,8 @@ export const JA_MESSAGES = {
   conclusionHeading: "結論",
   firstPremiseLabel: "第一前提",
   secondPremiseLabel: "第二前提",
+  firstPremiseWithRolesLabel: "第一前提（M-P）",
+  secondPremiseWithRolesLabel: "第二前提（S-M）",
   concreteConclusionLabel: "具体的結論",
   abstractConclusionLabel: "抽象的結論",
   concreteConclusionsLabel: "具体的結論",
@@ -37,8 +39,6 @@ export const JA_MESSAGES = {
   customProblem: {
     title: "自由問題の作成",
     instruction: "二つの前提について、命題形式、主語、述語を選択してください。",
-    majorPremiseHeading: "第一前提",
-    minorPremiseHeading: "第二前提",
     formLabel: "命題形式",
     subjectLabel: "主語",
     predicateLabel: "述語",

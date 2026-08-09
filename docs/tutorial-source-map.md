@@ -47,6 +47,7 @@
 | complete-vs-incomplete-conclusion | A proposed conclusion may be consequent but incomplete when it omits part of the complete conclusion | symbolic-logic-i-v-ii-3 / I.V.II.3 | direct | 66–68 | yes |
 | barbara-stages | Barbara worked by the verified general representation, combination, projection, and syllogism rules | I.IV.II; I.IV.III; I.IV.IV; I.V.II.2 | derived | 43; 50; 53; 60 | yes |
 | manual-placement-ui | O/I/erase tools, 20/8 targets, checking, clearing, and keyboard behavior | — | application | — | yes |
+| fixed-premise-entry-order | The app treats the first premise as the M–P relation and the second as the S–M relation | — | application | — | yes |
 | common-error-corrections | Tutorial summary of verified counter, boundary, and projection rules | I.III.II; I.IV.III; I.IV.IV | derived | 26; 50; 53 | yes |
 | quick-reference-summary | Compact summary of verified counter, boundary, and projection rules | I.III.II; I.IV.III; I.IV.IV | derived | 26; 50; 53 | yes |
 

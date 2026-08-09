@@ -486,8 +486,8 @@ function createCustomEditor(
     title: messages.customProblem.title,
     instruction: messages.customProblem.instruction,
     premises: [
-      editor("major", messages.customProblem.majorPremiseHeading, state.customProblemDraft.majorPremise),
-      editor("minor", messages.customProblem.minorPremiseHeading, state.customProblemDraft.minorPremise),
+      editor("major", messages.firstPremiseWithRolesLabel, state.customProblemDraft.majorPremise),
+      editor("minor", messages.secondPremiseWithRolesLabel, state.customProblemDraft.minorPremise),
     ],
     createButtonLabel: messages.customProblem.createButton,
     clearButtonLabel: messages.customProblem.clearButton,
@@ -1264,7 +1264,10 @@ export function createGameViewModel(state: AppState): GameViewModel {
     assignmentDescription: messages.assignmentDescription,
     abstractionHeading: messages.abstractionHeading,
     conclusionHeading: messages.conclusionHeading,
-    premiseLabels: [messages.firstPremiseLabel, messages.secondPremiseLabel],
+    premiseLabels: [
+      messages.firstPremiseWithRolesLabel,
+      messages.secondPremiseWithRolesLabel,
+    ],
     concreteConclusionLabel: messages.concreteConclusionLabel,
     abstractConclusionLabel: messages.abstractConclusionLabel,
     concreteConclusionsLabel: messages.concreteConclusionsLabel,

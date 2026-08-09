@@ -49,6 +49,31 @@ function projectPossibleCells(
   return BILITERAL_CELLS.filter((cell) => projected.has(cell));
 }
 
+export function normalizeBiliteralDiagramState(
+  state: BiliteralDiagramState,
+): BiliteralDiagramState {
+  const emptyCellSet = new Set(state.emptyCells);
+  let changed = false;
+  const existentials = state.existentials.map((existential) => {
+    const possibleCells = existential.possibleCells.filter((cell) =>
+      !emptyCellSet.has(cell)
+    );
+    const existentialChanged =
+      possibleCells.length !== existential.possibleCells.length;
+    if (existentialChanged) changed = true;
+    if (possibleCells.length === 0) {
+      throw new Error(
+        "Cannot retain an existential constraint whose possible cells are empty.",
+      );
+    }
+    return existentialChanged
+      ? { ...existential, possibleCells }
+      : existential;
+  });
+
+  return changed ? { emptyCells: state.emptyCells, existentials } : state;
+}
+
 export function projectToBiliteralDiagram(
   state: TriliteralDiagramState,
 ): BiliteralDiagramState {
@@ -73,8 +98,8 @@ export function projectToBiliteralDiagram(
     );
   }
 
-  return {
+  return normalizeBiliteralDiagramState({
     emptyCells,
     existentials,
-  };
+  });
 }

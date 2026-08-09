@@ -85,15 +85,7 @@ describe("complemented terms in syllogisms", () => {
         kind: "emptiness",
         anchor: { type: "cell", cell: "Sp" },
       }],
-      existenceCounters: [{
-        kind: "existence",
-        sourceIds: ["first-premise"],
-        anchor: {
-          type: "boundary",
-          cells: ["SP", "sP"],
-          partitionRole: "S",
-        },
-      }],
+      existenceCounters: [],
     });
     expect(oracleConclusionIsEntailed(
       result.abstractPremises,
@@ -299,14 +291,6 @@ describe("complemented terms in syllogisms", () => {
       emptinessCounters: [{ kind: "emptiness", anchor: { type: "cell", cell: "sp" } }],
       existenceCounters: [{
         kind: "existence",
-        sourceIds: ["first-premise"],
-        anchor: {
-          type: "boundary",
-          cells: ["SP", "sP"],
-          partitionRole: "S",
-        },
-      }, {
-        kind: "existence",
         sourceIds: ["second-premise"],
         anchor: { type: "cell", cell: "sP" },
       }],
@@ -335,14 +319,6 @@ describe("complemented terms in syllogisms", () => {
     expect(result.conclusionPlacements).toEqual({
       emptinessCounters: [{ kind: "emptiness", anchor: { type: "cell", cell: "SP" } }],
       existenceCounters: [{
-        kind: "existence",
-        sourceIds: ["first-premise"],
-        anchor: {
-          type: "boundary",
-          cells: ["Sp", "sp"],
-          partitionRole: "S",
-        },
-      }, {
         kind: "existence",
         sourceIds: ["second-premise"],
         anchor: { type: "cell", cell: "Sp" },

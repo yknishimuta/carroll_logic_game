@@ -81,7 +81,10 @@ describe("SVG diagram integration", () => {
     expect(carrollSvgs.conclusionSvg).toContain(
       'data-source-ids="[&quot;second-premise&quot;]"><circle cx="120" cy="120"',
     );
-    expect(counterCount(carrollSvgs.conclusionSvg)).toBe(3);
+    expect(counterCount(carrollSvgs.conclusionSvg)).toBe(2);
+    expect(carrollSvgs.conclusionSvg).not.toContain(
+      'data-source-ids="[&quot;first-premise&quot;]"',
+    );
 
     expect(modernSvgs.conclusionSvg).toContain(
       'data-counter-kind="emptiness"><circle cx="280" cy="120"',
@@ -127,7 +130,7 @@ describe("SVG diagram integration", () => {
         `data-source-ids="[&quot;second-premise&quot;]"><circle cx="${x}" cy="120"`,
       );
       expect(svg).not.toContain('data-counter-kind="emptiness"');
-      expect(counterCount(svg)).toBe(_name === "Darii" ? 2 : 1);
+      expect(counterCount(svg)).toBe(1);
     },
   );
 

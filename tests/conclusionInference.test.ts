@@ -132,6 +132,10 @@ describe("isConclusionEntailed", () => {
 });
 
 describe("CompleteConclusion", () => {
+  const barbara = {
+    firstPremise: { form: "A" as const, subject: { role: "M" as const, complemented: false }, predicate: { role: "P" as const, complemented: false } },
+    secondPremise: { form: "A" as const, subject: { role: "S" as const, complemented: false }, predicate: { role: "M" as const, complemented: false } },
+  };
   const section4Number10 = CARROLL_BOOK_VIII_SECTION_4.find(
     (testCase) => testCase.number === 10,
   );
@@ -141,6 +145,37 @@ describe("CompleteConclusion", () => {
 
   it("uses null as the only no-conclusion representation", () => {
     expect(inferCompleteConclusion(emptyState)).toBeNull();
+  });
+
+  it("keeps Barbara's middle-term boundary only in the triliteral state", () => {
+    const result = inferSyllogismConclusion(barbara);
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+
+    expect(result.triliteralState.existentials).toEqual([
+      { sourceId: "first-premise", possibleCells: ["SMP", "sMP"] },
+      { sourceId: "second-premise", possibleCells: ["SMP"] },
+    ]);
+    expect(result.biliteralState).toEqual({
+      emptyCells: ["Sp"],
+      existentials: [
+        { sourceId: "first-premise", possibleCells: ["SP", "sP"] },
+        { sourceId: "second-premise", possibleCells: ["SP"] },
+      ],
+    });
+    expect(result.completeConclusion).toEqual({
+      biliteralState: {
+        emptyCells: ["Sp"],
+        existentials: [
+          { sourceId: "second-premise", possibleCells: ["SP"] },
+        ],
+      },
+      propositions: [{
+        form: "A",
+        subject: { role: "S", complemented: false },
+        predicate: { role: "P", complemented: false },
+      }],
+    });
   });
 
   it("preserves the two signed propositions in Book VIII §4 No. 10", () => {

@@ -4,6 +4,21 @@ import { validateBiliteralCounterAttempt } from "../src/app/counterPractice";
 import { getBuiltInProblem } from "../src/data/problems";
 
 describe("ProblemComputation complete conclusions", () => {
+  it("uses only Barbara's certain retinend information for conclusion placements", () => {
+    const computation = computeProblem(getBuiltInProblem("barbara-aaa1"));
+    expect(computation.completeConclusion?.biliteralState).toEqual({
+      emptyCells: ["Sp"],
+      existentials: [{ sourceId: "second-premise", possibleCells: ["SP"] }],
+    });
+    expect(computation.conclusionPlacements).toEqual({
+      emptinessCounters: [{ kind: "emptiness", anchor: { type: "cell", cell: "Sp" } }],
+      existenceCounters: [{
+        kind: "existence",
+        sourceIds: ["second-premise"],
+        anchor: { type: "cell", cell: "SP" },
+      }],
+    });
+  });
   it("preserves both signed conclusions for Book VIII §4 No. 10", () => {
     const computation = computeProblem({
       id: "carroll-viii-i-4-10",

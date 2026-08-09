@@ -74,15 +74,6 @@ describe("counter placement integration", () => {
       existenceCounters: [
         {
           kind: "existence",
-          sourceIds: ["first-premise"],
-          anchor: {
-            type: "boundary",
-            cells: ["SP", "sP"],
-            partitionRole: "S",
-          },
-        },
-        {
-          kind: "existence",
           sourceIds: ["second-premise"],
           anchor: { type: "cell", cell: "SP" },
         },
@@ -113,15 +104,6 @@ describe("counter placement integration", () => {
     expect(conclusion.placements).toEqual({
       emptinessCounters: [],
       existenceCounters: [
-        {
-          kind: "existence",
-          sourceIds: ["first-premise"],
-          anchor: {
-            type: "boundary",
-            cells: ["SP", "sP"],
-            partitionRole: "S",
-          },
-        },
         {
           kind: "existence",
           sourceIds: ["second-premise"],

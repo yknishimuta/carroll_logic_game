@@ -532,7 +532,7 @@ describe("mounted application interaction", () => {
     advanceToConclusion(container);
     expect(phase(container)).toBe("conclusion");
     expect(button(container, "next").disabled).toBe(true);
-    expect(container.querySelectorAll("[data-counter-kind]")).toHaveLength(3);
+    expect(container.querySelectorAll("[data-counter-kind]")).toHaveLength(2);
     button(container, "previous").click();
     expect(phase(container)).toBe("combined-premises");
     button(container, "previous").click();
@@ -596,7 +596,7 @@ describe("mounted application interaction", () => {
     expect(button(container, "next").disabled).toBe(false);
     advanceToConclusion(container);
     expect(container.textContent).toContain("すべての人間は死すべきものである。");
-    expect(container.querySelectorAll("[data-counter-kind]")).toHaveLength(3);
+    expect(container.querySelectorAll("[data-counter-kind]")).toHaveLength(2);
   });
 
   it("creates a structurally valid invalid custom problem", () => {
@@ -1011,7 +1011,6 @@ describe("mounted application interaction", () => {
     chooseCounterTool(container, "emptiness");
     activateCounterTarget(container, "biliteral:cell:Sp");
     chooseCounterTool(container, "existence");
-    activateCounterTarget(container, "biliteral:boundary:S:SP:sP");
     activateCounterTarget(container, "biliteral:cell:SP");
     container.querySelector<HTMLButtonElement>(
       '[data-action="check-counter-attempt"]',
@@ -1096,6 +1095,15 @@ describe("mounted application interaction", () => {
     expect(container.textContent).toContain(
       "すべての人間は死すべきものである。",
     );
+    expect(container.querySelectorAll(
+      '.carroll-diagram [data-counter-kind="emptiness"]',
+    )).toHaveLength(1);
+    expect(container.querySelectorAll(
+      '.carroll-diagram [data-counter-kind="existence"]',
+    )).toHaveLength(1);
+    expect(container.querySelector(
+      '.carroll-diagram [data-source-ids*="first-premise"]',
+    )).toBeNull();
   });
 
   it.each([
@@ -1181,7 +1189,6 @@ describe("mounted application interaction", () => {
     chooseCounterTool(container, "emptiness");
     activateCounterTarget(container, "biliteral:cell:Sp");
     chooseCounterTool(container, "existence");
-    activateCounterTarget(container, "biliteral:boundary:S:SP:sP");
     activateCounterTarget(container, "biliteral:cell:SP");
     container.querySelector<HTMLButtonElement>(
       '[data-action="check-counter-attempt"]',

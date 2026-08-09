@@ -30,11 +30,10 @@ describe("state-based conclusion display", () => {
       {
         emptyCells: ["Sp"],
         existentials: [
-          { sourceId: "major", possibleCells: ["SP", "sP"] },
           { sourceId: "minor", possibleCells: ["SP"] },
         ],
       },
-      { empty: ["Sp"], occupied: 2 },
+      { empty: ["Sp"], occupied: 1 },
     ],
     [
       "modern Barbara",
@@ -54,11 +53,10 @@ describe("state-based conclusion display", () => {
       {
         emptyCells: [],
         existentials: [
-          { sourceId: "major", possibleCells: ["SP", "sP"] },
           { sourceId: "minor", possibleCells: ["SP"] },
         ],
       },
-      { empty: [], occupied: 2 },
+      { empty: [], occupied: 1 },
     ],
     [
       "Ferio",
@@ -89,6 +87,24 @@ describe("state-based conclusion display", () => {
     });
   });
 
+  it.each([
+    [[], { type: "boundary", cells: ["SP", "Sp"], partitionRole: "P" }],
+    [["Sp"], { type: "cell", cell: "SP" }],
+    [["SP"], { type: "cell", cell: "Sp" }],
+  ] as const)("resolves a biliteral existence against empty cells %j", (emptyCells, anchor) => {
+    const result = createConclusionCounterPlacements({
+      emptyCells,
+      existentials: [{ sourceId: "existence", possibleCells: ["SP", "Sp"] }],
+    });
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.placements.existenceCounters).toEqual([{
+      kind: "existence",
+      sourceIds: ["existence"],
+      anchor,
+    }]);
+  });
+
   it("is deterministic and non-destructive with frozen input", () => {
     const state: BiliteralDiagramState = Object.freeze({
       emptyCells: Object.freeze(["Sp"] as const),
@@ -114,7 +130,7 @@ describe("state-based conclusion display", () => {
     })).toMatchObject({ ok: false, stage: "counter-placement", reason });
   });
 
-  it("uses the complete biliteral state without form-based filtering", () => {
+  it("resolves candidates against empty cells without form-based filtering", () => {
     const state: BiliteralDiagramState = {
       emptyCells: ["SP", "sp"],
       existentials: [
@@ -135,17 +151,8 @@ describe("state-based conclusion display", () => {
         existenceCounters: [
           {
             kind: "existence",
-            sourceIds: ["certain"],
+            sourceIds: ["certain", "boundary"],
             anchor: { type: "cell", cell: "Sp" },
-          },
-          {
-            kind: "existence",
-            sourceIds: ["boundary"],
-            anchor: {
-              type: "boundary",
-              cells: ["SP", "Sp"],
-              partitionRole: "P",
-            },
           },
         ],
       },

@@ -69,6 +69,10 @@ describe("Barbara view models", () => {
   });
   it("preserves the initial Japanese content", () => {
     const model = createGameViewModel(state("problem"));
+    expect(model.premiseLabels).toEqual([
+      "第一前提（M-P）",
+      "第二前提（S-M）",
+    ]);
     expect(model.concretePremises).toEqual([
       "すべての動物は死すべきものである。",
       "すべての人間は動物である。",
@@ -88,6 +92,11 @@ describe("Barbara view models", () => {
   it("formats English premises, terms, and conclusion", () => {
     const problem = createGameViewModel(state("problem", "en"));
     const conclusion = createGameViewModel(state("conclusion", "en"));
+
+    expect(problem.premiseLabels).toEqual([
+      "First premise (M-P)",
+      "Second premise (S-M)",
+    ]);
 
     expect(problem.concretePremises).toEqual([
       "All animals are mortal.",
@@ -116,12 +125,19 @@ describe("Barbara view models", () => {
     expect(first.diagram.svg).toContain('<circle cx="160" cy="200" r="14"');
     expect(count(combined.diagram.svg, 'data-counter-kind="emptiness"')).toBe(4);
     expect(count(combined.diagram.svg, 'data-counter-kind="existence"')).toBe(2);
+    expect(combined.diagram.svg).toContain(
+      'data-counter-kind="existence" data-source-ids="[&quot;first-premise&quot;]"',
+    );
     expect(conclusion.diagram.kind).toBe("biliteral");
     expect(conclusion.diagram.svg).toContain(
       'data-counter-kind="emptiness"><circle cx="280" cy="120"',
     );
     expect(conclusion.diagram.svg).toContain(
       'data-counter-kind="existence" data-source-ids="[&quot;second-premise&quot;]"><circle cx="120" cy="120"',
+    );
+    expect(count(conclusion.diagram.svg, 'data-counter-kind="existence"')).toBe(1);
+    expect(conclusion.diagram.svg).not.toContain(
+      'data-source-ids="[&quot;first-premise&quot;]"',
     );
   });
 });
@@ -304,13 +320,23 @@ describe("custom problem view models", () => {
   });
 
   it("shows an empty editor and disables progress before creation", () => {
-    const model = createGameViewModel({
+    const customState = {
       ...createInitialAppState(),
       problemSource: "custom",
-    });
+    } as const;
+    const model = createGameViewModel(customState);
+    const englishModel = createGameViewModel({ ...customState, locale: "en" });
     expect(model.problemSourceSelector.selectedValue).toBe("custom");
     expect(model.problemSelector).not.toBeNull();
     expect(model.customProblemEditor?.premises).toHaveLength(2);
+    expect(model.customProblemEditor?.premises.map(({ heading }) => heading)).toEqual([
+      "第一前提（M-P）",
+      "第二前提（S-M）",
+    ]);
+    expect(englishModel.customProblemEditor?.premises.map(({ heading }) => heading)).toEqual([
+      "First premise (M-P)",
+      "Second premise (S-M)",
+    ]);
     expect(model.customProblemEditor?.premises[0]?.formSelector.options)
       .toEqual([
         { value: "A", label: "A — すべてのSはPである" },
