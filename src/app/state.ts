@@ -129,7 +129,7 @@ export type DataImportStatus =
   | "idle" | "reading" | "ready" | "file-too-large" | "read-error"
   | "invalid-json" | "unsupported-format" | "unsupported-version"
   | "invalid-data" | "invalid-term-catalog" | "invalid-problem-catalog"
-  | "applied" | "applied-with-save-error";
+  | "applied" | "save-error";
 export type DataExportStatus = "idle" | "exported" | "export-error";
 export interface PendingDataImport {
   readonly fileName: string;
@@ -315,11 +315,7 @@ export type AppAction =
     }
   | { readonly type: "cancel-data-import" }
   | { readonly type: "apply-pending-data-import" }
-  | {
-      readonly type: "complete-import-persistence";
-      readonly customTermsSaved: boolean;
-      readonly savedCustomProblemsSaved: boolean;
-    }
+  | { readonly type: "reject-data-import-persistence" }
   | {
       readonly type: "set-data-export-status";
       readonly status: DataExportStatus;
@@ -704,6 +700,8 @@ export function reduceAppState(
         customProblemStatus: "editing",
         customTermEditor: emptyCustomTermEditor(),
         savedCustomProblemEditor: emptySavedCustomProblemEditor(),
+        customTermPersistenceStatus: "ready",
+        savedCustomProblemPersistenceStatus: "ready",
         counterPractice: resetCounterPractice(state),
         conclusionQuiz: resetConclusionQuiz(state),
         dataImport: {
@@ -713,20 +711,13 @@ export function reduceAppState(
         },
       };
     }
-    case "complete-import-persistence":
+    case "reject-data-import-persistence":
       return {
         ...state,
         dataImport: {
           ...state.dataImport,
-          status: action.customTermsSaved && action.savedCustomProblemsSaved
-            ? "applied"
-            : "applied-with-save-error",
+          status: "save-error",
         },
-        customTermPersistenceStatus: action.customTermsSaved
-          ? "ready"
-          : "save-error",
-        savedCustomProblemPersistenceStatus:
-          action.savedCustomProblemsSaved ? "ready" : "save-error",
       };
     case "set-data-export-status":
       return { ...state, dataExportStatus: action.status };

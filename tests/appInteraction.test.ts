@@ -9,7 +9,6 @@ import {
 import { CUSTOM_PROBLEM_STORAGE_KEY } from "../src/storage/customProblemStorage";
 import type { TextFileTransfer } from "../src/app/browserFileTransfer";
 import {
-  DATA_BACKUP_FILENAME,
   DATA_BACKUP_FORMAT,
   DATA_BACKUP_MIME_TYPE,
   createDataBackupJson,
@@ -22,6 +21,9 @@ class MemoryStorage implements StringStorage {
   }
   setItem(key: string, value: string): void {
     this.values.set(key, value);
+  }
+  removeItem(key: string): void {
+    this.values.delete(key);
   }
 }
 
@@ -257,14 +259,18 @@ beforeEach(() => {
       '[data-action="export-data-backup"]',
     )!.click();
     expect(downloads).toHaveLength(1);
-    expect(downloads[0]?.filename).toBe(DATA_BACKUP_FILENAME);
+    expect(downloads[0]?.filename).toMatch(
+      /^carroll-logic-game-backup-\d{4}-\d{2}-\d{2}\.json$/,
+    );
     expect(downloads[0]?.mimeType).toBe(DATA_BACKUP_MIME_TYPE);
-    expect(JSON.parse(downloads[0]!.content)).toEqual({
+    expect(JSON.parse(downloads[0]!.content)).toMatchObject({
       format: DATA_BACKUP_FORMAT,
-      version: 3,
-      customTerms: [],
-      savedCustomProblems: [],
+      schemaVersion: 1,
+      data: { customTerms: [], customProblems: [] },
     });
+    expect(JSON.parse(downloads[0]!.content).exportedAt).toEqual(
+      expect.any(String),
+    );
     const input = container.querySelector<HTMLInputElement>(
       '[data-action="import-data-backup-file"]',
     )!;
@@ -281,7 +287,7 @@ beforeEach(() => {
     container.querySelector<HTMLButtonElement>(
       '[data-action="apply-data-import"]',
     )!.click();
-    expect(container.textContent).toContain("データを読み込みました。");
+    expect(container.textContent).toContain("復元しました。");
     expect(storage.values.has(CUSTOM_TERM_STORAGE_KEY)).toBe(true);
     expect(storage.values.has(CUSTOM_PROBLEM_STORAGE_KEY)).toBe(true);
     expect(storage.values.size).toBe(2);
@@ -974,6 +980,7 @@ describe("mounted application interaction", () => {
     const writeFailure: StringStorage = {
       getItem: () => null,
       setItem: () => { throw new Error("blocked"); },
+      removeItem: () => undefined,
     };
     const session = mount(writeFailure);
     select(session, "problem-source", "custom");

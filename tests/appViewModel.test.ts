@@ -941,7 +941,7 @@ describe("custom term view models", () => {
     };
     const model = createGameViewModel(ready);
     expect(model.dataBackup).toMatchObject({
-      heading: "データのバックアップ",
+      heading: "バックアップ",
       accept: "application/json,.json",
       exportStatusMessage: "データを書き出しました。",
       preview: {

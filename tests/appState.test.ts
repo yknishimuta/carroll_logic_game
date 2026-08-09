@@ -1178,24 +1178,26 @@ describe("application state", () => {
     expect(applied.dataImport.status).toBe("applied");
   });
 
-  it("keeps imported memory data when one persistence write fails", () => {
+  it("keeps current memory data when backup persistence fails", () => {
     const state = {
       ...initial,
       customTerms: [philosopher],
       dataImport: {
-        status: "applied" as const,
+        status: "ready" as const,
         fileName: "backup.json",
-        pending: null,
+        pending: {
+          fileName: "backup.json",
+          content: { customTerms: [], savedCustomProblems: [] },
+          customTermCount: 0,
+          savedCustomProblemCount: 0,
+        },
       },
     };
     const result = reduceAppState(state, {
-      type: "complete-import-persistence",
-      customTermsSaved: true,
-      savedCustomProblemsSaved: false,
+      type: "reject-data-import-persistence",
     });
     expect(result.customTerms).toEqual([philosopher]);
-    expect(result.dataImport.status).toBe("applied-with-save-error");
-    expect(result.customTermPersistenceStatus).toBe("ready");
-    expect(result.savedCustomProblemPersistenceStatus).toBe("save-error");
+    expect(result.dataImport.status).toBe("save-error");
+    expect(result.dataImport.pending).not.toBeNull();
   });
 });

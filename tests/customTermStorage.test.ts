@@ -15,6 +15,9 @@ class MemoryStorage implements StringStorage {
   setItem(key: string, value: string): void {
     this.values.set(key, value);
   }
+  removeItem(key: string): void {
+    this.values.delete(key);
+  }
 }
 
 const philosopher: CustomTermDefinition = {
@@ -133,10 +136,12 @@ describe("custom term storage", () => {
     const readFailure: StringStorage = {
       getItem: () => { throw new Error("blocked"); },
       setItem: () => undefined,
+      removeItem: () => undefined,
     };
     const writeFailure: StringStorage = {
       getItem: () => null,
       setItem: () => { throw new Error("full"); },
+      removeItem: () => undefined,
     };
     expect(loadCustomTerms(readFailure)).toEqual({
       ok: false,

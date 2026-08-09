@@ -40,11 +40,12 @@ import {
   saveSavedCustomProblems,
 } from "./storage/customProblemStorage";
 import {
-  DATA_BACKUP_FILENAME,
   DATA_BACKUP_MAX_FILE_BYTES,
   DATA_BACKUP_MIME_TYPE,
+  createDataBackupFilename,
   createDataBackupJson,
 } from "./storage/dataBackupFormat";
+import { replaceBackupStorage } from "./storage/dataBackupStorage";
 import { prepareDataImport, validateImportedData } from "./app/dataBackup";
 import {
   createBrowserTextFileTransfer,
@@ -395,7 +396,7 @@ export function mountApp(
             throw new Error(`Invalid saved problem catalog: ${catalog.reason}.`);
           }
           fileTransfer.downloadText(
-            DATA_BACKUP_FILENAME,
+            createDataBackupFilename(),
             createDataBackupJson({
               customTerms: state.customTerms,
               savedCustomProblems: state.savedCustomProblems,
@@ -442,19 +443,12 @@ export function mountApp(
       onDataImportApply: () => {
         const pending = state.dataImport.pending;
         if (state.dataImport.status !== "ready" || pending === null) return;
-        dispatch({ type: "apply-pending-data-import" });
-        const termsSaved = availableStorage !== null &&
-          saveCustomTerms(availableStorage, pending.content.customTerms).ok;
-        const problemsSaved = availableStorage !== null &&
-          saveSavedCustomProblems(
-            availableStorage,
-            pending.content.savedCustomProblems,
-          ).ok;
-        dispatch({
-          type: "complete-import-persistence",
-          customTermsSaved: termsSaved,
-          savedCustomProblemsSaved: problemsSaved,
-        });
+        const replaced = availableStorage === null
+          ? { ok: false as const }
+          : replaceBackupStorage(availableStorage, pending.content);
+        dispatch(replaced.ok
+          ? { type: "apply-pending-data-import" }
+          : { type: "reject-data-import-persistence" });
       },
       onDataImportCancel: () => {
         ++importRequestId;

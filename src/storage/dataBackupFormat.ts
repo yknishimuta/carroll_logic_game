@@ -3,9 +3,8 @@ import type { SavedCustomProblemDefinition } from "../domain/savedCustomProblem"
 import { decodeCustomTermArray } from "./customTermStorage";
 import { decodeSavedCustomProblemArray } from "./customProblemStorage";
 
-export const DATA_BACKUP_FORMAT = "carroll-logic-game-data";
-export const DATA_BACKUP_VERSION = 3;
-export const DATA_BACKUP_FILENAME = "carroll-logic-game-data-v3.json";
+export const DATA_BACKUP_FORMAT = "carroll-logic-game-backup";
+export const DATA_BACKUP_SCHEMA_VERSION = 1;
 export const DATA_BACKUP_MIME_TYPE = "application/json";
 export const DATA_BACKUP_MAX_FILE_BYTES = 1_048_576;
 
@@ -14,9 +13,14 @@ export interface DataBackupContent {
   readonly savedCustomProblems: readonly SavedCustomProblemDefinition[];
 }
 
-export interface DataBackupV3 extends DataBackupContent {
+export interface DataBackupV1 {
   readonly format: typeof DATA_BACKUP_FORMAT;
-  readonly version: 3;
+  readonly schemaVersion: 1;
+  readonly exportedAt: string;
+  readonly data: {
+    readonly customTerms: readonly CustomTermDefinition[];
+    readonly customProblems: readonly SavedCustomProblemDefinition[];
+  };
 }
 
 export type DataBackupParseFailureReason =
@@ -35,12 +39,28 @@ function record(value: unknown): Record<string, unknown> | null {
     : null;
 }
 
-export function createDataBackupJson(content: DataBackupContent): string {
-  const backup: DataBackupV3 = {
+function validExportedAt(value: unknown): value is string {
+  if (typeof value !== "string") return false;
+  const date = new Date(value);
+  return Number.isFinite(date.getTime()) && date.toISOString() === value;
+}
+
+export function createDataBackupFilename(date: Date = new Date()): string {
+  return `carroll-logic-game-backup-${date.toISOString().slice(0, 10)}.json`;
+}
+
+export function createDataBackupJson(
+  content: DataBackupContent,
+  exportedAt: Date = new Date(),
+): string {
+  const backup: DataBackupV1 = {
     format: DATA_BACKUP_FORMAT,
-    version: DATA_BACKUP_VERSION,
-    customTerms: content.customTerms,
-    savedCustomProblems: content.savedCustomProblems,
+    schemaVersion: DATA_BACKUP_SCHEMA_VERSION,
+    exportedAt: exportedAt.toISOString(),
+    data: {
+      customTerms: content.customTerms,
+      customProblems: content.savedCustomProblems,
+    },
   };
   return `${JSON.stringify(backup, null, 2)}\n`;
 }
@@ -56,11 +76,15 @@ export function parseDataBackupJson(jsonText: string): ParseDataBackupResult {
   if (root === null || root.format !== DATA_BACKUP_FORMAT) {
     return { ok: false, reason: "unsupported-format" };
   }
-  if (root.version !== DATA_BACKUP_VERSION) {
+  if (root.schemaVersion !== DATA_BACKUP_SCHEMA_VERSION) {
     return { ok: false, reason: "unsupported-version" };
   }
-  const terms = decodeCustomTermArray(root.customTerms, 2);
-  const problems = decodeSavedCustomProblemArray(root.savedCustomProblems);
+  const data = record(root.data);
+  if (data === null || !validExportedAt(root.exportedAt)) {
+    return { ok: false, reason: "invalid-data" };
+  }
+  const terms = decodeCustomTermArray(data.customTerms, 2);
+  const problems = decodeSavedCustomProblemArray(data.customProblems);
   return terms.ok && problems.ok
     ? {
         ok: true,

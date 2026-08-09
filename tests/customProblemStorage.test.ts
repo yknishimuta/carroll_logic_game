@@ -15,6 +15,9 @@ class MemoryStorage implements StringStorage {
   setItem(key: string, value: string): void {
     this.values.set(key, value);
   }
+  removeItem(key: string): void {
+    this.values.delete(key);
+  }
 }
 
 const problem: SavedCustomProblemDefinition = {
@@ -144,10 +147,12 @@ describe("saved custom problem storage", () => {
     expect(loadSavedCustomProblems({
       getItem: () => { throw new Error("blocked"); },
       setItem: () => undefined,
+      removeItem: () => undefined,
     })).toEqual({ ok: false, reason: "storage-unavailable" });
     expect(saveSavedCustomProblems({
       getItem: () => null,
       setItem: () => { throw new Error("full"); },
+      removeItem: () => undefined,
     }, [problem])).toEqual({ ok: false, reason: "write-failed" });
   });
 });

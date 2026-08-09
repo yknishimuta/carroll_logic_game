@@ -726,7 +726,7 @@ function createDataBackupViewModel(
     "invalid-term-catalog": feedback.invalidTermCatalog,
     "invalid-problem-catalog": feedback.invalidProblemCatalog,
     applied: feedback.applied,
-    "applied-with-save-error": feedback.appliedWithSaveError,
+    "save-error": feedback.saveError,
   };
   const status = state.dataImport.status;
   const pending = state.dataImport.pending;

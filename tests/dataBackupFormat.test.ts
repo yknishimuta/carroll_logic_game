@@ -1,26 +1,25 @@
 import { describe, expect, it } from "vitest";
 import {
   DATA_BACKUP_FORMAT,
-  DATA_BACKUP_VERSION,
+  DATA_BACKUP_SCHEMA_VERSION,
+  createDataBackupFilename,
   createDataBackupJson,
   parseDataBackupJson,
   type DataBackupContent,
 } from "../src/storage/dataBackupFormat";
 
+const exportedAt = new Date("2026-08-09T09:00:00.000Z");
 const content: DataBackupContent = {
   customTerms: [{
     id: "custom-term-1",
     labels: {
-      ja: { nounPhrase: "哲学者" },
-      en: {
-        subjectPlural: "philosophers",
-        predicatePhrase: "philosophers",
-      },
+      ja: { nounPhrase: "哲学者′" },
+      en: { subjectPlural: "philosophers", predicatePhrase: "philosophers" },
     },
   }],
   savedCustomProblems: [{
     id: "custom-problem-1",
-    title: "哲学者の問題",
+    title: "哲学者―人間",
     premises: {
       firstPremise: {
         form: "A",
@@ -36,19 +35,33 @@ const content: DataBackupContent = {
   }],
 };
 
+function backupValue(value: DataBackupContent = content): Record<string, unknown> {
+  return JSON.parse(createDataBackupJson(value, exportedAt)) as Record<string, unknown>;
+}
+
 describe("data backup format", () => {
-  it("exports deterministic indented version 3 JSON with one trailing newline", () => {
-    const json = createDataBackupJson({ customTerms: [], savedCustomProblems: [] });
-    expect(json).toBe(
-      `{\n  "format": "${DATA_BACKUP_FORMAT}",\n  "version": ${DATA_BACKUP_VERSION},\n  "customTerms": [],\n  "savedCustomProblems": []\n}\n`,
+  it("exports readable schema version 1 JSON with timestamp and domain data", () => {
+    expect(createDataBackupJson({ customTerms: [], savedCustomProblems: [] }, exportedAt)).toBe(
+      `{
+  "format": "${DATA_BACKUP_FORMAT}",
+  "schemaVersion": ${DATA_BACKUP_SCHEMA_VERSION},
+  "exportedAt": "2026-08-09T09:00:00.000Z",
+  "data": {
+    "customTerms": [],
+    "customProblems": []
+  }
+}
+`,
     );
-    expect(createDataBackupJson({ customTerms: [], savedCustomProblems: [] }))
-      .toBe(json);
+    expect(createDataBackupFilename(exportedAt)).toBe(
+      "carroll-logic-game-backup-2026-08-09.json",
+    );
   });
 
-  it("round trips terms and problems without UI state", () => {
-    const json = createDataBackupJson(content);
+  it("round trips Unicode and structured complemented occurrences", () => {
+    const json = createDataBackupJson(content, exportedAt);
     expect(parseDataBackupJson(json)).toEqual({ ok: true, content });
+    expect(json).toContain("哲学者′");
     expect(json).toContain('"complemented": true');
     for (const forbidden of [
       "locale", "phase", "problemSource", "assignmentMode",
@@ -58,49 +71,55 @@ describe("data backup format", () => {
 
   it.each([
     ["{", "invalid-json"],
-    [JSON.stringify({ version: 1 }), "unsupported-format"],
-    [JSON.stringify({ format: "other", version: 1 }), "unsupported-format"],
+    [JSON.stringify({ schemaVersion: 1 }), "unsupported-format"],
+    [JSON.stringify({ format: "other", schemaVersion: 1 }), "unsupported-format"],
     [JSON.stringify({ format: DATA_BACKUP_FORMAT }), "unsupported-version"],
-    [JSON.stringify({ format: DATA_BACKUP_FORMAT, version: "1" }), "unsupported-version"],
-    [JSON.stringify({ format: DATA_BACKUP_FORMAT, version: 2 }), "unsupported-version"],
-  ] as const)("rejects %s as %s", (json, reason) => {
+    [JSON.stringify({ format: DATA_BACKUP_FORMAT, schemaVersion: 0 }), "unsupported-version"],
+    [JSON.stringify({ format: DATA_BACKUP_FORMAT, schemaVersion: 2 }), "unsupported-version"],
+  ] as const)("rejects unsupported envelopes as %s", (json, reason) => {
     expect(parseDataBackupJson(json)).toEqual({ ok: false, reason });
   });
 
   it.each([
     null,
     [],
-    { ...JSON.parse(createDataBackupJson(content)), customTerms: "bad" },
+    { ...backupValue(), exportedAt: "yesterday" },
+    { ...backupValue(), data: null },
+    { ...backupValue(), data: { customTerms: [], customProblems: "bad" } },
+    { ...backupValue(), data: { customProblems: [] } },
     {
-      ...JSON.parse(createDataBackupJson(content)),
-      customTerms: [content.customTerms[0], content.customTerms[0]],
+      ...backupValue(),
+      data: { customTerms: [content.customTerms[0], content.customTerms[0]], customProblems: [] },
     },
-    { ...JSON.parse(createDataBackupJson(content)), savedCustomProblems: 1 },
     {
-      ...JSON.parse(createDataBackupJson(content)),
-      savedCustomProblems: [{
-        ...content.savedCustomProblems[0],
-        premises: {
-          ...content.savedCustomProblems[0]!.premises,
-          firstPremise: {
-            ...content.savedCustomProblems[0]!.premises.firstPremise,
-            form: "X",
+      ...backupValue(),
+      data: {
+        customTerms: [],
+        customProblems: [{
+          ...content.savedCustomProblems[0],
+          premises: {
+            ...content.savedCustomProblems[0]!.premises,
+            firstPremise: {
+              ...content.savedCustomProblems[0]!.premises.firstPremise,
+              form: "X",
+            },
           },
-        },
-      }],
+        }],
+      },
     },
   ])("rejects structurally invalid data %#", (value) => {
-    const json = JSON.stringify(value);
-    const result = parseDataBackupJson(json);
-    expect(result.ok).toBe(false);
+    expect(parseDataBackupJson(JSON.stringify(value)).ok).toBe(false);
   });
 
-  it("does not mutate frozen input", () => {
+  it("supports an empty backup and does not mutate frozen input", () => {
     const frozen = Object.freeze({
       customTerms: Object.freeze(content.customTerms),
       savedCustomProblems: Object.freeze(content.savedCustomProblems),
     });
-    createDataBackupJson(frozen);
+    createDataBackupJson(frozen, exportedAt);
     expect(frozen.customTerms).toBe(content.customTerms);
+    const empty = { customTerms: [], savedCustomProblems: [] } as const;
+    expect(parseDataBackupJson(createDataBackupJson(empty, exportedAt)))
+      .toEqual({ ok: true, content: empty });
   });
 });

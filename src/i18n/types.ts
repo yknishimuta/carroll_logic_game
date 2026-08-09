@@ -185,7 +185,7 @@ export interface UiMessages {
       readonly invalidTermCatalog: string;
       readonly invalidProblemCatalog: string;
       readonly applied: string;
-      readonly appliedWithSaveError: string;
+      readonly saveError: string;
     };
   };
   readonly counterPractice: {

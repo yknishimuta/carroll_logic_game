@@ -152,10 +152,10 @@ export const EN_MESSAGES = {
   dataBackup: {
     heading: "Data Backup",
     description: "Export and restore custom terms and saved custom problems in a single JSON file.",
-    exportHeading: "Save a backup",
+    exportHeading: "Export Backup",
     exportDescription: "Save your current custom terms and saved custom problems to your device as a JSON file.",
     exportAction: "Download backup",
-    importHeading: "Restore from a backup",
+    importHeading: "Restore Backup",
     importDescription: "Choose a previously exported JSON file, then review its contents before importing.",
     importFileLabel: "Choose a backup file",
     acceptedFileDescription: "You can select a JSON file up to 1 MiB.",
@@ -182,8 +182,8 @@ export const EN_MESSAGES = {
       invalidData: "The backup data structure is invalid.",
       invalidTermCatalog: "The custom terms in the backup are invalid.",
       invalidProblemCatalog: "The saved custom problems in the backup are invalid.",
-      applied: "The data was imported.",
-      appliedWithSaveError: "The data was imported for this session, but it could not be fully saved in this browser. Some or all of it may be lost after reloading.",
+      applied: "Backup restored.",
+      saveError: "The backup could not be restored. The currently saved data was not changed.",
     },
   },
   counterPractice: {
