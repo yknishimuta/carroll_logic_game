@@ -175,11 +175,11 @@ function closeTermManagement(container: HTMLElement): void {
   )!.click();
 }
 
-function addPhilosopher(container: HTMLElement): void {
+function addResearcher(container: HTMLElement): void {
   openTermManagement(container);
-  inputCustomTerm(container, "jaNounPhrase", "哲学者");
-  inputCustomTerm(container, "enSubjectPlural", "philosophers");
-  inputCustomTerm(container, "enPredicatePhrase", "philosophers");
+  inputCustomTerm(container, "jaNounPhrase", "研究者");
+  inputCustomTerm(container, "enSubjectPlural", "researchers");
+  inputCustomTerm(container, "enPredicatePhrase", "researchers");
   container.querySelector<HTMLButtonElement>(
     '[data-action="submit-custom-term"]',
   )!.click();
@@ -226,16 +226,16 @@ beforeEach(() => {
       customTerms: [{
         id: "custom-term-1",
         labels: {
-          ja: { nounPhrase: "哲学者" },
+          ja: { nounPhrase: "研究者" },
           en: {
-            subjectPlural: "philosophers",
-            predicatePhrase: "philosophers",
+            subjectPlural: "researchers",
+            predicatePhrase: "researchers",
           },
         },
       }],
       savedCustomProblems: [{
         id: "custom-problem-1",
-        title: "哲学者の問題",
+        title: "研究者の問題",
         premises: {
           firstPremise: { form: "A", subject: { termId: "human", complemented: false }, predicate: { termId: "animal", complemented: false } },
           secondPremise: {
@@ -292,8 +292,8 @@ beforeEach(() => {
     expect(storage.values.has(CUSTOM_PROBLEM_STORAGE_KEY)).toBe(true);
     expect(storage.values.size).toBe(2);
     select(container, "problem-source", "custom");
-    expect(container.textContent).toContain("哲学者");
-    expect(container.textContent).toContain("哲学者の問題");
+    expect(container.textContent).toContain("研究者");
+    expect(container.textContent).toContain("研究者の問題");
     container.querySelector<HTMLButtonElement>(
       '[data-action="open-saved-custom-problem"]',
     )!.click();
@@ -809,12 +809,12 @@ describe("mounted application interaction", () => {
     const storage = new MemoryStorage();
     const container = mount(storage);
     select(container, "problem-source", "custom");
-    addPhilosopher(container);
+    addResearcher(container);
     expect(container.textContent).toContain("登録数：1件");
     expect(container.querySelector('[data-custom-term-id]')).toBeNull();
     expect(container.querySelector(
       '[data-action="custom-term"] option[value="custom-term-1"]',
-    )?.textContent).toBe("哲学者");
+    )?.textContent).toBe("研究者");
     expect(JSON.parse(storage.values.get(CUSTOM_TERM_STORAGE_KEY)!))
       .toMatchObject({
         version: 2,
@@ -888,7 +888,7 @@ describe("mounted application interaction", () => {
     const storage = new MemoryStorage();
     const container = mount(storage);
     select(container, "problem-source", "custom");
-    addPhilosopher(container);
+    addResearcher(container);
     openTermManagement(container);
     container.querySelector<HTMLButtonElement>(
       '[data-action="edit-custom-term"][data-term-id="custom-term-1"]',
@@ -902,7 +902,7 @@ describe("mounted application interaction", () => {
     )!.click();
     expect(container.querySelector(
       '[data-custom-term-id="custom-term-1"]',
-    )?.textContent).toContain("哲学者");
+    )?.textContent).toContain("研究者");
 
     container.querySelector<HTMLButtonElement>(
       '[data-action="edit-custom-term"][data-term-id="custom-term-1"]',
@@ -918,7 +918,7 @@ describe("mounted application interaction", () => {
     closeTermManagement(container);
     expect(container.querySelector(
       '[data-action="custom-term"] option[value="custom-term-1"]',
-    )?.textContent).toBe("philosophers");
+    )?.textContent).toBe("researchers");
 
     openTermManagement(container);
     container.querySelector<HTMLButtonElement>(
@@ -935,7 +935,7 @@ describe("mounted application interaction", () => {
     const storage = new MemoryStorage();
     const container = mount(storage);
     select(container, "problem-source", "custom");
-    addPhilosopher(container);
+    addResearcher(container);
     selectCustom(container, "custom-form", "major", "A");
     selectCustom(container, "custom-term", "major", "human", "subjectTermId");
     selectCustom(container, "custom-term", "major", "animal", "predicateTermId");
@@ -949,9 +949,9 @@ describe("mounted application interaction", () => {
     );
     selectCustom(container, "custom-term", "minor", "human", "predicateTermId");
     createCustom(container);
-    expect(container.textContent).toContain("すべての哲学者は人間である。");
+    expect(container.textContent).toContain("すべての研究者は人間である。");
     advanceToConclusion(container);
-    expect(container.textContent).toContain("すべての哲学者は動物である。");
+    expect(container.textContent).toContain("すべての研究者は動物である。");
     button(container, "reset").click();
     openTermManagement(container);
     container.querySelector<HTMLButtonElement>(
@@ -984,7 +984,7 @@ describe("mounted application interaction", () => {
     };
     const session = mount(writeFailure);
     select(session, "problem-source", "custom");
-    addPhilosopher(session);
+    addResearcher(session);
     expect(session.querySelector(
       '[data-action="custom-term"] option[value="custom-term-1"]',
     )).not.toBeNull();
@@ -1319,6 +1319,52 @@ describe("mounted application interaction", () => {
       .toEqual({ version: 2, problems: [] });
   });
 
+  it("selects localized expanded terms and reopens a saved problem using their stable IDs", () => {
+    const storage = new MemoryStorage();
+    const container = mount(storage);
+    select(container, "problem-source", "custom");
+    const majorSubject = (): HTMLSelectElement =>
+      container.querySelector<HTMLSelectElement>(
+        '[data-action="custom-term"][data-premise-position="major"]' +
+        '[data-field="subjectTermId"]',
+      )!;
+    const labels = (): string[] => [...majorSubject().options]
+      .map(({ textContent }) => textContent ?? "");
+    for (const label of ["星", "橋", "哲学者", "バラ", "夢"]) {
+      expect(labels()).toContain(label);
+    }
+    selectCustom(container, "custom-term", "major", "star", "subjectTermId");
+    select(container, "locale", "en");
+    expect(majorSubject().value).toBe("star");
+    for (const label of ["stars", "bridges", "philosophers", "roses", "dreams"]) {
+      expect(labels()).toContain(label);
+    }
+
+    selectCustom(container, "custom-form", "major", "A");
+    selectCustom(container, "custom-term", "major", "logical-person", "subjectTermId");
+    selectCustom(container, "custom-term", "major", "book", "predicateTermId");
+    selectCustom(container, "custom-form", "minor", "A");
+    selectCustom(container, "custom-term", "minor", "philosopher", "subjectTermId");
+    selectCustom(container, "custom-term", "minor", "logical-person", "predicateTermId");
+    createCustom(container);
+    expect(container.textContent).toContain("All philosophers are logical people.");
+    saveCurrentProblem(container, "Philosophers and books");
+
+    const restored = mount(storage);
+    select(restored, "problem-source", "custom");
+    restored.querySelector<HTMLButtonElement>(
+      '[data-action="open-saved-custom-problem"]',
+    )!.click();
+    expect(restored.querySelector<HTMLSelectElement>(
+      '[data-action="custom-term"][data-premise-position="major"]' +
+      '[data-field="predicateTermId"]',
+    )?.value).toBe("book");
+    expect(restored.querySelector<HTMLSelectElement>(
+      '[data-action="custom-term"][data-premise-position="minor"]' +
+      '[data-field="subjectTermId"]',
+    )?.value).toBe("philosopher");
+  });
+
   it("creates, infers, saves, and restores a complemented custom subject", () => {
     const storage = new MemoryStorage();
     const container = mount(storage);
@@ -1521,7 +1567,7 @@ describe("mounted application interaction", () => {
     const storage = new MemoryStorage();
     const container = mount(storage);
     select(container, "problem-source", "custom");
-    addPhilosopher(container);
+    addResearcher(container);
     selectCustom(container, "custom-form", "major", "A");
     selectCustom(
       container,

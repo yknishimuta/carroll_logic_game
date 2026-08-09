@@ -26,10 +26,38 @@ const customTerms: readonly CustomTermDefinition[] = [
 ];
 
 describe("built-in term catalog", () => {
-  it("contains 15 unique term IDs", () => {
+  it("contains 45 unique term IDs", () => {
     const ids = BUILT_IN_TERMS.map(({ id }) => id);
-    expect(ids).toHaveLength(15);
-    expect(new Set(ids).size).toBe(15);
+    expect(ids).toHaveLength(45);
+    expect(new Set(ids).size).toBe(45);
+  });
+
+  it("contains all thirty expanded default terms in the requested order", () => {
+    expect(BUILT_IN_TERMS.slice(15).map(({ id }) => id)).toEqual([
+      "chicken", "star", "diligent-student", "rose", "ignorant-student",
+      "soldier", "river", "brave-person", "metal", "child",
+      "patient-person", "philosopher", "logical-person", "musical-instrument",
+      "island", "judge", "tree", "bridge", "picturesque-thing", "book",
+      "exciting-book", "dream", "egg", "planet", "canary", "oyster",
+      "pig", "lamb", "duck", "graceful-creature",
+    ]);
+  });
+
+  it.each([
+    ["star", "星", "stars"],
+    ["bridge", "橋", "bridges"],
+    ["philosopher", "哲学者", "philosophers"],
+    ["rose", "バラ", "roses"],
+    ["dream", "夢", "dreams"],
+    ["oyster", "カキ", "oysters"],
+  ] as const)("localizes expanded term %s", (id, ja, en) => {
+    const term = getBuiltInTerm(id);
+    expect(term.labels).toEqual({
+      ja: { nounPhrase: ja },
+      en: { subjectPlural: en, predicatePhrase: en },
+    });
+    expect(getTermDisplayName(term, "ja")).toBe(ja);
+    expect(getTermDisplayName(term, "en")).toBe(en);
   });
 
   it("provides every required label for every term", () => {

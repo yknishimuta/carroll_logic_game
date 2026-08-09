@@ -33,10 +33,10 @@ describe("data backup semantic validation", () => {
       customTerms: [{
         id: "custom-term-1",
         labels: {
-          ja: { nounPhrase: "哲学者" },
+          ja: { nounPhrase: "研究者" },
           en: {
-            subjectPlural: "philosophers",
-            predicatePhrase: "philosophers",
+            subjectPlural: "researchers",
+            predicatePhrase: "researchers",
           },
         },
       }],

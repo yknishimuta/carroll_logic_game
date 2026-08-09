@@ -478,7 +478,7 @@ describe("renderGameView", () => {
       '[data-action="custom-term"][data-premise-position="minor"]' +
       '[data-field="subjectTermId"]',
     )!;
-    expect(term.options).toHaveLength(16);
+    expect(term.options).toHaveLength(46);
     term.value = "human";
     term.dispatchEvent(new Event("change"));
     expect(callbacks.onCustomPremiseTermChange)

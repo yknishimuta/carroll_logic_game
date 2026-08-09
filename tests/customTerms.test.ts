@@ -18,9 +18,9 @@ import {
 
 function term(
   id: CustomTermId,
-  ja = "哲学者",
-  subject = "philosophers",
-  predicate = "philosophers",
+  ja = "研究者",
+  subject = "researchers",
+  predicate = "researchers",
 ): CustomTermDefinition {
   return {
     id,
@@ -32,9 +32,9 @@ function term(
 }
 
 const draft = {
-  jaNounPhrase: "哲学者",
-  enSubjectPlural: "philosophers",
-  enPredicatePhrase: "philosophers",
+  jaNounPhrase: "研究者",
+  enSubjectPlural: "researchers",
+  enPredicatePhrase: "researchers",
 };
 
 describe("custom term identity and drafts", () => {
@@ -67,7 +67,7 @@ describe("custom term identity and drafts", () => {
       "  思想家  ",
     );
     expect(updated).toEqual({ ...draft, jaNounPhrase: "  思想家  " });
-    expect(draft.jaNounPhrase).toBe("哲学者");
+    expect(draft.jaNounPhrase).toBe("研究者");
     expect(isCustomTermDraftField("jaNounPhrase")).toBe(true);
     expect(isCustomTermDraftField("other")).toBe(false);
   });
@@ -102,10 +102,10 @@ describe("custom term identity and drafts", () => {
 describe("custom term validation and CRUD", () => {
   it.each([
     ["ja", "create", { jaNounPhrase: "", enSubjectPlural: "", enPredicatePhrase: "" }, "japanese-required"],
-    ["ja", "create", { jaNounPhrase: "哲学者", enSubjectPlural: "philosophers", enPredicatePhrase: "" }, "incomplete-english"],
-    ["ja", "create", { jaNounPhrase: "哲学者", enSubjectPlural: "", enPredicatePhrase: "philosophers" }, "incomplete-english"],
+    ["ja", "create", { jaNounPhrase: "研究者", enSubjectPlural: "researchers", enPredicatePhrase: "" }, "incomplete-english"],
+    ["ja", "create", { jaNounPhrase: "研究者", enSubjectPlural: "", enPredicatePhrase: "researchers" }, "incomplete-english"],
     ["en", "create", { jaNounPhrase: "", enSubjectPlural: "", enPredicatePhrase: "" }, "english-required"],
-    ["en", "create", { jaNounPhrase: "", enSubjectPlural: "philosophers", enPredicatePhrase: "" }, "incomplete-english"],
+    ["en", "create", { jaNounPhrase: "", enSubjectPlural: "researchers", enPredicatePhrase: "" }, "incomplete-english"],
     ["ja", "update", { jaNounPhrase: "", enSubjectPlural: "", enPredicatePhrase: "" }, "at-least-one-language-required"],
   ] as const)("returns specific %s %s validation", (currentLocale, operation,
     candidate, reason) => {
@@ -116,9 +116,9 @@ describe("custom term validation and CRUD", () => {
   });
 
   it.each([
-    ["ja", { jaNounPhrase: "哲学者", enSubjectPlural: "", enPredicatePhrase: "" }],
-    ["ja", { jaNounPhrase: "哲学者", enSubjectPlural: "philosophers", enPredicatePhrase: "philosophers" }],
-    ["en", { jaNounPhrase: "", enSubjectPlural: "philosophers", enPredicatePhrase: "philosophers" }],
+    ["ja", { jaNounPhrase: "研究者", enSubjectPlural: "", enPredicatePhrase: "" }],
+    ["ja", { jaNounPhrase: "研究者", enSubjectPlural: "researchers", enPredicatePhrase: "researchers" }],
+    ["en", { jaNounPhrase: "", enSubjectPlural: "researchers", enPredicatePhrase: "researchers" }],
   ] as const)("accepts complete create input for %s", (currentLocale, candidate) => {
     expect(validateCustomTermDraft(candidate, [], {
       operation: "create", currentLocale,
@@ -126,18 +126,18 @@ describe("custom term validation and CRUD", () => {
   });
 
   it.each([
-    { jaNounPhrase: "哲学者", enSubjectPlural: "", enPredicatePhrase: "" },
-    { jaNounPhrase: "", enSubjectPlural: "philosophers", enPredicatePhrase: "philosophers" },
+    { jaNounPhrase: "研究者", enSubjectPlural: "", enPredicatePhrase: "" },
+    { jaNounPhrase: "", enSubjectPlural: "researchers", enPredicatePhrase: "researchers" },
   ])("accepts a complete single language during update", (candidate) => {
     expect(validateCustomTermDraft(candidate, [], {
       operation: "update", currentLocale: "ja", editingTermId: "custom-term-1",
     }).ok).toBe(true);
   });
   it("creates Japanese-only, English-only, and bilingual terms by locale", () => {
-    const jaOnly = createCustomTerm({ jaNounPhrase: "哲学者",
+    const jaOnly = createCustomTerm({ jaNounPhrase: "研究者",
       enSubjectPlural: "", enPredicatePhrase: "" }, BUILT_IN_TERMS, [], "ja");
     expect(jaOnly.ok && jaOnly.term.labels).toEqual({
-      ja: { nounPhrase: "哲学者" }, en: null,
+      ja: { nounPhrase: "研究者" }, en: null,
     });
     const enOnly = createCustomTerm({ jaNounPhrase: "",
       enSubjectPlural: "logicians", enPredicatePhrase: "logical" },
@@ -153,14 +153,14 @@ describe("custom term validation and CRUD", () => {
 
   it("allows translation addition and removal on update", () => {
     const original: CustomTermDefinition = { id: "custom-term-1", labels: {
-      ja: { nounPhrase: "哲学者" }, en: null,
+      ja: { nounPhrase: "研究者" }, en: null,
     } };
-    const added = updateCustomTerm(original.id, { jaNounPhrase: "哲学者",
-      enSubjectPlural: "philosophers", enPredicatePhrase: "philosophers" },
+    const added = updateCustomTerm(original.id, { jaNounPhrase: "研究者",
+      enSubjectPlural: "researchers", enPredicatePhrase: "researchers" },
     BUILT_IN_TERMS, [original], "en");
     expect(added.ok && added.term.id).toBe(original.id);
     if (!added.ok) return;
-    const removed = updateCustomTerm(original.id, { jaNounPhrase: "哲学者",
+    const removed = updateCustomTerm(original.id, { jaNounPhrase: "研究者",
       enSubjectPlural: "", enPredicatePhrase: "" }, BUILT_IN_TERMS,
     added.terms, "en");
     expect(removed.ok && removed.term.labels.en).toBeNull();
@@ -176,22 +176,22 @@ describe("custom term validation and CRUD", () => {
     )).toEqual({ ok: false, reason: "duplicate-term" });
     expect(validateCustomTermDraft(
       {
-        jaNounPhrase: "哲学者",
-        enSubjectPlural: "PHILOSOPHERS",
-        enPredicatePhrase: "Philosophers",
+        jaNounPhrase: "研究者",
+        enSubjectPlural: "RESEARCHERS",
+        enPredicatePhrase: "Researchers",
       },
       [term("custom-term-1")],
     )).toEqual({ ok: false, reason: "duplicate-term" });
     expect(validateCustomTermDraft(
       {
-        jaNounPhrase: " 哲学者 ",
-        enSubjectPlural: " philosophers ",
-        enPredicatePhrase: " philosophers ",
+        jaNounPhrase: " 研究者 ",
+        enSubjectPlural: " researchers ",
+        enPredicatePhrase: " researchers ",
       },
       [],
     )).toEqual({ ok: true, labels: {
-      ja: { nounPhrase: "哲学者" },
-      en: { subjectPlural: "philosophers", predicatePhrase: "philosophers" },
+      ja: { nounPhrase: "研究者" },
+      en: { subjectPlural: "researchers", predicatePhrase: "researchers" },
     } });
   });
 

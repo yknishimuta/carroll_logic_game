@@ -345,7 +345,7 @@ describe("custom problem view models", () => {
         { value: "O", label: "O — あるSはPではない" },
       ]);
     expect(model.customProblemEditor?.premises[0]?.subjectSelector.options)
-      .toHaveLength(15);
+      .toHaveLength(45);
     expect(model.concretePremises).toBeNull();
     expect(model.assignmentPanel.kind).toBe("unavailable");
     expect(model.abstractPremises).toBeNull();
@@ -519,7 +519,7 @@ describe("custom term view models", () => {
     const ja = createGameViewModel(customState);
     const en = createGameViewModel({ ...customState, locale: "en" });
     expect(ja.customProblemEditor?.premises[0]?.subjectSelector.options)
-      .toHaveLength(16);
+      .toHaveLength(46);
     expect(ja.customProblemEditor?.premises[0]?.subjectSelector.options.at(-1))
       .toEqual({ value: "custom-term-1", label: "哲学者" });
     expect(en.customProblemEditor?.premises[0]?.subjectSelector.options.at(-1))

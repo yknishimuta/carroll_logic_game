@@ -65,6 +65,19 @@ describe("formatConcreteProposition", () => {
     ).toBe("All humans are warm-blooded.");
   });
 
+  it.each([
+    ["A", "philosopher", "logical-person", "All philosophers are logical people."],
+    ["E", "bridge", "picturesque-thing", "No bridges are picturesque things."],
+    ["I", "book", "exciting-book", "Some books are exciting books."],
+    ["I", "duck", "graceful-creature", "Some ducks are graceful creatures."],
+  ] as const)("formats expanded English vocabulary", (form, subject, predicate, expected) => {
+    expect(formatConcreteProposition({
+      form,
+      subject: { termId: subject, complemented: false },
+      predicate: { termId: predicate, complemented: false },
+    }, "en", getBuiltInTerm)).toBe(expected);
+  });
+
   it("keeps English subject and predicate forms in Japanese fallback", () => {
     const fallback = resolveCustomTermForDisplay({ id: "custom-term-1", labels: {
       ja: null,
