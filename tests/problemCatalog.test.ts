@@ -68,6 +68,7 @@ describe("built-in problem catalog", () => {
       }
       if (expectedConclusionForm === null) {
         expect(result.completeConclusion).toBeNull();
+        expect(result.conclusionPresentation).toBeNull();
         expect(result.concreteConclusions).toEqual([]);
       } else {
         expect(result.completeConclusion).not.toBeNull();
@@ -79,8 +80,9 @@ describe("built-in problem catalog", () => {
           predicate: { role: "P", complemented: false },
         });
         expect(result.completeConclusion!.propositions.length).toBeGreaterThan(0);
+        expect(result.conclusionPresentation).not.toBeNull();
         expect(result.concreteConclusions).toHaveLength(
-          result.completeConclusion!.propositions.length,
+          result.conclusionPresentation!.propositions.length,
         );
       }
     },

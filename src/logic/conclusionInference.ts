@@ -36,9 +36,11 @@ const ALL_SIGNED_CONCLUSION_TERM_PAIRS: readonly {
   )
 );
 
-type ConclusionFact = `empty:${BiliteralCell}` | `existence:${BiliteralCell}`;
+type ConclusionFact =
+  | `empty:${BiliteralCell}`
+  | `existence:${BiliteralCell}`;
 
-function conclusionFacts(
+export function conclusionSemanticFacts(
   conclusion: SyllogismConclusion,
   settings: LogicSettings,
 ): readonly ConclusionFact[] {
@@ -57,7 +59,9 @@ function conclusionFacts(
   }
 }
 
-function biliteralFacts(state: BiliteralDiagramState): readonly ConclusionFact[] {
+export function biliteralSemanticFacts(
+  state: BiliteralDiagramState,
+): readonly ConclusionFact[] {
   const empty = new Set(state.emptyCells);
   return [
     ...(["SP", "Sp", "sP", "sp"] as const)
@@ -86,13 +90,13 @@ export function inferCompleteConclusion(
   settings: LogicSettings = DEFAULT_LOGIC_SETTINGS,
 ): CompleteConclusion | null {
   const normalizedState = normalizeBiliteralDiagramState(state);
-  const targetFacts = biliteralFacts(normalizedState);
+  const targetFacts = biliteralSemanticFacts(normalizedState);
   if (targetFacts.length === 0) return null;
   const uncovered = new Set(targetFacts);
   const candidates = inferAllEntailedSignedPropositions(normalizedState, settings)
     .map((proposition) => ({
       proposition,
-      facts: conclusionFacts(proposition, settings),
+      facts: conclusionSemanticFacts(proposition, settings),
     }));
   const propositions: SyllogismConclusion[] = [];
 

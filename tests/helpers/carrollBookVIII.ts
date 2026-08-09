@@ -80,11 +80,40 @@ export interface CarrollSourceMetadata {
   readonly example: number;
 }
 
+export interface CarrollAnswerSourceMetadata {
+  readonly work: typeof CARROLL_BOOK_VIII_SOURCE.work;
+  readonly edition: typeof CARROLL_BOOK_VIII_SOURCE.edition;
+  readonly year: typeof CARROLL_BOOK_VIII_SOURCE.year;
+  readonly book: typeof CARROLL_BOOK_VIII_SOURCE.book;
+  readonly chapter: 2;
+  readonly section: 4 | 5 | 6;
+  readonly example: number;
+  readonly printedPages: readonly [number, number];
+}
+
 export function carrollSource(
   section: 2 | 3 | 4 | 5 | 6,
   example: number,
 ): CarrollSourceMetadata {
   return { ...CARROLL_BOOK_VIII_SOURCE, section, example };
+}
+
+export function carrollAnswerSource(
+  section: 4 | 5 | 6,
+  example: number,
+): CarrollAnswerSourceMetadata {
+  const printedPages = section === 4
+    ? [127, 128] as const
+    : section === 5
+    ? [128, 130] as const
+    : [130, 131] as const;
+  return {
+    ...CARROLL_BOOK_VIII_SOURCE,
+    chapter: 2,
+    section,
+    example,
+    printedPages,
+  };
 }
 
 export type CarrollTriliteralExistence =

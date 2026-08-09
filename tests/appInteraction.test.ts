@@ -395,12 +395,37 @@ describe("mounted application interaction", () => {
     expect(container.textContent).toContain("ある S は P である。");
   });
 
+  it("presents built-in Celarent conventionally without losing diagram existence", () => {
+    const container = mount();
+    select(container, "problem", "celarent-eae1");
+    advanceToConclusion(container);
+    const conclusion = container.querySelector(".logic-game__conclusion")!;
+    expect(conclusion.textContent).toContain("いかなる蛇も温血動物ではない。");
+    expect(conclusion.textContent).toContain("いかなる S も P ではない。");
+    expect(conclusion.textContent).not.toContain("温血動物′");
+    expect(conclusion.textContent).not.toContain("P′");
+    expect(container.querySelectorAll(
+      '.carroll-diagram [data-counter-kind="emptiness"]',
+    )).toHaveLength(1);
+    expect(container.querySelectorAll(
+      '.carroll-diagram [data-counter-kind="existence"]',
+    )).toHaveLength(1);
+
+    select(container, "locale", "en");
+    expect(conclusion.isConnected).toBe(false);
+    const englishConclusion = container.querySelector(".logic-game__conclusion")!;
+    expect(englishConclusion.textContent).toContain(
+      "No snakes are warm-blooded.",
+    );
+    expect(englishConclusion.textContent).toContain("No S are P.");
+  });
+
   it("derives E for Cesare", () => {
     const container = mount();
     select(container, "problem", "cesare-eae2");
     advanceToConclusion(container);
-    expect(container.textContent).toContain("すべての雀は哺乳類′である。");
-    expect(container.textContent).toContain("すべての S は P′ である。");
+    expect(container.textContent).toContain("いかなる雀も哺乳類ではない。");
+    expect(container.textContent).toContain("いかなる S も P ではない。");
   });
 
   it("keeps the existing single-conclusion paragraph for Barbara", () => {
@@ -430,11 +455,11 @@ describe("mounted application interaction", () => {
     )].map(({ textContent }) => textContent);
     expect(concreteItems).toEqual([
       "すべての人間は死すべきものである。",
-      "すべての死すべきもの′は人間′である。",
+      "ある人間′は死すべきものではない。",
     ]);
     expect(abstractItems).toEqual([
       "すべての S は P である。",
-      "すべての P′ は S′ である。",
+      "ある S′ は P ではない。",
     ]);
     expect(container.textContent).toContain(
       "この問題では、二文字図の確定情報を完全に表すため、完全な結論が複数の命題からなります。",
@@ -448,7 +473,7 @@ describe("mounted application interaction", () => {
       ".logic-game__concrete-conclusions ol li",
     )].map(({ textContent }) => textContent)).toEqual([
       "All humans are mortal.",
-      "All mortal beings′ are humans′.",
+      "Some humans′ are not mortal.",
     ]);
     expect(container.textContent).toContain(
       "In this problem, the complete conclusion contains multiple propositions in order to express all the definite information in the biliteral diagram.",
@@ -458,7 +483,7 @@ describe("mounted application interaction", () => {
     );
   });
 
-  it("uses one CompleteConclusion-backed question per complete proposition", () => {
+  it("uses one presentation-backed question per presented proposition", () => {
     const container = mount();
     select(container, "problem-source", "custom");
     fillCustomBookVIIISection4No10(container);
@@ -474,8 +499,8 @@ describe("mounted application interaction", () => {
     expect(answers).toHaveLength(2);
     expect(answers.map(({ dataset }) => dataset.questionIndex)).toEqual(["0", "1"]);
     expect(button(container, "next").disabled).toBe(true);
-    for (const answer of answers) {
-      answer.value = "A";
+    for (const [index, answer] of answers.entries()) {
+      answer.value = index === 0 ? "A" : "O";
       answer.dispatchEvent(new Event("change"));
     }
     container.querySelector<HTMLButtonElement>(
@@ -1150,9 +1175,10 @@ describe("mounted application interaction", () => {
   });
 
   it.each([
+    ["celarent-eae1", "E"],
     ["darii-aii1", "I"],
     ["ferio-eio1", "O"],
-    ["cesare-eae2", "A"],
+    ["cesare-eae2", "E"],
   ] as const)("accepts %s with conclusion %s", (problemId, answer) => {
     const container = mount();
     select(container, "problem", problemId);
@@ -1488,6 +1514,39 @@ describe("mounted application interaction", () => {
       );
     },
   );
+
+  it("uses O instead of I with P′ for a complemented custom conclusion and quiz", () => {
+    const container = mount();
+    select(container, "problem-source", "custom");
+    selectCustom(container, "custom-form", "major", "A");
+    selectCustom(container, "custom-term", "major", "animal", "subjectTermId");
+    selectCustom(container, "custom-term", "major", "mortal", "predicateTermId");
+    setCustomComplement(container, "major", "predicateComplemented", true);
+    selectCustom(container, "custom-form", "minor", "I");
+    selectCustom(container, "custom-term", "minor", "human", "subjectTermId");
+    selectCustom(container, "custom-term", "minor", "animal", "predicateTermId");
+    createCustom(container);
+    select(container, "conclusion-answer-mode", "quiz");
+    button(container, "next").click();
+    button(container, "next").click();
+
+    const answer = container.querySelector<HTMLSelectElement>(
+      '[data-action="conclusion-answer"]',
+    )!;
+    expect(answer.textContent).toContain("O — ある人間は死すべきものではない。");
+    expect(answer.textContent).not.toContain("I — ある人間は死すべきもの′である。");
+    submitConclusion(container, "O");
+    expect(container.textContent).toContain("正解です。");
+    button(container, "next").click();
+
+    const conclusion = container.querySelector(".logic-game__conclusion")!;
+    expect(conclusion.textContent).toContain("ある人間は死すべきものではない。");
+    expect(conclusion.textContent).toContain("ある S は P ではない。");
+    expect(conclusion.textContent).not.toContain("P′");
+    expect(container.querySelectorAll(
+      '.carroll-diagram [data-counter-kind="existence"]',
+    )).toHaveLength(1);
+  });
 
   it("creates and edits saved problem titles with IME composition", () => {
     const storage = new MemoryStorage();

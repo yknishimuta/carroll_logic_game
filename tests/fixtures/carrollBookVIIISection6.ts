@@ -3,9 +3,11 @@ import type { AbstractProposition } from "../../src/domain/proposition";
 import type { AbstractSyllogism } from "../../src/domain/syllogism";
 import {
   carrollConclusion,
+  carrollAnswerSource,
   carrollProposition,
   carrollSource,
   type CarrollSourceMetadata,
+  type CarrollAnswerSourceMetadata,
 } from "../helpers/carrollBookVIII";
 import type { CarrollFallacy } from "./carrollBookVIIISection4";
 
@@ -28,6 +30,7 @@ export interface CarrollBookVIIISection6Case {
   readonly section: 6;
   readonly number: number;
   readonly source: CarrollSourceMetadata;
+  readonly answerSource: CarrollAnswerSourceMetadata;
   readonly sourceText: readonly [string, string, string];
   readonly premises: AbstractSyllogism;
   readonly proposedConclusion: SyllogismConclusion;
@@ -81,6 +84,7 @@ function section6Case(
     section: 6,
     number,
     source: carrollSource(6, number),
+    answerSource: carrollAnswerSource(6, number),
     sourceText,
     premises: normalizePremises(sourceFirstPremise, sourceSecondPremise),
     proposedConclusion,

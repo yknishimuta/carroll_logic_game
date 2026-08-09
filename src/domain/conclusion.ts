@@ -25,12 +25,11 @@ export interface SyllogismConclusion {
   readonly predicate: AbstractTermOccurrence;
 }
 
-/**
- * A deterministic, non-redundant proposition set semantically equivalent to
- * all certain retinend information in the projected biliteral state.
- */
+/** Semantic conclusion result. This is not a user-facing presentation contract. */
 export interface CompleteConclusion {
+  /** Authoritative state for conclusion diagrams and expected placements. */
   readonly biliteralState: BiliteralDiagramState;
+  /** Complete, irredundant semantic proposition basis. */
   readonly propositions: readonly SyllogismConclusion[];
 }
 

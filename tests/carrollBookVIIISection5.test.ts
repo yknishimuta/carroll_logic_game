@@ -3,7 +3,10 @@ import { DEFAULT_LOGIC_SETTINGS } from "../src/domain/logicSettings";
 import type { TermDefinition } from "../src/domain/term";
 import { abstractProposition, abstractSyllogism } from "../src/logic/abstraction";
 import { assignTermRoles } from "../src/logic/termAssignment";
-import { computeProblem } from "../src/app/problemComputation";
+import {
+  computeProblem,
+} from "../src/app/problemComputation";
+import { concreteProposition } from "../src/logic/abstraction";
 import { formatConcreteProposition } from "../src/i18n/propositionFormatter";
 import { CARROLL_BOOK_VIII_SECTION_5 } from "./fixtures/carrollBookVIIISection5";
 import {
@@ -62,10 +65,19 @@ describe("Lewis Carroll Book VIII §5 golden corpus", () => {
 
     it(`Book VIII §5 No. ${testCase.number} [concrete round-trip]`, () => {
       const computation = computeProblem({ id: `carroll-viii-5-${testCase.number}`, premises: testCase.concretePremises }, DEFAULT_LOGIC_SETTINGS);
-      const actual = computation.concreteConclusions;
-      const roundTripped = actual.map((value) => abstractProposition(value, testCase.assignment));
-      expect(roundTripped).toEqual(computation.completeConclusion?.propositions ?? []);
-      expect(propositionSetRetinendClosure(roundTripped, DEFAULT_LOGIC_SETTINGS)).toEqual(
+      const presentedRoundTrip = computation.concreteConclusions.map((value) =>
+        abstractProposition(value, testCase.assignment)
+      );
+      expect(presentedRoundTrip).toEqual(
+        computation.conclusionPresentation?.propositions ?? [],
+      );
+      const semanticRoundTrip = (computation.completeConclusion?.propositions ?? [])
+        .map((value) => concreteProposition(value, testCase.assignment))
+        .map((value) => abstractProposition(value, testCase.assignment));
+      expect(semanticRoundTrip).toEqual(
+        computation.completeConclusion?.propositions ?? [],
+      );
+      expect(propositionSetRetinendClosure(semanticRoundTrip, DEFAULT_LOGIC_SETTINGS)).toEqual(
         propositionSetRetinendClosure(
           testCase.expectedConcreteConclusions.map((value) =>
             abstractProposition(value, testCase.assignment)

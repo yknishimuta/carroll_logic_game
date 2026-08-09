@@ -227,7 +227,7 @@ export function mountApp(
           type: "submit-conclusion-answer",
           validation: validateConclusionQuizAnswers(
             state.conclusionQuiz.answers,
-            deriveConclusionQuizQuestions(computation.completeConclusion),
+            deriveConclusionQuizQuestions(computation.conclusionPresentation),
           ),
         });
       },

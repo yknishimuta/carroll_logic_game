@@ -54,6 +54,23 @@ export function abstractProposition(
   };
 }
 
+export function concreteProposition(
+  proposition: AbstractProposition,
+  assignment: TermAssignment,
+): ConcreteProposition {
+  return {
+    form: proposition.form,
+    subject: {
+      termId: assignment[proposition.subject.role],
+      complemented: proposition.subject.complemented,
+    },
+    predicate: {
+      termId: assignment[proposition.predicate.role],
+      complemented: proposition.predicate.complemented,
+    },
+  };
+}
+
 
 export function abstractSyllogism(
   syllogism: ConcreteSyllogism,

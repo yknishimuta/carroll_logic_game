@@ -3,10 +3,12 @@ import type { AbstractProposition } from "../../src/domain/proposition";
 import type { AbstractSyllogism } from "../../src/domain/syllogism";
 import {
   carrollConclusion,
+  carrollAnswerSource,
   carrollProposition,
   carrollSource,
   carrollSyllogism,
   type CarrollSourceMetadata,
+  type CarrollAnswerSourceMetadata,
 } from "../helpers/carrollBookVIII";
 
 export type CarrollFallacy =
@@ -29,6 +31,7 @@ export interface CarrollBookVIIISection4Case {
   readonly section: 4;
   readonly number: number;
   readonly source: CarrollSourceMetadata;
+  readonly answerSource: CarrollAnswerSourceMetadata;
   readonly sourceText: readonly [string, string];
   readonly premises: AbstractSyllogism;
   readonly expected: CarrollSection4Expected;
@@ -64,6 +67,7 @@ function section4Case(
     section: 4,
     number,
     source: carrollSource(4, number),
+    answerSource: carrollAnswerSource(4, number),
     sourceText,
     // The source prints the x–m proposition first. The app's syllogism model
     // stores the P-bearing major premise first and the S-bearing minor second;

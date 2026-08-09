@@ -2,7 +2,12 @@ import type { AbstractProposition, ConcreteProposition } from "../../src/domain/
 import type { AbstractSyllogism, ConcreteSyllogism } from "../../src/domain/syllogism";
 import type { TermAssignment, TermRole } from "../../src/domain/term";
 import { abstractTerm, concreteTerm } from "../../src/domain/term";
-import { carrollSource, type CarrollSourceMetadata } from "../helpers/carrollBookVIII";
+import {
+  carrollAnswerSource,
+  carrollSource,
+  type CarrollAnswerSourceMetadata,
+  type CarrollSourceMetadata,
+} from "../helpers/carrollBookVIII";
 import type { CarrollFallacy } from "./carrollBookVIIISection4";
 
 export interface CarrollConcreteDictionary {
@@ -20,6 +25,7 @@ export interface CarrollBookVIIISection5Case {
   readonly section: 5;
   readonly number: number;
   readonly source: CarrollSourceMetadata;
+  readonly answerSource: CarrollAnswerSourceMetadata;
   readonly sourcePremises: readonly [string, string];
   readonly sourceAnswerText: string;
   readonly dictionary: CarrollConcreteDictionary;
@@ -94,6 +100,7 @@ function section5Case(
     section: 5,
     number,
     source: carrollSource(5, number),
+    answerSource: carrollAnswerSource(5, number),
     sourcePremises,
     sourceAnswerText,
     dictionary,

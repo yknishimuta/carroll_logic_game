@@ -82,11 +82,11 @@ describe("conclusion quiz", () => {
     expect(first.check).not.toBe(second.check);
   });
 
-  it("derives one signed question for Barbara from CompleteConclusion", () => {
+  it("derives one signed question for Barbara from ConclusionPresentation", () => {
     const problem = getBuiltInProblem("barbara-aaa1");
     const computation = computeProblem(problem);
     const questions = deriveConclusionQuizQuestions(
-      computation.completeConclusion,
+      computation.conclusionPresentation,
     );
     expect(questions).toEqual([{
       proposition: {
@@ -102,6 +102,20 @@ describe("conclusion quiz", () => {
       .toEqual({ ok: false, reason: "incorrect" });
   });
 
+  it("uses the conventional Celarent presentation as the quiz question", () => {
+    const computation = computeProblem(getBuiltInProblem("celarent-eae1"));
+    expect(deriveConclusionQuizQuestions(
+      computation.conclusionPresentation,
+    )).toEqual([{
+      proposition: {
+        form: "E",
+        subject: { role: "S", complemented: false },
+        predicate: { role: "P", complemented: false },
+      },
+      expectedAnswer: "E",
+    }]);
+  });
+
   it("uses one no-conclusion question for null", () => {
     const questions = deriveConclusionQuizQuestions(null);
     expect(questions).toEqual([{ proposition: null, expectedAnswer: "none" }]);
@@ -109,15 +123,14 @@ describe("conclusion quiz", () => {
       .toEqual({ ok: true });
   });
 
-  it("rejects a non-null complete conclusion without propositions", () => {
+  it("rejects a non-null presentation without propositions", () => {
     expect(() => deriveConclusionQuizQuestions({
-      biliteralState: { emptyCells: [], existentials: [] },
       propositions: [],
-    })).toThrow(/must contain a proposition/);
+    })).toThrow(/presentation must contain a proposition/);
   });
 
-  it("requires every CompleteConclusion question to be answered", () => {
-    const completeConclusion = computeProblem({
+  it("requires every presented conclusion question to be answered", () => {
+    const presentation = computeProblem({
       id: "multiple",
       premises: {
         firstPremise: {
@@ -131,12 +144,12 @@ describe("conclusion quiz", () => {
           predicate: { termId: "m", complemented: false },
         },
       },
-    }).completeConclusion;
-    const questions = deriveConclusionQuizQuestions(completeConclusion);
+    }).conclusionPresentation;
+    const questions = deriveConclusionQuizQuestions(presentation);
     expect(questions).toHaveLength(2);
     expect(validateConclusionQuizAnswers(["A"], questions))
       .toEqual({ ok: false, reason: "incomplete" });
-    expect(validateConclusionQuizAnswers(["A", "A"], questions))
+    expect(validateConclusionQuizAnswers(["A", "O"], questions))
       .toEqual({ ok: true });
   });
 
@@ -156,7 +169,7 @@ describe("conclusion quiz", () => {
 
   it("does not disclose the expected answer in failures and is deterministic", () => {
     const questions = deriveConclusionQuizQuestions(
-      computeProblem(getBuiltInProblem("barbara-aaa1")).completeConclusion,
+      computeProblem(getBuiltInProblem("barbara-aaa1")).conclusionPresentation,
     );
     const first = validateConclusionQuizAnswers(["E"], questions);
     const second = validateConclusionQuizAnswers(["E"], questions);

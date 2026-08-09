@@ -10,6 +10,9 @@ describe("ProblemComputation complete conclusions", () => {
       emptyCells: ["Sp"],
       existentials: [{ sourceId: "second-premise", possibleCells: ["SP"] }],
     });
+    expect(computation.conclusionPresentation?.propositions).toEqual(
+      computation.completeConclusion?.propositions,
+    );
     expect(computation.conclusionPlacements).toEqual({
       emptinessCounters: [{ kind: "emptiness", anchor: { type: "cell", cell: "Sp" } }],
       existenceCounters: [{
@@ -49,6 +52,18 @@ describe("ProblemComputation complete conclusions", () => {
         predicate: { role: "S", complemented: true },
       },
     ]);
+    expect(computation.conclusionPresentation?.propositions).toEqual([
+      {
+        form: "A",
+        subject: { role: "S", complemented: false },
+        predicate: { role: "P", complemented: false },
+      },
+      {
+        form: "O",
+        subject: { role: "S", complemented: true },
+        predicate: { role: "P", complemented: false },
+      },
+    ]);
     expect(computation.concreteConclusions).toEqual([
       {
         form: "A",
@@ -56,12 +71,12 @@ describe("ProblemComputation complete conclusions", () => {
         predicate: { termId: "y", complemented: false },
       },
       {
-        form: "A",
-        subject: { termId: "y", complemented: true },
-        predicate: { termId: "x", complemented: true },
+        form: "O",
+        subject: { termId: "x", complemented: true },
+        predicate: { termId: "y", complemented: false },
       },
     ]);
-    expect(computation.completeConclusion?.propositions).toHaveLength(
+    expect(computation.conclusionPresentation?.propositions).toHaveLength(
       computation.concreteConclusions.length,
     );
     expect(computation.conclusionPlacements).toEqual({
@@ -105,6 +120,7 @@ describe("ProblemComputation complete conclusions", () => {
       getBuiltInProblem("invalid-undistributed-middle"),
     );
     expect(noConclusion.completeConclusion).toBeNull();
+    expect(noConclusion.conclusionPresentation).toBeNull();
     expect(noConclusion.concreteConclusions).toEqual([]);
 
     const multiple = computeProblem({
@@ -124,5 +140,6 @@ describe("ProblemComputation complete conclusions", () => {
     });
     expect(multiple.completeConclusion).not.toBeNull();
     expect(multiple.completeConclusion?.propositions).toHaveLength(2);
+    expect(multiple.conclusionPresentation?.propositions).toHaveLength(2);
   });
 });

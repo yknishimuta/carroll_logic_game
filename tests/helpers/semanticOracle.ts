@@ -5,6 +5,7 @@ import type {
 } from "../../src/domain/proposition";
 import type { AbstractSyllogism } from "../../src/domain/syllogism";
 import type { AbstractTermOccurrence } from "../../src/domain/term";
+import type { TermRole } from "../../src/domain/term";
 
 export interface SemanticCell {
   readonly S: boolean;
@@ -32,6 +33,49 @@ export const ALL_SEMANTIC_MODELS: readonly SemanticModel[] = Array.from(
       (_, cellIndex) => (modelNumber & (1 << cellIndex)) !== 0,
     ),
 );
+
+export const ALL_RETAINED_MODEL_MASKS: readonly number[] = Array.from(
+  { length: 16 },
+  (_, mask) => mask,
+);
+
+function retainedCellIndex(cell: SemanticCell): number {
+  return Number(!cell.S) * 2 + Number(!cell.P);
+}
+
+export function oracleRetainedModelMask(model: SemanticModel): number {
+  return SEMANTIC_CELLS.reduce(
+    (mask, cell, index) =>
+      model[index] === true ? mask | (1 << retainedCellIndex(cell)) : mask,
+    0,
+  );
+}
+
+export function oracleComplementRoleModel(
+  model: SemanticModel,
+  role: TermRole,
+): SemanticModel {
+  return SEMANTIC_CELLS.map((targetCell) => {
+    const sourceIndex = SEMANTIC_CELLS.findIndex((sourceCell) =>
+      sourceCell.S === (role === "S" ? !targetCell.S : targetCell.S) &&
+      sourceCell.M === (role === "M" ? !targetCell.M : targetCell.M) &&
+      sourceCell.P === (role === "P" ? !targetCell.P : targetCell.P)
+    );
+    if (sourceIndex < 0) throw new Error("Missing complemented semantic cell.");
+    return model[sourceIndex] === true;
+  });
+}
+
+export function oracleRetainedPropositionIsTrue(
+  retainedMask: number,
+  proposition: AbstractProposition,
+  settings: LogicSettings,
+): boolean {
+  const liftedModel = SEMANTIC_CELLS.map((cell) =>
+    !cell.M && (retainedMask & (1 << retainedCellIndex(cell))) !== 0
+  );
+  return oraclePropositionIsTrue(liftedModel, proposition, settings);
+}
 
 function hasObject(
   model: SemanticModel,

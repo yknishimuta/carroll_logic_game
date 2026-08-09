@@ -4,10 +4,7 @@ import type {
 } from "../domain/counterPlacement";
 import type { LogicSettings } from "../domain/logicSettings";
 import { DEFAULT_LOGIC_SETTINGS } from "../domain/logicSettings";
-import type {
-  AbstractProposition,
-  ConcreteProposition,
-} from "../domain/proposition";
+import type { ConcreteProposition } from "../domain/proposition";
 import type {
   AbstractSyllogism,
   ConcreteSyllogism,
@@ -15,7 +12,14 @@ import type {
 import type { TermAssignment } from "../domain/term";
 import type { TriliteralDiagramState } from "../domain/diagram";
 import type { CompleteConclusion } from "../domain/conclusion";
-import { abstractSyllogism } from "../logic/abstraction";
+import {
+  buildConclusionPresentation,
+  type ConclusionPresentation,
+} from "./conclusionPresentation";
+import {
+  abstractSyllogism,
+  concreteProposition,
+} from "../logic/abstraction";
 import { createConclusionCounterPlacements } from "../logic/conclusionDisplay";
 import { inferSyllogismConclusion } from "../logic/conclusionInference";
 import { mergeConstraints } from "../logic/constraintMerge";
@@ -28,6 +32,7 @@ export interface ProblemComputation {
   readonly assignment: TermAssignment;
   readonly abstractPremises: AbstractSyllogism;
   readonly completeConclusion: CompleteConclusion | null;
+  readonly conclusionPresentation: ConclusionPresentation | null;
   readonly concreteConclusions: readonly ConcreteProposition[];
   readonly firstPremiseState: TriliteralDiagramState;
   readonly combinedState: TriliteralDiagramState;
@@ -39,23 +44,6 @@ export interface ProblemComputation {
 export interface ComputableProblem {
   readonly id: string;
   readonly premises: ConcreteSyllogism;
-}
-
-export function createConcreteConclusion(
-  conclusion: AbstractProposition,
-  assignment: TermAssignment,
-): ConcreteProposition {
-  return {
-    form: conclusion.form,
-    subject: {
-      termId: assignment[conclusion.subject.role],
-      complemented: conclusion.subject.complemented,
-    },
-    predicate: {
-      termId: assignment[conclusion.predicate.role],
-      complemented: conclusion.predicate.complemented,
-    },
-  };
 }
 
 export function computeProblem(
@@ -95,6 +83,11 @@ export function computeProblem(
     );
   }
   const completeConclusion = inference.completeConclusion;
+  const conclusionPresentation = buildConclusionPresentation(
+    completeConclusion,
+    abstractPremises,
+    settings,
+  );
   const conclusionPlacements = createConclusionCounterPlacements(
     completeConclusion?.biliteralState ?? { emptyCells: [], existentials: [] },
   );
@@ -104,15 +97,15 @@ export function computeProblem(
     );
   }
 
-  const concreteConclusions = (completeConclusion?.propositions ?? []).map((conclusion) =>
-    createConcreteConclusion(conclusion, assignment)
-  );
+  const concreteConclusions = (conclusionPresentation?.propositions ?? [])
+    .map((conclusion) => concreteProposition(conclusion, assignment));
 
   return {
     problem,
     assignment,
     abstractPremises,
     completeConclusion,
+    conclusionPresentation,
     concreteConclusions,
     firstPremiseState,
     combinedState: inference.triliteralState,

@@ -1,8 +1,5 @@
-import type {
-  CompleteConclusion,
-  SyllogismConclusion,
-} from "../domain/conclusion";
 import {
+  type AbstractProposition,
   isPropositionForm,
   type PropositionForm,
 } from "../domain/proposition";
@@ -11,25 +8,26 @@ import type {
   CounterPlacementMode,
 } from "./counterPractice";
 import type { GamePhase } from "./state";
+import type { ConclusionPresentation } from "./conclusionPresentation";
 
 export type ConclusionQuizAnswer = PropositionForm | "none";
 export type ConclusionAnswerMode = "automatic" | "quiz";
 
 export interface ConclusionQuizQuestion {
-  readonly proposition: SyllogismConclusion | null;
+  readonly proposition: AbstractProposition | null;
   readonly expectedAnswer: ConclusionQuizAnswer;
 }
 
 export function deriveConclusionQuizQuestions(
-  completeConclusion: CompleteConclusion | null,
+  presentation: ConclusionPresentation | null,
 ): readonly ConclusionQuizQuestion[] {
-  if (completeConclusion === null) {
+  if (presentation === null) {
     return [{ proposition: null, expectedAnswer: "none" }];
   }
-  if (completeConclusion.propositions.length === 0) {
-    throw new Error("A complete conclusion must contain a proposition.");
+  if (presentation.propositions.length === 0) {
+    throw new Error("A conclusion presentation must contain a proposition.");
   }
-  return completeConclusion.propositions.map((proposition) => ({
+  return presentation.propositions.map((proposition) => ({
     proposition,
     expectedAnswer: proposition.form,
   }));

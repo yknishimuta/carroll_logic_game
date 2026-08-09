@@ -83,6 +83,11 @@ the P-bearing major premise first. With `x → S` and `y → P`, the test adapte
 therefore reverses the two source premises when constructing an
 `AbstractSyllogism`; `sourceText` remains in Carroll's order.
 
+The fixtures distinguish the Chapter I Examples locator (`source`) from the
+Chapter II Answers locator (`answerSource`). The latter is the authority for
+the source-backed presentation golden: §4 printed pp. 127–128, §5 pp. 128–130,
+and §6 pp. 130–131.
+
 Carroll's `No Concl.` cases retain the stated fallacy classification as
 test-only metadata. The current production result is required to contain no
 signed conclusion, and the independent oracle checks both S/P and P/S
@@ -117,6 +122,21 @@ order. They independently check the proposed and correct conclusions
 against the semantic oracle. The Diagram Solutions for Nos. 1–10 and the
 Method-of-Subscripts Solutions for all 40 were used to cross-check primes,
 premise order, proposed conclusions, and answer numbering.
+
+## Source-backed presentation golden
+
+The presentation suites compare `ConclusionPresentation` structurally with
+the human-transcribed source answer: form, S/P orientation, complement flags,
+multiplicity, and order. They do not derive expected values from inference,
+the semantic oracle, formatting, or the presentation selector.
+
+The suites also preserve a reviewed list of currently intentional differences
+between Carroll's source form and the application's Stage 3/4 policy. Carroll
+uses `I` with a complemented occurrence where the app deliberately prefers an
+uncomplemented `O`; he also sometimes preserves existential information in an
+`A` form where the traditional app branch presents `E`. These differences are
+kept explicit instead of being hidden by changing the source fixtures or by
+adding source-number special cases to production.
 
 One Gutenberg transcription ambiguity is recorded explicitly. On the §6
 Examples page No. 19 appears as `Some m are x`, while its proposed conclusion
@@ -184,10 +204,10 @@ triliteral emptiness, `Sp` projection, signed `E(S,P′)` inference,
 DOM text. An artificial `null`, `E(S,P)`, or O-counter at `SP` therefore fails
 an ordinary `npm test` run.
 
-`SyllogismConclusionResult.completeConclusion` is the sole authoritative
-conclusion result. It
-retains the projected biliteral state and a deterministic set of signed
-propositions, including P-to-S propositions when a single S-to-P proposition
-cannot express all certain empty and occupied quarters. Text, diagrams,
-manual expected placements, and quiz questions are derived from this result;
-there is no parallel single-conclusion or form-array result.
+`SyllogismConclusionResult.completeConclusion` is the semantic authority. Its
+biliteral state drives diagrams and expected placements, while its signed
+propositions form a complete, irredundant semantic basis. The separate
+`ConclusionPresentation` selects structured user-facing propositions for
+abstract text, concrete conversion, and quiz questions. No user-facing
+consumer reads the semantic basis directly, and no diagram is reconstructed
+from the presentation.

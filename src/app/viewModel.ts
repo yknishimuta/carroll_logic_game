@@ -32,10 +32,10 @@ import {
 import { getUiMessages, type UiMessages } from "../i18n/types";
 import type { CustomPremisePosition } from "./customProblem";
 import {
-  createConcreteConclusion,
   computeProblem,
   type ProblemComputation,
 } from "./problemComputation";
+import { concreteProposition } from "../logic/abstraction";
 import type {
   AppState,
   CustomProblemStatus,
@@ -983,7 +983,7 @@ function conclusionQuizViewModel(
   ) return null;
   const forms = ["A", "E", "I", "O"] as const;
   const quizQuestions = deriveConclusionQuizQuestions(
-    computation.completeConclusion,
+    computation.conclusionPresentation,
   );
   const questions = quizQuestions.map(
     (question, index): ConclusionQuizQuestionViewModel => {
@@ -1004,7 +1004,7 @@ function conclusionQuizViewModel(
             value: form,
             label: `${messages.conclusionQuiz.options[form]} — ${
               formatConcreteProposition(
-                createConcreteConclusion({ form, ...terms }, computation.assignment),
+                concreteProposition({ form, ...terms }, computation.assignment),
                 state.locale,
                 resolveTerm,
               )
@@ -1168,7 +1168,7 @@ export function createGameViewModel(state: AppState): GameViewModel {
       );
   const abstractConclusions = !conclusionDisclosed || computation === null
     ? []
-    : (computation.completeConclusion?.propositions ?? []).map((conclusion) =>
+    : (computation.conclusionPresentation?.propositions ?? []).map((conclusion) =>
         formatAbstractProposition(conclusion, state.locale)
       );
 
