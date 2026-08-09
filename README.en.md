@@ -55,8 +55,14 @@ Lewis Carroll's logic game.
 
 ## Requirements
 
-Only a web browser is required to use the game. Node.js and npm are required
-for development.
+Regular use only requires a current web browser. Node.js and npm are not
+required.
+
+Building, testing, or developing from source requires Node.js and npm.
+
+- Node.js 24 LTS is recommended
+- Node.js 22.12.0 or newer is required
+- npm
 
 The application has been tested with Google Chrome.
 
@@ -80,6 +86,7 @@ built `dist` folder.
 Run the following commands to generate the distribution files:
 
 ```sh
+node -v
 npm ci
 npm run build
 ```
@@ -88,9 +95,14 @@ After the build is complete, open dist/index.html.
 ## Setup and Development
 
 ```sh
-npm install
+node -v
+npm ci
 npm run dev
 ```
+
+If `node -v` reports a version older than 22.12.0, it is not supported for
+this project's development environment. If you use nvm, run `nvm use` in the
+repository root to select the Node.js 24 line from `.nvmrc`.
 
 The development URL is displayed in the console. TypeScript changes are
 watched automatically, but changes to HTML or CSS may require restarting the
@@ -99,6 +111,8 @@ development command.
 ### Verification
 
 ```sh
+node -v
+npm ci
 npm test
 npm run typecheck
 npm run build

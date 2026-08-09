@@ -40,7 +40,13 @@ Lewis Carroll, *Symbolic Logic, Part I: Elementary*, 4th ed.,  Macmillan, 1897.
 
 ## 必要環境
 
-ゲームの利用にはブラウザのみが必要です。開発時には Node.js と npm が必要です。
+通常利用では、現行のWebブラウザのみが必要です。Node.js や npm は不要です。
+
+ソースコードからビルド、テスト、開発を行う場合は、Node.js と npm が必要です。
+
+- Node.js 24 LTS 推奨
+- Node.js 22.12.0 以上が必要
+- npm
 
 動作確認には Google Chrome を使用しています。
 
@@ -55,6 +61,7 @@ GitHubの「Releases」から配布用ZIPファイルをダウンロードして
  GitHubの「Code」からダウンロードしたソースコードには、 ビルド済みの `dist` フォルダーは含まれていません。 次のコマンドで配布ファイルを生成してください。
 
 ```sh
+node -v
 npm ci
 npm run build
 ```
@@ -64,15 +71,20 @@ npm run build
 ## セットアップと開発 (エンジニア向け)
 
 ```sh
-npm install
+node -v
+npm ci
 npm run dev
 ```
+
+`node -v` が 22.12.0 未満の場合、このプロジェクトの開発環境としては対応していません。nvm を使用している場合は、リポジトリルートで `nvm use` を実行すると `.nvmrc` に従って Node.js 24 系を選択できます。
 
 開発用 URL はコンソールに表示されます。TypeScript の変更は監視されますが、HTML または CSS を変更した場合は開発コマンドの再起動が必要な場合があります。
 
 ### 検証
 
 ```sh
+node -v
+npm ci
 npm test
 npm run typecheck
 npm run build
