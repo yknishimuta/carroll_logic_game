@@ -10,6 +10,7 @@ import {
 import type { ConcreteSyllogism } from "../domain/syllogism";
 import type { TermId } from "../domain/term";
 import {
+  createCustomProblemDraftFromPremises,
   validateCustomProblemDraft,
   type CustomProblemDraft,
 } from "./customProblem";
@@ -183,17 +184,7 @@ export function deleteSavedCustomProblem(
 export function createCustomProblemDraftFromSavedProblem(
   problem: SavedCustomProblemDefinition,
 ): CustomProblemDraft {
-  const copy = (premise: ConcreteSyllogism["firstPremise"]) => ({
-    form: premise.form,
-    subjectTermId: premise.subject.termId,
-    subjectComplemented: premise.subject.complemented,
-    predicateTermId: premise.predicate.termId,
-    predicateComplemented: premise.predicate.complemented,
-  });
-  return {
-    majorPremise: copy(problem.premises.firstPremise),
-    minorPremise: copy(problem.premises.secondPremise),
-  };
+  return createCustomProblemDraftFromPremises(problem.premises);
 }
 
 export function savedCustomProblemUsesTerm(

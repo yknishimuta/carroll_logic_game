@@ -198,6 +198,7 @@ export const JA_TUTORIAL_CONTENT: TutorialContent = {
         { kind: "paragraph", text: "MとM′の区別をまとめると、どちらも二文字図のSP（SでありPである）の領域へ移ります。" },
         { kind: "paragraph", text: "SでありPではない領域、SではなくPである領域、SでもPでもない領域も、同じようにまとめます。" },
         { kind: "diagram", diagramId: "empty-biliteral-basics" },
+        { kind: "paragraph", text: "以下では、領域を簡潔に表すため、Sではないものを s と書きます。たとえば Sp は「Sであり、Pではないもの」を表します。p や m も同様です。この小文字表記はCarroll自身の記法ではなく、このアプリで領域を簡潔に説明するための便宜的な記法です。" },
         { kind: "table", table: { caption: "中項Mを消去する対応", headers: ["三文字図", "二文字結論図"], rows: [
           ["SMP と SmP", "SP"], ["SMp と Smp", "Sp"], ["sMP と smP", "sP"], ["sMp と smp", "sp"],
         ] } },
@@ -213,6 +214,7 @@ export const JA_TUTORIAL_CONTENT: TutorialContent = {
         { kind: "paragraph", text: "二つの命題は、どちらもSとPが重ならないという同じ空所情報を含みます。しかし、キャロルの体系では全称肯定命題に存在含意があるため、一つ目はSの存在を、二つ目はPの存在をそれぞれ保持します。一方だけでは二文字図に確定した存在情報の一部が失われるので、二命題を合わせて一つの完全な結論を表します。" },
         { kind: "subheading", text: "ゲームの進行" },
         { kind: "paragraph", text: "本アプリでは、第一前提をM–Pの関係、第二前提をS–Mの関係として扱います。自由問題を作成するときは、この順序に合わせて前提を入力してください。" },
+        { kind: "paragraph", text: "M–P、S–Mは項の組合せを示すものであり、主語と述語の向きを指定するものではありません。" },
         { kind: "paragraph", text: "このゲームでは、三文字図と二文字図を次の順に使用します。" },
         { kind: "list", ordered: true, items: ["第一前提を三文字図へ表す", "第二前提を同じ三文字図へ加え、二つの前提を組み合わせる", "MとM′の区別をまとめ、情報を二文字図へ移す", "二文字図に残ったSとPの関係から結論を読み取る"] },
       ],
@@ -480,6 +482,7 @@ export const EN_TUTORIAL_CONTENT: TutorialContent = {
       { kind: "paragraph", text: "When the distinction between M and M′ is merged, both regions are transferred to the SP region of the biliteral diagram, the region containing things that are both S and P." },
       { kind: "paragraph", text: "The regions for things that are S but not P, not S but P, and neither S nor P are merged in the same way." },
       { kind: "diagram", diagramId: "empty-biliteral-basics" },
+      { kind: "paragraph", text: "For brevity, this tutorial uses lowercase letters to indicate the complementary side of a term. For example, Sp means things that are S but not P. The letters p and m are used in the same way. This lowercase notation is not Carroll's own notation; it is a convenience used in this application to describe diagram regions compactly." },
       { kind: "table", table: { caption: "Eliminating the Middle Term M", headers: ["Triliteral Diagram", "Biliteral Conclusion Diagram"], rows: [
         ["SMP and SmP", "SP"], ["SMp and Smp", "Sp"], ["sMP and smP", "sP"], ["sMp and smp", "sp"],
       ] } },
@@ -495,6 +498,7 @@ export const EN_TUTORIAL_CONTENT: TutorialContent = {
       { kind: "paragraph", text: "Both propositions contain the same empty-region information that S and P do not overlap. However, in Carroll's system a universal affirmative carries existential import: the first conclusion preserves the existence of S, while the second preserves the existence of P. Either proposition by itself would omit part of the definite existence information in the biliteral diagram, so together they express one complete conclusion." },
       { kind: "subheading", text: "Game Flow" },
       { kind: "paragraph", text: "In this application, the first premise is treated as the relation between M and P, and the second premise as the relation between S and M. When creating a custom problem, enter the premises in this order." },
+      { kind: "paragraph", text: "M–P and S–M indicate the pairs of terms in each premise; they do not specify which term must be the subject or predicate." },
       { kind: "paragraph", text: "The game uses the triliteral and biliteral diagrams in the following sequence." },
       { kind: "list", ordered: true, items: ["Represent the first premise on the triliteral diagram.", "Add the second premise to the same diagram and combine the two premises.", "Merge the distinction between M and M′ and transfer the information to the biliteral diagram.", "Read the relation between S and P that remains on the biliteral diagram to obtain the conclusion."] },
     ], ruleSources: [

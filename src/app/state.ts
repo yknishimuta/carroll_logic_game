@@ -16,6 +16,7 @@ import type {
   TriliteralCounterAnchor,
 } from "../domain/counterPlacement";
 import {
+  createCustomProblemDraftFromPremises,
   createEmptyCustomProblemDraft,
   updateCustomPremiseForm,
   updateCustomPremiseComplement,
@@ -150,6 +151,7 @@ export interface AppState {
   readonly problemSource: ProblemSource;
   readonly customProblemDraft: CustomProblemDraft;
   readonly customPremises: ConcreteSyllogism | null;
+  readonly acceptedCustomPremises: ConcreteSyllogism | null;
   readonly customProblemStatus: CustomProblemStatus;
   readonly customTerms: readonly CustomTermDefinition[];
   readonly customTermEditor: CustomTermEditorState;
@@ -363,6 +365,7 @@ export function createInitialAppState(
     problemSource: "built-in",
     customProblemDraft: createEmptyCustomProblemDraft(),
     customPremises: null,
+    acceptedCustomPremises: null,
     customProblemStatus: "editing",
     customTerms: options.customTerms === undefined
       ? []
@@ -439,6 +442,16 @@ export function reduceAppState(
       return {
         ...state,
         phase: "problem",
+        ...(state.problemSource === "custom" &&
+            state.acceptedCustomPremises !== null
+          ? {
+              customProblemDraft: createCustomProblemDraftFromPremises(
+                state.acceptedCustomPremises,
+              ),
+              customPremises: state.acceptedCustomPremises,
+              customProblemStatus: "ready" as const,
+            }
+          : {}),
         counterPractice: resetCounterPractice(state),
         conclusionQuiz: resetConclusionQuiz(state),
       };
@@ -515,6 +528,9 @@ export function reduceAppState(
         customPremises: action.validation.ok
           ? action.validation.premises
           : null,
+        acceptedCustomPremises: action.validation.ok
+          ? action.validation.premises
+          : state.acceptedCustomPremises,
         customProblemStatus: action.validation.ok
           ? "ready"
           : action.validation.reason,
@@ -527,6 +543,7 @@ export function reduceAppState(
         phase: "problem",
         customProblemDraft: createEmptyCustomProblemDraft(),
         customPremises: null,
+        acceptedCustomPremises: null,
         customProblemStatus: "editing",
         counterPractice: resetCounterPractice(state),
         conclusionQuiz: resetConclusionQuiz(state),
@@ -583,7 +600,8 @@ export function reduceAppState(
     case "cancel-edit-custom-term":
       return { ...state, customTermEditor: emptyCustomTermEditor() };
     case "delete-custom-term": {
-      const used = premisesUseTerm(state.customPremises, action.termId);
+      const used = premisesUseTerm(state.customPremises, action.termId) ||
+        premisesUseTerm(state.acceptedCustomPremises, action.termId);
       const draft = draftWithoutTerm(
         state.customProblemDraft,
         action.termId,
@@ -598,6 +616,7 @@ export function reduceAppState(
             : { ...state.customTermEditor, status: "deleted" },
         customProblemDraft: draft,
         customPremises: used ? null : state.customPremises,
+        acceptedCustomPremises: used ? null : state.acceptedCustomPremises,
         customProblemStatus: used ? "editing" : state.customProblemStatus,
         counterPractice: used
           ? resetCounterPractice(state)
@@ -681,6 +700,7 @@ export function reduceAppState(
         savedCustomProblems: [...pending.content.savedCustomProblems],
         customProblemDraft: createEmptyCustomProblemDraft(),
         customPremises: null,
+        acceptedCustomPremises: null,
         customProblemStatus: "editing",
         customTermEditor: emptyCustomTermEditor(),
         savedCustomProblemEditor: emptySavedCustomProblemEditor(),
@@ -941,6 +961,7 @@ export function reduceAppState(
         problemSource: "custom",
         customProblemDraft: createCustomProblemDraftFromSavedProblem(problem),
         customPremises: problem.premises,
+        acceptedCustomPremises: problem.premises,
         customProblemStatus: "ready",
         counterPractice: resetCounterPractice(state),
         conclusionQuiz: resetConclusionQuiz(state),

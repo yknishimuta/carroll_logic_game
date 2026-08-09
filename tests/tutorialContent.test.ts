@@ -146,6 +146,10 @@ describe("tutorial content", () => {
     const blocks = biliteralJa.blocks ?? [];
     const definitionIndex = blocks.findIndex((block) => block.kind === "paragraph" && block.text.includes("この操作を「Mの消去」"));
     const diagramIndex = blocks.findIndex((block) => block.kind === "diagram");
+    const lowercaseNotationIndex = blocks.findIndex((block) =>
+      block.kind === "paragraph" && block.text ===
+        "以下では、領域を簡潔に表すため、Sではないものを s と書きます。たとえば Sp は「Sであり、Pではないもの」を表します。p や m も同様です。この小文字表記はCarroll自身の記法ではなく、このアプリで領域を簡潔に説明するための便宜的な記法です。"
+    );
     const tableIndex = blocks.findIndex((block) => block.kind === "table");
     const emptyRuleIndex = blocks.findIndex((block) => block.kind === "paragraph" && block.text.includes("両方とも空"));
     const multipleConclusionHeadingIndex = blocks.findIndex((block) =>
@@ -158,16 +162,22 @@ describe("tutorial content", () => {
       block.kind === "paragraph" && block.text ===
         "本アプリでは、第一前提をM–Pの関係、第二前提をS–Mの関係として扱います。自由問題を作成するときは、この順序に合わせて前提を入力してください。"
     );
+    const premisePairMeaningIndex = blocks.findIndex((block) =>
+      block.kind === "paragraph" && block.text ===
+        "M–P、S–Mは項の組合せを示すものであり、主語と述語の向きを指定するものではありません。"
+    );
     const flowIndex = blocks.findIndex((block) =>
       block.kind === "list" && block.ordered && block.items.length === 4
     );
     expect(definitionIndex).toBeLessThan(diagramIndex);
-    expect(diagramIndex).toBeLessThan(tableIndex);
+    expect(diagramIndex).toBeLessThan(lowercaseNotationIndex);
+    expect(lowercaseNotationIndex).toBeLessThan(tableIndex);
     expect(tableIndex).toBeLessThan(emptyRuleIndex);
     expect(emptyRuleIndex).toBeLessThan(multipleConclusionHeadingIndex);
     expect(multipleConclusionHeadingIndex).toBeLessThan(gameFlowHeadingIndex);
     expect(gameFlowHeadingIndex).toBeLessThan(premiseOrderIndex);
-    expect(premiseOrderIndex).toBeLessThan(flowIndex);
+    expect(premiseOrderIndex).toBeLessThan(premisePairMeaningIndex);
+    expect(premisePairMeaningIndex).toBeLessThan(flowIndex);
     expect(gameFlowHeadingIndex).toBeLessThan(flowIndex);
     expect(emptyRuleIndex).toBeLessThan(flowIndex);
     expect(biliteralEn.blocks?.filter((block) => block.kind === "subheading").map((block) =>
@@ -178,6 +188,13 @@ describe("tutorial content", () => {
       "Game Flow",
     ]);
     const enBlocks = biliteralEn.blocks ?? [];
+    const enLowercaseNotationIndex = enBlocks.findIndex((block) =>
+      block.kind === "paragraph" && block.text ===
+        "For brevity, this tutorial uses lowercase letters to indicate the complementary side of a term. For example, Sp means things that are S but not P. The letters p and m are used in the same way. This lowercase notation is not Carroll's own notation; it is a convenience used in this application to describe diagram regions compactly."
+    );
+    const enProjectionTableIndex = enBlocks.findIndex((block) =>
+      block.kind === "table" && block.table.caption === "Eliminating the Middle Term M"
+    );
     const enGameFlowHeadingIndex = enBlocks.findIndex((block) =>
       block.kind === "subheading" && block.text === "Game Flow"
     );
@@ -185,7 +202,17 @@ describe("tutorial content", () => {
       block.kind === "paragraph" && block.text ===
         "In this application, the first premise is treated as the relation between M and P, and the second premise as the relation between S and M. When creating a custom problem, enter the premises in this order."
     );
+    const enPremisePairMeaningIndex = enBlocks.findIndex((block) =>
+      block.kind === "paragraph" && block.text ===
+        "M–P and S–M indicate the pairs of terms in each premise; they do not specify which term must be the subject or predicate."
+    );
+    const enFlowIndex = enBlocks.findIndex((block) =>
+      block.kind === "list" && block.ordered && block.items.length === 4
+    );
     expect(enGameFlowHeadingIndex).toBeLessThan(enPremiseOrderIndex);
+    expect(enPremiseOrderIndex).toBeLessThan(enPremisePairMeaningIndex);
+    expect(enPremisePairMeaningIndex).toBeLessThan(enFlowIndex);
+    expect(enLowercaseNotationIndex).toBeLessThan(enProjectionTableIndex);
     expect(JA_TUTORIAL_CONTENT.sections.flatMap(({ blocks: sectionBlocks }) => sectionBlocks ?? [])
       .filter((block) => block.kind === "diagram" && block.diagramId === "empty-biliteral-basics")).toHaveLength(1);
     expect(JA_TUTORIAL_CONTENT.sections.flatMap(({ blocks: sectionBlocks }) => sectionBlocks ?? [])

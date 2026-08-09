@@ -244,6 +244,7 @@ describe("application state", () => {
       ...initial,
       problemSource: "custom",
       customPremises: premises,
+      acceptedCustomPremises: premises,
       customProblemStatus: "ready",
     };
     const edited = reduceAppState(ready, {
@@ -252,10 +253,96 @@ describe("application state", () => {
       form: "E",
     });
     expect(edited.customPremises).toBeNull();
+    expect(edited.acceptedCustomPremises).toEqual(premises);
     expect(edited.customProblemStatus).toBe("editing");
+    const reset = reduceAppState(edited, { type: "reset" });
+    expect(reset.customProblemDraft).toEqual({
+      majorPremise: {
+        form: "A",
+        subjectTermId: "animal",
+        subjectComplemented: false,
+        predicateTermId: "mortal",
+        predicateComplemented: false,
+      },
+      minorPremise: {
+        form: "A",
+        subjectTermId: "human",
+        subjectComplemented: false,
+        predicateTermId: "animal",
+        predicateComplemented: false,
+      },
+    });
+    expect(reset.customProblemStatus).toBe("ready");
     const cleared = reduceAppState(ready, { type: "clear-custom-problem" });
     expect(cleared.customProblemDraft).toEqual(initial.customProblemDraft);
     expect(cleared.customPremises).toBeNull();
+  });
+
+  it("restores the accepted problem after every premise form or complement edit", () => {
+    const premises = {
+      firstPremise: { form: "A" as const, subject: { termId: "animal", complemented: false }, predicate: { termId: "mortal", complemented: false } },
+      secondPremise: { form: "A" as const, subject: { termId: "human", complemented: false }, predicate: { termId: "animal", complemented: false } },
+    };
+    const acceptedDraft = {
+      majorPremise: {
+        form: "A" as const,
+        subjectTermId: "animal" as const,
+        subjectComplemented: false,
+        predicateTermId: "mortal" as const,
+        predicateComplemented: false,
+      },
+      minorPremise: {
+        form: "A" as const,
+        subjectTermId: "human" as const,
+        subjectComplemented: false,
+        predicateTermId: "animal" as const,
+        predicateComplemented: false,
+      },
+    };
+    const ready: AppState = {
+      ...initial,
+      phase: "conclusion",
+      problemSource: "custom",
+      customPremises: premises,
+      acceptedCustomPremises: premises,
+      customProblemStatus: "ready",
+    };
+    for (const position of ["major", "minor"] as const) {
+      for (const form of ["A", "E", "I", "O"] as const) {
+        const edited = reduceAppState(ready, {
+          type: "update-custom-premise-form",
+          position,
+          form,
+        });
+        expect(edited.phase, `${position} ${form} edit phase`).toBe("problem");
+        expect(edited.customPremises, `${position} ${form} active premises`).toBeNull();
+        const reset = reduceAppState(edited, { type: "reset" });
+        expect(reset.customProblemStatus, `${position} ${form} reset status`).toBe("ready");
+        expect(reset.customPremises, `${position} ${form} reset premises`).toEqual(premises);
+        expect(reset.customProblemDraft, `${position} ${form} reset draft`)
+          .toEqual(acceptedDraft);
+      }
+      for (const field of ["subjectComplemented", "predicateComplemented"] as const) {
+        const edited = reduceAppState(ready, {
+          type: "update-custom-premise-complement",
+          position,
+          field,
+          complemented: true,
+        });
+        const reset = reduceAppState(edited, { type: "reset" });
+        expect(reset.customPremises, `${position} ${field} reset premises`).toEqual(premises);
+        expect(reset.customProblemStatus, `${position} ${field} reset status`).toBe("ready");
+      }
+    }
+    const termEdited = reduceAppState(ready, {
+      type: "update-custom-premise-term",
+      position: "major",
+      field: "subjectTermId",
+      termId: "cat",
+    });
+    const termReset = reduceAppState(termEdited, { type: "reset" });
+    expect(termReset.customProblemDraft).toEqual(acceptedDraft);
+    expect(termReset.customPremises).toEqual(premises);
   });
 
   it("preserves a created custom problem across source changes, locale, and reset", () => {

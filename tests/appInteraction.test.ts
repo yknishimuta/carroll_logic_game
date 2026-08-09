@@ -599,6 +599,42 @@ describe("mounted application interaction", () => {
     expect(container.querySelectorAll("[data-counter-kind]")).toHaveLength(2);
   });
 
+  it.each([
+    ["major", "E"],
+    ["minor", "I"],
+  ] as const)(
+    "resets to the accepted custom problem after editing the %s premise form after showing the conclusion",
+    (position, form) => {
+      const container = mount();
+      select(container, "problem-source", "custom");
+      fillCustomBarbara(container);
+      createCustom(container);
+      advanceToConclusion(container);
+      expect(phase(container)).toBe("conclusion");
+
+      button(container, "previous").click();
+      button(container, "previous").click();
+      button(container, "previous").click();
+      expect(phase(container)).toBe("problem");
+      selectCustom(container, "custom-form", position, form);
+      expect(button(container, "next").disabled).toBe(true);
+      expect(container.querySelector(".logic-game__problem")).toBeNull();
+
+      const currentReset = button(container, "reset");
+      expect(currentReset.disabled).toBe(false);
+      currentReset.click();
+
+      expect(phase(container)).toBe("problem");
+      expect(container.querySelector<HTMLSelectElement>(
+        `[data-action="custom-form"][data-premise-position="${position}"]`,
+      )?.value).toBe("A");
+      expect(container.textContent).toContain("自由問題を作成しました。");
+      expect(container.querySelector(".logic-game__problem")).not.toBeNull();
+      expect(button(container, "next").disabled).toBe(false);
+      expect(container.querySelectorAll("[data-counter-kind]")).toHaveLength(0);
+    },
+  );
+
   it("creates a structurally valid invalid custom problem", () => {
     const container = mount();
     select(container, "problem-source", "custom");
@@ -1247,6 +1283,15 @@ describe("mounted application interaction", () => {
     expect(restored.textContent).toContain(
       "すべての人間は死すべきものである。",
     );
+    button(restored, "previous").click();
+    button(restored, "previous").click();
+    button(restored, "previous").click();
+    selectCustom(restored, "custom-form", "major", "O");
+    button(restored, "reset").click();
+    expect(restored.querySelector<HTMLSelectElement>(
+      '[data-action="custom-form"][data-premise-position="major"]',
+    )?.value).toBe("A");
+    expect(button(restored, "next").disabled).toBe(false);
     button(restored, "reset").click();
     select(restored, "conclusion-answer-mode", "quiz");
     restored.querySelector<HTMLButtonElement>(

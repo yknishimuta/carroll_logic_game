@@ -62,6 +62,22 @@ export function createEmptyCustomProblemDraft(): CustomProblemDraft {
   };
 }
 
+export function createCustomProblemDraftFromPremises(
+  premises: ConcreteSyllogism,
+): CustomProblemDraft {
+  const copy = (premise: ConcreteProposition): CustomPremiseDraft => ({
+    form: premise.form,
+    subjectTermId: premise.subject.termId,
+    subjectComplemented: premise.subject.complemented,
+    predicateTermId: premise.predicate.termId,
+    predicateComplemented: premise.predicate.complemented,
+  });
+  return {
+    majorPremise: copy(premises.firstPremise),
+    minorPremise: copy(premises.secondPremise),
+  };
+}
+
 export function updateCustomPremiseForm(
   draft: CustomProblemDraft,
   position: CustomPremisePosition,
