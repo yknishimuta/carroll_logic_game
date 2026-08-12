@@ -378,7 +378,7 @@ export const JA_TUTORIAL_CONTENT: TutorialContent = {
           ["記号", "S′=Sでない、M′=Mでない、P′=Pでない"],
           ["駒", "O=セルは空、I=少なくとも一つ存在"],
           ["境界", "境界I=二セルのどちらか。片側Oなら反対側へ確定、両側未確定なら境界のまま"],
-          ["結論図", "MとM′をまとめ、両方OならO、存在があれば対応セルへI"],
+          ["結論図", "MとM′をまとめ、両方OならO、存在があれば対応セルへIを置く"],
         ],
       }],
       ruleSources: [
@@ -613,7 +613,7 @@ export const EN_TUTORIAL_CONTENT: TutorialContent = {
       { id: "common-error-corrections", label: "Corrections to common mistakes", sourceReferences: [{ relation: "derived", sourceId: "symbolic-logic-i-iii-ii" }, { relation: "derived", sourceId: "symbolic-logic-i-iv-iii" }, { relation: "derived", sourceId: "symbolic-logic-i-iv-iv" }] },
     ] },
     { id: ids[10], heading: "10. Quick reference", paragraphs: ["A compact reference for printing or review."], tables: [{ caption: "Counter placement quick reference", headers: ["Category", "Rule"], rows: [
-      ["Symbols", "S′=not S, M′=not M, P′=not P"], ["Counters", "O=empty cell; I=at least one exists"], ["Boundary", "I means either cell; an O on one side fixes it to the other; otherwise leave it"], ["Conclusion", "Merge M/M′; project O only from two O cells; project any existence to its matching cell"],
+      ["Symbols", "S′=not S, M′=not M, P′=not P"], ["Counters", "O=empty cell; I=at least one exists"], ["Boundary", "I means either cell; an O on one side fixes it to the other; otherwise leave it"], ["Conclusion", "Merge M/M′; place O only when both corresponding cells have O; place I in the matching cell when existence is present"],
     ] }], ruleSources: [
       { id: "quick-reference-summary", label: "Counter placement quick-reference summary", sourceReferences: [{ relation: "derived", sourceId: "symbolic-logic-i-iii-ii" }, { relation: "derived", sourceId: "symbolic-logic-i-iv-iii" }, { relation: "derived", sourceId: "symbolic-logic-i-iv-iv" }] },
     ] },
